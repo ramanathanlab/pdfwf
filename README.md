@@ -18,8 +18,8 @@ This package setup was based on [Anthony Sottile's project setup](https://www.yo
 1. Click the "Use this template" button at the top right of this page.
 2. Delete and directories you will not be using (commonly `docs/` if you do not want to use MKDocs or `examples/` if you will not have example code).
 3. Follow the instructions to create the new repo then clone your repo locally.
-4. The template uses "foobar" to indicate things that need to be changed.
-   Start by searching for all instances (`git grep foobar`) and changing them accordingly.
+4. The template uses "pdfwf" to indicate things that need to be changed.
+   Start by searching for all instances (`git grep pdfwf`) and changing them accordingly.
 5. Configure pre-commit:
     - Go to [https://pre-commit.ci/](https://pre-commit.ci/) and enable pre-commit on your repo.
     - Update the pre-commit badge URL in this README with your new badge URL.
@@ -49,7 +49,7 @@ I recommend making a few other changes to the repo's setting on GitHub.
 
 Install via pip:
 ```
-$ pip install foobar
+$ pip install pdfwf
 ```
 
 For local development:

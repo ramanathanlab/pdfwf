@@ -3,13 +3,13 @@ requires = ["setuptools>=64.0", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "foobar"
+name = "pdfwf"
 version = "0.1.0"
 authors = [
-    {name = "foobar author"},
-    {email = "foobar@foobar.com"},
+    {name = "Kyle Hippe"},
+    {email = "khippe@anl.gov"},
 ]
-description = "Foobar example package."
+description = "Workflow for running pdf to text conversions at scale"
 readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
@@ -24,9 +24,8 @@ dependencies = [
 ]
 
 [project.urls]
-homepage = "https://github.com/foobar-author/foobar"
-documentation = "https://foobar.readthedocs.io"
-repository = "https://github.com/foobar-author/foobar"
+homepage = "https://github.com/ramanathanlab/pdfwf"
+repository = "https://github.com/ramanathanlab/pdfwf"
 
 [project.optional-dependencies]
 dev = [
@@ -138,7 +137,7 @@ quote-style = "single"
 
 [tool.ruff.isort]
 force-single-line = true
-known-first-party = ["foobar", "test", "testing"]
+known-first-party = ["pdfwf", "test", "testing"]
 order-by-type = false
 required-imports = ["from __future__ import annotations"]
 
