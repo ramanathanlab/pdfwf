@@ -6,4 +6,4 @@ from __future__ import annotations
 import importlib.metadata as importlib_metadata
 import sys
 
-__version__ = importlib_metadata.version('foobar')
+__version__ = importlib_metadata.version('pdfwf')
