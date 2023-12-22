@@ -1,5 +1,6 @@
 from pathlib import Path
 from argparse import ArgumentParser
+from typing import Tuple
 
 import parsl 
 from parsl import python_app 
@@ -7,13 +8,7 @@ from parsl import python_app
 from pdfwf.config import get_config
 
 @python_app
-def torch_test_app(): 
-    import torch 
-    import os 
-    return torch.cuda.is_available(), os.environ['CUDA_VISIBLE_DEVICES']
-
-@python_app
-def marker_single_app(pdf_path: str, out_path: str): 
+def marker_single_app(pdf_path: str, out_path: str) -> Tuple[str, str]: 
     import json
     import os
     from marker.models import load_all_models
@@ -37,38 +32,60 @@ def marker_single_app(pdf_path: str, out_path: str):
 
 
 if __name__ == "__main__":
-
-    
     parser = ArgumentParser()
-    parser.add_argument("--run_dir", default="./parsl", type=Path, help="Directory to place parsl run files in")
+    # PDF conversion options
+    parser.add_argument("--pdf-dir", type=Path, help="Directory containing pdfs to convert")
+    
+    # Parsl options
+    parser.add_argument("--run-dir", default="./parsl", type=Path, help="Directory to place parsl run files in")
+    parser.add_argument('--hf-cache', default=None, type=Path, help="Directory to place huggingface cache in")
+    parser.add_argument("--num-nodes", type=int, default=1, help="Number of nodes to use for conversion")
+    parser.add_argument('--account', default="RL-fold", type=str, help="Account to use on polaris")
+    parser.add_argument('--queue', default="debug", type=str, help="Queue to use on polaris")
+    parser.add_argument('--walltime', default="1:00:00", type=str, help="Max walltime for job in form HH:MM:SS")
 
+    # Debugging options
+    parser.add_argument("--num_conversions", type=float, default=float('inf'), help="Number of pdfs to convert")
 
     args = parser.parse_args()
 
+    # Setup parsl
     run_dir = str(args.run_dir.resolve())
+    worker_init = f"module load conda/2023-10-04;conda activate marker; cd {run_dir}"
+    if args.hf_cache is not None: 
+        worker_init += f";export HF_HOME={args.hf_cache.resolve()}" 
 
     user_opts = {
         "run_dir":          run_dir,
-        "worker_init":      f"module load conda/2023-10-04;conda activate marker; cd {run_dir}", # load the environment where parsl is installed
+        "worker_init":      worker_init, # load the environment where parsl is installed
         "scheduler_options":"#PBS -l filesystems=home:eagle:grand" , # specify any PBS options here, like filesystems
-        "account":          "RL-fold",
-        "queue":            "debug",
-        "walltime":         "1:00:00",
-        "nodes_per_block":  1, # number of nodes to allocate
+        "account":          args.account,
+        "queue":            args.queue,
+        "walltime":         args.walltime,
+        "nodes_per_block":  args.num_nodes, # number of nodes to allocate
         "cpus_per_node":    32, # Up to 64 with multithreading
         "available_accelerators": 4, # Each Polaris node has 4 GPUs, setting this ensures one worker per GPU
         "cores_per_worker": 8, # this will set the number of cpu hardware threads per worker.  
     }
-    
+
     config = get_config(user_opts)
     parsl.load(config) 
 
-    # Test Marker text extraction 
-    fp = "/lus/eagle/projects/radbio/papers/0000bad036a5fa1391c8fbcc291a92f86b577b01.pdf"
+    # Setup convsersions
     out_path = str(Path("text_out").resolve())
     Path(out_path).mkdir(exist_ok=True, parents=True)
 
-    print(marker_single_app(fp, out_path).result())
+    # Submit jobs
+    futures = []
+    for pdf_path in args.pdf_dir.glob("*.pdf"): 
+        futures.append(marker_single_app(str(pdf_path), out_path))
 
-
+        if len(futures) >= args.num_conversions: 
+            break   
+    
+    print(f"Submitted {len(futures)} jobs")
+    
+    # TODO clean up the outputs (save to log?)
+    for future in futures:
+        print(future.result())
 
