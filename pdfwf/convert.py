@@ -1,14 +1,26 @@
 from pathlib import Path
 from argparse import ArgumentParser
-from typing import Tuple
+import logging
 
 import parsl 
 from parsl import python_app 
 
 from pdfwf.config import get_config
 
+def setup_logging(logger_name): 
+    logger = logging.getLogger(logger_name)
+    logger.setLevel(logging.INFO)
+
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('[%(asctime)s] [%(levelname)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+
+    return logger
+
 @python_app
-def marker_single_app(pdf_path: str, out_path: str) -> Tuple[str, str]: 
+def marker_single_app(pdf_path: str, out_path: str) -> str: 
     import json
     import os
     from marker.models import load_all_models
@@ -28,13 +40,14 @@ def marker_single_app(pdf_path: str, out_path: str) -> Tuple[str, str]:
     with open(out_meta_filename, "w+", encoding='utf-8') as f:
         f.write(json.dumps(out_meta, indent=4))
 
-    return output_md, out_meta_filename
+    return output_md
 
 
 if __name__ == "__main__":
     parser = ArgumentParser()
     # PDF conversion options
     parser.add_argument("--pdf-dir", type=Path, help="Directory containing pdfs to convert")
+    parser.add_argument("--out-dir", type=Path, help="Directory to place converted pdfs in")
     
     # Parsl options
     parser.add_argument("--run-dir", default="./parsl", type=Path, help="Directory to place parsl run files in")
@@ -48,6 +61,9 @@ if __name__ == "__main__":
     parser.add_argument("--num_conversions", type=float, default=float('inf'), help="Number of pdfs to convert")
 
     args = parser.parse_args()
+
+    # setup pdfwf logging 
+    logger = setup_logging("pdfwf")
 
     # Setup parsl
     run_dir = str(args.run_dir.resolve())
@@ -72,8 +88,9 @@ if __name__ == "__main__":
     parsl.load(config) 
 
     # Setup convsersions
-    out_path = str(Path("text_out").resolve())
-    Path(out_path).mkdir(exist_ok=True, parents=True)
+    out_path = args.out_dir.resolve()
+    out_path.mkdir(exist_ok=True, parents=True)
+    out_path = str(out_path)
 
     # Submit jobs
     futures = []
@@ -81,11 +98,18 @@ if __name__ == "__main__":
         futures.append(marker_single_app(str(pdf_path), out_path))
 
         if len(futures) >= args.num_conversions: 
+            logger.info(f"Reached max number of conversions ({int(args.num_conversions)})")
             break   
     
-    print(f"Submitted {len(futures)} jobs")
+    logger.info(f"Submitted {len(futures)} jobs")
     
-    # TODO clean up the outputs (save to log?)
-    for future in futures:
-        print(future.result())
+    with open(args.out_dir / "result_log.txt", "w+") as f:
+        for future in futures:
+            try: 
+                res = future.result() 
+            except Exception as e: 
+                res = f"TID: {future.TID}\tError: {e}"
 
+            f.write(f"{res}\n")
+    
+    logger.info(f"Completed {len(futures)} jobs")  
