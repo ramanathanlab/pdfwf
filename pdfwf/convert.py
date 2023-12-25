@@ -20,7 +20,7 @@ def setup_logging(logger_name):
     return logger
 
 @python_app
-def marker_single_app(pdf_path: str, out_path: str) -> str: 
+def marker_single_app(pdf_path: str, out_dir: str) -> str: 
     import json
     import os
     from marker.models import load_all_models
@@ -32,11 +32,11 @@ def marker_single_app(pdf_path: str, out_path: str) -> str:
     model_lst = load_all_models()
     full_text, out_meta = convert_single_pdf(pdf_path, model_lst)
 
-    output_md = os.path.join(out_path, pdf_name + ".md")
+    output_md = os.path.join(out_dir, pdf_name + ".md")
     with open(output_md, "w+", encoding='utf-8') as f:
         f.write(full_text)
 
-    out_meta_filename = os.path.join(out_path, pdf_name + ".metadata.json")
+    out_meta_filename = os.path.join(out_dir, pdf_name + ".metadata.json")
     with open(out_meta_filename, "w+", encoding='utf-8') as f:
         f.write(json.dumps(out_meta, indent=4))
 
@@ -90,12 +90,13 @@ if __name__ == "__main__":
     # Setup convsersions
     out_path = args.out_dir.resolve()
     out_path.mkdir(exist_ok=True, parents=True)
-    out_path = str(out_path)
 
     # Submit jobs
     futures = []
-    for pdf_path in args.pdf_dir.glob("*.pdf"): 
-        futures.append(marker_single_app(str(pdf_path), out_path))
+    for pdf_path in args.pdf_dir.glob("**/*.pdf"): 
+        text_outdir = (out_path / pdf_path.relative_to(args.pdf_dir)).parent
+        text_outdir.mkdir(exist_ok=True, parents=True)
+        futures.append(marker_single_app(str(pdf_path), str(text_outdir)))
 
         if len(futures) >= args.num_conversions: 
             logger.info(f"Reached max number of conversions ({int(args.num_conversions)})")
@@ -108,7 +109,7 @@ if __name__ == "__main__":
             try: 
                 res = future.result() 
             except Exception as e: 
-                res = f"TID: {future.TID}\tError: {e}"
+                res = f"TID: {future.TID()}\tError: {e}"
 
             f.write(f"{res}\n")
     
