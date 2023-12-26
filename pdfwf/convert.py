@@ -51,14 +51,14 @@ if __name__ == "__main__":
     
     # Parsl options
     parser.add_argument("--run-dir", default="./parsl", type=Path, help="Directory to place parsl run files in")
-    parser.add_argument('--hf-cache', default=None, type=Path, help="Directory to place huggingface cache in")
+    parser.add_argument('--hf-cache', default=None, type=Path, help="Directory to place marker huggingface cache in")
     parser.add_argument("--num-nodes", type=int, default=1, help="Number of nodes to use for conversion")
-    parser.add_argument('--account', default="RL-fold", type=str, help="Account to use on polaris")
+    parser.add_argument('--account', required=True, type=str, help="Account to charge for job")
     parser.add_argument('--queue', default="debug", type=str, help="Queue to use on polaris")
     parser.add_argument('--walltime', default="1:00:00", type=str, help="Max walltime for job in form HH:MM:SS")
 
     # Debugging options
-    parser.add_argument("--num_conversions", type=float, default=float('inf'), help="Number of pdfs to convert")
+    parser.add_argument("--num_conversions", type=float, default=float('inf'), help="Number of pdfs to convert (useful for debugging)")
 
     args = parser.parse_args()
 
@@ -109,7 +109,7 @@ if __name__ == "__main__":
             try: 
                 res = future.result() 
             except Exception as e: 
-                res = f"TID: {future.TID()}\tError: {e}"
+                res = f"TID: {future.TID}\tError: {e}"
 
             f.write(f"{res}\n")
     

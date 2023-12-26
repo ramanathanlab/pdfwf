@@ -20,7 +20,7 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
 ]
 dependencies = [
-    "requests",
+    "parsl>=2023.12.18",
 ]
 
 [project.urls]

@@ -1,6 +1,5 @@
 # Python Package Template Repo
 
-[![docs](https://github.com/gpauloski/python-template/actions/workflows/docs.yml/badge.svg)](https://github.com/gpauloski/python-template/actions)
 [![tests](https://github.com/gpauloski/python-template/actions/workflows/tests.yml/badge.svg)](https://github.com/gpauloski/python-template/actions)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/gpauloski/python-template/main.svg)](https://results.pre-commit.ci/latest/github/gpauloski/python-template/main)
 
@@ -13,55 +12,82 @@ Python package template repo that provides:
 
 This package setup was based on [Anthony Sottile's project setup](https://www.youtube.com/watch?v=q8DkatMZvUs&list=PLWBKAf81pmOaP9naRiNAqug6EBnkPakvY) but deviates in some places (e.g., `pyproject.toml` and `ruff`).
 
-## Setup Instructions
+## `pdfwf` Installation
 
-1. Click the "Use this template" button at the top right of this page.
-2. Delete and directories you will not be using (commonly `docs/` if you do not want to use MKDocs or `examples/` if you will not have example code).
-3. Follow the instructions to create the new repo then clone your repo locally.
-4. The template uses "pdfwf" to indicate things that need to be changed.
-   Start by searching for all instances (`git grep pdfwf`) and changing them accordingly.
-5. Configure pre-commit:
-    - Go to [https://pre-commit.ci/](https://pre-commit.ci/) and enable pre-commit on your repo.
-    - Update the pre-commit badge URL in this README with your new badge URL.
-6. Configure GitHub pages:
-    - Go to the "Pages" section of your repository settings.
-    - Select "Deploy from a branch" and use the "gh-pages" branch.
-7. Configure PyPI releases (if relevant):
-    - Create a new API token for [https://pypi.org/](https://pypi.org/).
-    - Add the token as a GitHub actions secret (see the instructions [here](https://github.com/pypa/gh-action-pypi-publish)).
-8. Delete this boilerplate stuff in the README.
-9. Commit and push changes.
-
-### GitHub Configuration
-
-I recommend making a few other changes to the repo's setting on GitHub.
-- In "General"
-  - Select/deselect features you need/don't need.
-  - Select "Automatically delete head branches
-- In "Branches": enable branch protection on `main`.
-  - Check "Require a pull request before merging"
-  - Check "Require status checks to pass before merging"
-    - Check "Require branches to be up to date before merging"
-    - Set required checks (e.g., pre-commit.ci, tests, etc.)
-  - Check "Do not allow bypassing the above settings"
-
-## Installation
-
-Install via pip:
-```
-$ pip install pdfwf
-```
-
-For local development:
-```
-$ tox --devenv venv -e py 310
-$ pre-commit install
-```
-or
 ```
 $ pip install -e .
 ```
 
-## Additional README Sections
+## Usage 
+Requires having the tool (e.g `marker`, `nougat` etc.) installed. See [Tool installation](#tool-installation) for more details.
 
-...
+```
+> python pdfwf/convert.py --help 
+usage: convert.py [-h] [--pdf-dir PDF_DIR] [--out-dir OUT_DIR] [--run-dir RUN_DIR] [--hf-cache HF_CACHE] [--num-nodes NUM_NODES]
+                  --account ACCOUNT [--queue QUEUE] [--walltime WALLTIME] [--num_conversions NUM_CONVERSIONS]
+
+options:
+  -h, --help            show this help message and exit
+  --pdf-dir PDF_DIR     Directory containing pdfs to convert
+  --out-dir OUT_DIR     Directory to place converted pdfs in
+  --run-dir RUN_DIR     Directory to place parsl run files in
+  --hf-cache HF_CACHE   Directory to place marker huggingface cache in
+  --num-nodes NUM_NODES
+                        Number of nodes to use for conversion
+  --account ACCOUNT     Account to charge for job
+  --queue QUEUE         Queue to use on polaris
+  --walltime WALLTIME   Max walltime for job in form HH:MM:SS
+  --num_conversions NUM_CONVERSIONS
+                        Number of pdfs to convert (useful for debugging)
+
+```
+
+Example command: 
+```
+python -m pdfwf.convert --pdf-dir pdf-dir --out-dir output-md --run-dir parsl --hf-cache hf-cache-dir --num-nodes 20 --queue p
+rod --walltime 03:00:00 --account account-name
+```
+
+## Tool installation 
+
+### Marker 
+
+[Marker Github](https://github.com/VikParuchuri/marker)
+
+__Installation Instructions (*Polaris*)__
+I would clone the base conda environment on Polaris and then install `pdfwf` in that environment. Cloning the base environment can be done with the following command:
+
+```
+conda create -n marker --clone base
+```
+These commands install the dependencies for `marker` and make the :
+
+```
+conda install -c conda-forge tesseract
+conda install -c conda-forge ghostscript
+
+# Setup local.env in `marker_root/marker/` directory
+touch marker/local.env
+# Point the find command to wherever your conda root is 
+# Add location to `local.env` 
+find ~/miniconda3  -name tessdata
+
+
+python3 -m pip install --upgrade pip setuptools wheel
+python3 -m pip install -e .
+python3 -m pip install pip setuptools wheel transformers deepspeed torch==2.0.1+cu118 torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu118 --force-reinstall --upgrade -vvv
+
+```
+
+*Note*: The local.env file is installation dependent. See [Marker Usage](https://github.com/VikParuchuri/marker?tab=readme-ov-file#usage) for more details on how to set it up. Here is an example of what the `local.env` looks like:
+
+```
+TESSDATA_PREFIX=~/conda/envs/marker/share/tessdata
+TORCH_DEVICE=cuda
+INFERENCE_RAM=40
+```
+
+Example for running `marker` from the original codebase: 
+```
+python convert_single.py in.pdf out.md
+```
