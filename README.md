@@ -1,21 +1,18 @@
-# Python Package Template Repo
-
-[![tests](https://github.com/gpauloski/python-template/actions/workflows/tests.yml/badge.svg)](https://github.com/gpauloski/python-template/actions)
-[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/gpauloski/python-template/main.svg)](https://results.pre-commit.ci/latest/github/gpauloski/python-template/main)
-
-Python package template repo that provides:
-- Package, examples, and testing layout.
-- GitHub PR and Issue templates.
-- Example docs with MKDocs and GitHub Pages.
-- CI framework with `pre-commit` and `tox`.
-- GitHub actions for running tests and publishing packages.
-
-This package setup was based on [Anthony Sottile's project setup](https://www.youtube.com/watch?v=q8DkatMZvUs&list=PLWBKAf81pmOaP9naRiNAqug6EBnkPakvY) but deviates in some places (e.g., `pyproject.toml` and `ruff`).
+# PDFWF
+PDF-to-text extraction workflow.
 
 ## `pdfwf` Installation
 
+Create environment using preferred method. If locally/not on HPC:
+
 ```
-$ pip install -e .
+conda create -n pdfwf python=3.10
+```
+If on HPC I recomend [installing Marker](#tool-installation) first then installing this package in the marker environment as it has less dependencies.
+
+Install from the github root 
+```
+pip install -e .
 ```
 
 ## Usage 
