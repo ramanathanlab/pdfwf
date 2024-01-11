@@ -10,7 +10,7 @@ This setup will install both the `Marker` tool and the `pdfwf` workflow from a n
 
 One a compute node of polaris, follow the following instructions: 
 
-_Note the commented lines where you have to change to paths that fit your directories._
+_Note setting up the local.env assumes conda, see [Non-Conda Env](#non-conda-env)_
 ```
 mkdir wf-validation
 cd wf-validation/
@@ -64,7 +64,8 @@ vim pdfwf/convert.py # edit line 70 to point to your conda environment name, e.g
 python -m pdfwf.convert --pdf-dir /lus/eagle/projects/argonne_tpc/hippekp/small-pdf-set --out-dir ../small-pdf-text --run-dir ../parsl --num-nodes 2 --queue debug --walltime 01:00:00 --account [ACCOUNT]
 ```
 
-*Note, if you are not using conda, these instructions will establish the local.env file* 
+#### Non-Conda Env
+If you are not using conda, these instructions will establish the local.env file
 ```
 # replace the path below with the path to your environment/where you install tesseract
 find /home/hippekp/CVD-Mol_AI/hippekp/conda/envs/marker-wf/ -name tessdata
