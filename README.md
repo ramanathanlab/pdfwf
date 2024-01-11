@@ -1,7 +1,61 @@
 # PDFWF
 PDF-to-text extraction workflow.
 
-## `pdfwf` Installation
+## Whole Pipeline Installation 
+
+One a compute node of polaris, follow the following instructions: 
+
+_Note the commented lines where you have to change to paths that fit your directories._
+```
+mkdir wf-validation
+cd wf-validation/
+
+# Create a base conda environment
+module load conda/2023-10-04
+conda create -n marker-wf python=3.10
+conda activate marker-wf
+
+# Install Marker 
+git clone https://github.com/VikParuchuri/marker.git
+cd marker/
+conda install -c conda-forge tesseract -y
+conda install -c conda-forge ghostscript -y
+python3 -m pip install --upgrade pip setuptools wheel
+python3 -m pip install -e .
+python3 -m pip install pip setuptools wheel transformers deepspeed torch==2.0.1+cu118 torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu118 --force-reinstall --upgrade -vvv
+
+# Setup local.env for Marker
+touch marker/local.env
+# replace the path below with the path to your conda environment
+find /home/hippekp/CVD-Mol_AI/hippekp/conda/envs/marker-wf/ -name tessdata
+# replace the path in this command with the output of the above command
+echo "TESSDATA_PREFIX=/home/hippekp/CVD-Mol_AI/hippekp/conda/envs/marker-wf/share/tessdata" >> marker/local.env
+echo "TORCH_DEVICE=cuda" >> marker/local.env
+echo "INFERENCE_RAM=40" >> marker/local.env
+
+# Test the installation on a PDF
+python convert_single.py /lus/eagle/projects/argonne_tpc/TextCollections/OSTI/RawData/Journal_Article/1333379.pdf ../1333379.md
+```
+
+Once you verify that marker works on the example given, exit the compute node and from a login node execute the following: 
+
+_Note the line where you must change a file to match your conda environment_
+```
+cd wf-validation
+# Activate your environment with marker and install the workflow package
+module load conda/2023-10-04
+conda activate marker-wf
+git clone https://github.com/ramanathanlab/pdfwf.git
+cd pdfwf/
+pip install -e .
+# Insert your environment into the init, working on a parameterized solution currently. 
+vim pdfwf/convert.py # edit line 70 to point to your conda environment name, e.g 'conda activate marker-wf' instead of 'conda activate marker'
+
+# Run the workflow on a small set of 10 pdfs
+python -m pdfwf.convert --pdf-dir /lus/eagle/projects/argonne_tpc/hippekp/small-pdf-set --out-dir ../small-pdf-text --run-dir ../parsl --num-nodes 2 --queue debug --walltime 01:00:00 --account [ACCOUNT]
+```
+
+## `pdfwf` _Only_ Installation
 
 Create environment using preferred method. If locally/not on HPC:
 
