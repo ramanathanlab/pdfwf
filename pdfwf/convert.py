@@ -56,6 +56,7 @@ if __name__ == "__main__":
     parser.add_argument('--account', required=True, type=str, help="Account to charge for job")
     parser.add_argument('--queue', default="debug", type=str, help="Queue to use on polaris")
     parser.add_argument('--walltime', default="1:00:00", type=str, help="Max walltime for job in form HH:MM:SS")
+    parser.add_argument("--worker-init", default="", type=str, help="Worker init string to pass to parsl")
 
     # Debugging options
     parser.add_argument("--num_conversions", type=float, default=float('inf'), help="Number of pdfs to convert (useful for debugging)")
@@ -67,13 +68,13 @@ if __name__ == "__main__":
 
     # Setup parsl
     run_dir = str(args.run_dir.resolve())
-    worker_init = f"module load conda/2023-10-04;conda activate marker; cd {run_dir}"
+    args.worker_init += f";cd {run_dir}"
     if args.hf_cache is not None: 
-        worker_init += f";export HF_HOME={args.hf_cache.resolve()}" 
+        args.worker_init += f";export HF_HOME={args.hf_cache.resolve()}" 
 
     user_opts = {
         "run_dir":          run_dir,
-        "worker_init":      worker_init, # load the environment where parsl is installed
+        "worker_init":      args.worker_init, # load the environment where parsl is installed
         "scheduler_options":"#PBS -l filesystems=home:eagle:grand" , # specify any PBS options here, like filesystems
         "account":          args.account,
         "queue":            args.queue,
@@ -101,9 +102,9 @@ if __name__ == "__main__":
         if len(futures) >= args.num_conversions: 
             logger.info(f"Reached max number of conversions ({int(args.num_conversions)})")
             break   
-    
+
     logger.info(f"Submitted {len(futures)} jobs")
-    
+
     with open(args.out_dir / "result_log.txt", "w+") as f:
         for future in futures:
             try: 
@@ -112,5 +113,5 @@ if __name__ == "__main__":
                 res = f"TID: {future.TID}\tError: {e}"
 
             f.write(f"{res}\n")
-    
+
     logger.info(f"Completed {len(futures)} jobs")  
