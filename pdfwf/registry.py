@@ -147,7 +147,7 @@ def _register_fn_decorator(fn: Callable[P, T]) -> Callable[P, T]:
 def _register_cls_decorator(cls: Callable[P, T]) -> Callable[P, T]:
     @functools.wraps(cls, updated=())
     class SingletonWrapper(cls):  # type: ignore[valid-type,misc]
-        def __new__(__cls, *args: P.args, **kwargs: P.kwargs) -> T:  # type: ignore[misc] # noqa: N804
+        def __new__(__cls, *args: P.args, **kwargs: P.kwargs):  # type: ignore # noqa: N804
             # Note: We are always calling the registry with the original class.
             # If we called it with this __cls then we would get an infinite
             # recursion loop because __cls is a subclass of cls and the
