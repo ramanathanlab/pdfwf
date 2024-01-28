@@ -56,9 +56,21 @@ def setup_logging(logger_name: str) -> logging.Logger:
 
 @python_app
 def marker_single_app(pdf_path: str, out_dir: str) -> str:
-    """Process a single PDF with marker."""
+    """Process a single PDF with marker.
+
+    Parameters
+    ----------
+    pdf_path : str
+        Path to the PDF file to convert.
+    out_dir : str
+        Path to the output directory to place the parsed PDF contents.
+
+    Returns:
+    -------
+    str
+        The path to the output prefix (i.e., a reference to the output files).
+    """
     import json
-    import os
     from pathlib import Path
 
     from parsers.marker import MarkerParser
@@ -69,23 +81,27 @@ def marker_single_app(pdf_path: str, out_dir: str) -> str:
     # loaded once per worker process (i.e., we warmstart the models)
     parser = MarkerParser()
 
-    pdf_name = Path(pdf_path).stem
-
+    # Parse the PDF
     full_text, out_meta = parser.parse(pdf_path)
 
-    output_md = os.path.join(out_dir, pdf_name + '.md')
-    with open(output_md, 'w+', encoding='utf-8') as f:
+    # Set the output path prefix as the name of the PDF file
+    prefix = Path(out_dir) / Path(pdf_path).stem
+
+    # Write the output markdown file /out_dir/pdf_name.md
+    out_path = prefix.with_suffix('.md')
+    with open(out_path, 'w+', encoding='utf-8') as f:
         f.write(full_text)
 
-    out_meta_filename = os.path.join(out_dir, pdf_name + '.metadata.json')
-    with open(out_meta_filename, 'w+', encoding='utf-8') as f:
+    # Write the output metadata file /out_dir/pdf_name.metadata.json
+    out_path = prefix.with_suffix('.metadata.json')
+    with open(out_path, 'w+', encoding='utf-8') as f:
         f.write(json.dumps(out_meta, indent=4))
 
-    return output_md
+    return prefix.as_posix()
 
 
 if __name__ == '__main__':
-    parser = ArgumentParser()
+    parser = ArgumentParser(description='PDF conversion workflow')
     # PDF conversion options
     parser.add_argument(
         '--pdf-dir',
