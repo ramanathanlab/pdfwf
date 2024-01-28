@@ -1,14 +1,14 @@
 # PDFWF
 PDF-to-text extraction workflow.
 
-# Installation 
+# Installation
 There are a number of ways to install this software. If you already have an environment with Marker installed, please see [`pdfwf` only installation](#pdfwf-only-installation). If you do not have Marker installed, please see [Marker Pipeline Installation](#marker-pipeline-installation) for instructions on how to install the whole pipeline with Marker.
 
 ## Marker Pipeline Installation
 
 This setup will install both the `Marker` tool and the `pdfwf` workflow from a new environment.
 
-One a compute node of polaris, follow the following instructions: 
+One a compute node of polaris, follow the following instructions:
 
 _Note setting up the local.env assumes conda, see [Non-Conda Env](#non-conda-env)_
 ```
@@ -20,7 +20,7 @@ module load conda/2023-10-04
 conda create -n marker-wf python=3.10
 conda activate marker-wf
 
-# Install Marker 
+# Install Marker
 git clone https://github.com/VikParuchuri/marker.git
 cd marker/
 conda install -c conda-forge tesseract -y
@@ -46,7 +46,7 @@ bash $path_to_pdfwf_root/utils/setup_marker.sh local.env
 python convert_single.py /lus/eagle/projects/argonne_tpc/TextCollections/OSTI/RawData/Journal_Article/1333379.pdf ../1333379.md
 ```
 
-Once you verify that marker works on the example given, exit the compute node and from a login node execute the following: 
+Once you verify that marker works on the example given, exit the compute node and from a login node execute the following:
 
 _Note the line where you must change a file to match your conda environment_
 ```
@@ -57,7 +57,7 @@ conda activate marker-wf
 git clone https://github.com/ramanathanlab/pdfwf.git
 cd pdfwf/
 pip install -e .
-# Insert your environment into the init, working on a parameterized solution currently. 
+# Insert your environment into the init, working on a parameterized solution currently.
 vim pdfwf/convert.py # edit line 70 to point to your conda environment name, e.g 'conda activate marker-wf' instead of 'conda activate marker'
 
 # Run the workflow on a small set of 10 pdfs
@@ -80,16 +80,17 @@ echo "INFERENCE_RAM=40" >> marker/local.env
 
 This assumes that the environment you are currently using has the `Marker` tool installed. If you do not have `Marker` installed, please see [Whole Pipeline Installation](#whole-pipeline-installation) for instructions on how to install the whole pipeline with Marker.
 
-From this repositories root 
+From this repositories root
 ```
+pip install --upgrade pip setuptools wheel
 pip install -e .
 ```
 
-## Usage 
+## Usage
 Requires having the tool (e.g `marker`, `nougat` etc.) installed. See [Tool installation](#tool-installation) for more details.
 
 ```
-> python -m pdfwf.convert --help 
+> python -m pdfwf.convert --help
 usage: convert.py [-h] [--pdf-dir PDF_DIR] [--out-dir OUT_DIR] [--run-dir RUN_DIR] [--hf-cache HF_CACHE] [--num-nodes NUM_NODES]
                   --account ACCOUNT [--queue QUEUE] [--walltime WALLTIME] [--num_conversions NUM_CONVERSIONS]
 
@@ -109,7 +110,7 @@ options:
 
 ```
 
-Example command: 
+Example command:
 ```
 python -m pdfwf.convert --pdf-dir pdf-dir --out-dir output-md --run-dir parsl --hf-cache hf-cache-dir --num-nodes 20 --queue prod --walltime 03:00:00 --account account-name
 ```

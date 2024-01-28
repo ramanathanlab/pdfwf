@@ -3,7 +3,7 @@
 # Check if CONDA_PREFIX is set and not empty
 if [ -z "$CONDA_PREFIX" ]; then
     echo "Error: CONDA_PREFIX is not set. Please set the CONDA_PREFIX environment variable."
-    echo "If you are on Polaris, this can be done via 'module load conda/2023-10-04; conda activate [MARKER_ENV_NAME]'" 
+    echo "If you are on Polaris, this can be done via 'module load conda/2023-10-04; conda activate [MARKER_ENV_NAME]'"
     exit 1
 fi
 
