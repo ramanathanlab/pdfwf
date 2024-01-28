@@ -28,6 +28,32 @@ def setup_logging(logger_name: str) -> logging.Logger:
     return logger
 
 
+# @python_app
+# def marker_single_app(pdf_path: str, out_dir: str) -> str:
+#     """Process a single PDF with marker."""
+#     import json
+#     import os
+#     from pathlib import Path
+
+#     from marker.convert import convert_single_pdf
+#     from marker.models import load_all_models
+
+#     pdf_name = Path(pdf_path).stem
+
+#     model_lst = load_all_models()
+#     full_text, out_meta = convert_single_pdf(pdf_path, model_lst)
+
+#     output_md = os.path.join(out_dir, pdf_name + '.md')
+#     with open(output_md, 'w+', encoding='utf-8') as f:
+#         f.write(full_text)
+
+#     out_meta_filename = os.path.join(out_dir, pdf_name + '.metadata.json')
+#     with open(out_meta_filename, 'w+', encoding='utf-8') as f:
+#         f.write(json.dumps(out_meta, indent=4))
+
+#     return output_md
+
+
 @python_app
 def marker_single_app(pdf_path: str, out_dir: str) -> str:
     """Process a single PDF with marker."""
@@ -35,13 +61,17 @@ def marker_single_app(pdf_path: str, out_dir: str) -> str:
     import os
     from pathlib import Path
 
-    from marker.convert import convert_single_pdf
-    from marker.models import load_all_models
+    from parsers.marker import MarkerParser
+
+    # Initialize the marker parser. This loads the models into memory
+    # and registers them in a global registry unique to the current
+    # parsl worker process. This ensures that the models are only
+    # loaded once per worker process (i.e., we warmstart the models)
+    parser = MarkerParser()
 
     pdf_name = Path(pdf_path).stem
 
-    model_lst = load_all_models()
-    full_text, out_meta = convert_single_pdf(pdf_path, model_lst)
+    full_text, out_meta = parser.parse(pdf_path)
 
     output_md = os.path.join(out_dir, pdf_name + '.md')
     with open(output_md, 'w+', encoding='utf-8') as f:
