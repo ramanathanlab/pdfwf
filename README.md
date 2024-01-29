@@ -86,6 +86,11 @@ pip install --upgrade pip setuptools wheel
 pip install -e .
 ```
 
+For development, you can install the devtools using:
+```
+pip install -e '.[dev]'
+```
+
 ## Usage
 Requires having the tool (e.g `marker`, `nougat` etc.) installed. See [Tool installation](#tool-installation) for more details.
 
