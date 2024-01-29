@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from pdfwf.registry import register
+from pdfwf.utils import exception_handler
 
 
 @register()  # type: ignore[arg-type]
@@ -19,8 +20,20 @@ class MarkerParser:
 
         self.model_lst = load_all_models()
 
-    def parse(self, pdf_path: str) -> tuple[str, dict[str, str]]:
-        """Parse a PDF file and extract markdown."""
+    @exception_handler(default_return=None)
+    def parse(self, pdf_path: str) -> tuple[str, dict[str, str]] | None:
+        """Parse a PDF file and extract markdown.
+
+        Parameters
+        ----------
+        pdf_path : str
+            Path to the PDF file to convert.
+
+        Returns:
+        -------
+        tuple[str, dict[str, str]] | None
+            The extracted markdown and metadata or None if an error occurred.
+        """
         from marker.convert import convert_single_pdf
 
         full_text, out_meta = convert_single_pdf(pdf_path, self.model_lst)
