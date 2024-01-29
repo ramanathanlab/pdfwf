@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import sys
 from pathlib import Path
 from typing import Any
@@ -108,3 +109,30 @@ def exception_handler(
         return wrapper
 
     return decorator
+
+
+def setup_logging(logger_name: str, out_dir: Path) -> logging.Logger:
+    """Setup logging for the PDF conversion workflow."""
+    logger = logging.getLogger(logger_name)
+    logger.setLevel(logging.INFO)
+
+    # Set the format for the log messages
+    formatter = logging.Formatter(
+        '[%(asctime)s] [%(levelname)s] %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S',
+    )
+
+    handlers: list[logging.Handler] = [
+        # Add a console log
+        logging.StreamHandler(),
+        # Add a file log
+        logging.FileHandler(out_dir / f'{logger_name}.log'),
+    ]
+
+    # Set the format for the log messages
+    for handler in handlers:
+        handler.setLevel(logging.INFO)
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+
+    return logger

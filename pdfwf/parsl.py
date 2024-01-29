@@ -78,7 +78,7 @@ class WorkstationSettings(BaseComputeSettings):
 
     name: Literal['workstation'] = 'workstation'  # type: ignore[assignment]
     """Name of the platform."""
-    available_accelerators: int | Sequence[str] = 8
+    available_accelerators: Union[int, Sequence[str]] = 8  # noqa: UP007
     """Number of GPU accelerators to use."""
     worker_port_range: tuple[int, int] = (10000, 20000)
     """Port range."""
@@ -116,15 +116,15 @@ class PolarisSettings(BaseComputeSettings):
     """Number of nodes to request"""
     worker_init: str = ''
     """How to start a worker. Should load any modules and environments."""
-    scheduler_options: str = ''
-    """PBS directives, pass -J for array jobs"""
+    scheduler_options: str = '#PBS -l filesystems=home:eagle:grand'
+    """PBS directives, pass -J for array jobs."""
     account: str
     """The account to charge compute to."""
     queue: str
     """Which queue to submit jobs to, will usually be prod."""
     walltime: str
     """Maximum job time."""
-    cpus_per_node: int = 64
+    cpus_per_node: int = 32
     """Up to 64 with multithreading."""
     strategy: str = 'simple'
 

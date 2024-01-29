@@ -94,28 +94,40 @@ pip install -e '.[dev]'
 ## Usage
 Requires having the tool (e.g `marker`, `nougat` etc.) installed. See [Tool installation](#tool-installation) for more details.
 
+The `pdfwf` workflow can be run using the CLI as follows:
 ```
 > python -m pdfwf.convert --help
-usage: convert.py [-h] [--pdf-dir PDF_DIR] [--out-dir OUT_DIR] [--run-dir RUN_DIR] [--hf-cache HF_CACHE] [--num-nodes NUM_NODES]
-                  --account ACCOUNT [--queue QUEUE] [--walltime WALLTIME] [--num_conversions NUM_CONVERSIONS]
+usage: convert.py [-h] --config CONFIG
 
-options:
-  -h, --help            show this help message and exit
-  --pdf-dir PDF_DIR     Directory containing pdfs to convert
-  --out-dir OUT_DIR     Directory to place converted pdfs in
-  --run-dir RUN_DIR     Directory to place parsl run files in
-  --hf-cache HF_CACHE   Directory to place marker huggingface cache in
-  --num-nodes NUM_NODES
-                        Number of nodes to use for conversion
-  --account ACCOUNT     Account to charge for job
-  --queue QUEUE         Queue to use on polaris
-  --walltime WALLTIME   Max walltime for job in form HH:MM:SS
-  --num_conversions NUM_CONVERSIONS
-                        Number of pdfs to convert (useful for debugging)
+PDF conversion workflow
 
+optional arguments:
+  -h, --help       show this help message and exit
+  --config CONFIG  Path to workflow configuration file
 ```
 
-Example command:
+An example YAML file for the `pdfwf` workflow is provided below. This file can be used to run the workflow using the CLI after replacing the values in the file with the appropriate values for your system.
+```yaml
+# The directory containing the pdfs to convert
+pdf_dir: /lus/eagle/projects/argonne_tpc/hippekp/small-pdf-set
+
+# The directory to place the converted pdfs in
+out_dir: output-text
+
+# The compute settings for the workflow
+compute_settings:
+  name: polaris
+  num_nodes: 20
+  # Make sure to update the path to your conda environment and HF cache
+  worker_init: "module load conda/2023-10-04; conda activate marker-wf; export HF_HOME=<path-to-your-HF-cache-dir>"
+  scheduler_options: "#PBS -l filesystems=home:eagle:grand"
+  # Make sure to change the account to the account you want to charge
+  account: <your-account-name-to-charge>
+  queue: prod
+  walltime: 03:00:00
 ```
-python -m pdfwf.convert --pdf-dir pdf-dir --out-dir output-md --run-dir parsl --hf-cache hf-cache-dir --num-nodes 20 --queue prod --walltime 03:00:00 --account account-name
+
+For example, the workflow can be run using the CLI as follows:
+```
+python -m pdfwf.convert --config config.yaml
 ```
