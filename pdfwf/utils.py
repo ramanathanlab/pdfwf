@@ -136,3 +136,14 @@ def setup_logging(logger_name: str, out_dir: Path) -> logging.Logger:
         logger.addHandler(handler)
 
     return logger
+
+
+def batch_data(data: list[T], chunk_size: int) -> list[list[T]]:
+    """Batch data into chunks of size chunk_size."""
+    batches = [
+        data[i * chunk_size : (i + 1) * chunk_size]
+        for i in range(0, len(data) // chunk_size)
+    ]
+    if len(data) > chunk_size * len(batches):
+        batches.append(data[len(batches) * chunk_size :])
+    return batches

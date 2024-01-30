@@ -10,24 +10,25 @@ from parsl import python_app
 
 from pdfwf.parsl import ComputeSettingsTypes
 from pdfwf.utils import BaseModel
+from pdfwf.utils import batch_data
 from pdfwf.utils import setup_logging
 
 
 @python_app
-def marker_single_app(pdf_path: str, out_dir: str) -> str:
+def marker_single_app(pdf_paths: list[str], out_dirs: list[str]) -> list[str]:
     """Process a single PDF with marker.
 
     Parameters
     ----------
-    pdf_path : str
-        Path to the PDF file to convert.
-    out_dir : str
-        Path to the output directory to place the parsed PDF contents.
+    pdf_path : list[str]
+        Paths to a batch of PDF file to convert.
+    out_dirs : list[str]
+        Paths to a batch of output directories to place the parsed PDFs.
 
     Returns:
     -------
-    str
-        The path to the output prefix (i.e., a reference to the output files).
+    list[str]
+        The paths to the output prefix (i.e., a reference to the output files).
     """
     import json
     from pathlib import Path
@@ -40,23 +41,34 @@ def marker_single_app(pdf_path: str, out_dir: str) -> str:
     # loaded once per worker process (i.e., we warmstart the models)
     parser = MarkerParser()
 
-    # Parse the PDF
-    full_text, out_meta = parser.parse(pdf_path)
+    output_prefixes = []
+    # Process each PDF
+    for pdf_path, out_dir in zip(pdf_paths, out_dirs):
+        # Parse the PDF
+        output = parser.parse(pdf_path)
+        if output is None:
+            continue
 
-    # Set the output path prefix as the name of the PDF file
-    prefix = Path(out_dir) / Path(pdf_path).stem
+        # Unpack the output
+        full_text, out_meta = output
 
-    # Write the output markdown file /out_dir/pdf_name.md
-    out_path = prefix.with_suffix('.md')
-    with open(out_path, 'w+', encoding='utf-8') as f:
-        f.write(full_text)
+        # Set the output path prefix as the name of the PDF file
+        prefix = Path(out_dir) / Path(pdf_path).stem
 
-    # Write the output metadata file /out_dir/pdf_name.metadata.json
-    out_path = prefix.with_suffix('.metadata.json')
-    with open(out_path, 'w+', encoding='utf-8') as f:
-        f.write(json.dumps(out_meta, indent=4))
+        # Write the output markdown file /out_dir/pdf_name.md
+        out_path = prefix.with_suffix('.md')
+        with open(out_path, 'w+', encoding='utf-8') as f:
+            f.write(full_text)
 
-    return prefix.as_posix()
+        # Write the output metadata file /out_dir/pdf_name.metadata.json
+        out_path = prefix.with_suffix('.metadata.json')
+        with open(out_path, 'w+', encoding='utf-8') as f:
+            f.write(json.dumps(out_meta, indent=4))
+
+        # Collect the output prefix
+        output_prefixes.append(prefix.as_posix())
+
+    return output_prefixes
 
 
 class WorkflowConfig(BaseModel):
@@ -70,6 +82,9 @@ class WorkflowConfig(BaseModel):
 
     num_conversions: int = sys.maxsize
     """Number of pdfs to convert (useful for debugging)."""
+
+    chunk_size: int = 1
+    """Number of pdfs to convert in a single batch."""
 
     compute_settings: ComputeSettingsTypes
     """Compute settings (HPC platform, number of GPUs, etc)."""
@@ -99,25 +114,33 @@ if __name__ == '__main__':
     out_path = config.out_dir.resolve()
     out_path.mkdir(exist_ok=True, parents=True)
 
-    # Submit jobs
-    futures = []
+    # TODO: Once we decide on output format, we can probably
+    # have a single output directory set via a partial function
+
+    # Collect PDFs in batches for more efficient processing
+    pdf_paths, out_dirs = [], []
     for pdf_path in config.pdf_dir.glob('**/*.pdf'):
         # Create output directory keeping the same directory structure
         text_outdir = (out_path / pdf_path.relative_to(config.pdf_dir)).parent
         text_outdir.mkdir(exist_ok=True, parents=True)
-        # Submit job to convert the PDF to markdown
-        future = marker_single_app(str(pdf_path), str(text_outdir))
-        # Keep track of the future
-        futures.append(future)
+        # Collect the input args
+        pdf_paths.append(pdf_path.as_posix())
+        out_dirs.append(text_outdir.as_posix())
 
-        if len(futures) >= config.num_conversions:
-            logger.info(
-                f'Reached max number of conversions ({config.num_conversions})'
-            )
+        if len(pdf_paths) >= config.num_conversions:
             break
+
+    # Batch the input args
+    batched_pdf_paths = batch_data(pdf_paths, config.chunk_size)
+    batched_out_paths = batch_data(out_dirs, config.chunk_size)
+    batched_args = zip(batched_pdf_paths, batched_out_paths)
+
+    # Submit jobs
+    futures = [marker_single_app(*args) for args in batched_args]
 
     logger.info(f'Submitted {len(futures)} jobs')
 
+    # Wait for jobs to complete and log success/failure
     with open(config.out_dir / 'result_log.txt', 'w+') as f:
         for future in futures:
             try:
@@ -125,6 +148,6 @@ if __name__ == '__main__':
             except Exception as e:
                 res = f'TID: {future.TID}\tError: {e}'
 
-            f.write(f'{res}\n')
+            f.write('\n'.join(res))
 
     logger.info(f'Completed {len(futures)} jobs')
