@@ -101,7 +101,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Load workflow configuration
-    config = WorkflowConfig.parse_file(args.config)
+    config = WorkflowConfig.from_yaml(args.config)
 
     # Setup logging
     logger = setup_logging('pdfwf', config.out_dir)
