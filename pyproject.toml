@@ -20,8 +20,8 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
 ]
 dependencies = [
-    "parsl>=2023.12.18",
-    "pydantic==1.10.13",
+    "parsl>=2024.2.5",
+    "pydantic==2.6.1",
 ]
 
 [project.urls]

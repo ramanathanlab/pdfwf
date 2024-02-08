@@ -33,7 +33,7 @@ def marker_single_app(pdf_paths: list[str], out_dirs: list[str]) -> list[str]:
     import json
     from pathlib import Path
 
-    from parsers.marker import MarkerParser
+    from pdfwf.parsers.marker import MarkerParser
 
     # Initialize the marker parser. This loads the models into memory
     # and registers them in a global registry unique to the current
@@ -47,6 +47,7 @@ def marker_single_app(pdf_paths: list[str], out_dirs: list[str]) -> list[str]:
         # Parse the PDF
         output = parser.parse(pdf_path)
         if output is None:
+            output_prefixes.append(f'Error: Failed to parse {pdf_path}')
             continue
 
         # Unpack the output
@@ -103,16 +104,16 @@ if __name__ == '__main__':
     # Load workflow configuration
     config = WorkflowConfig.from_yaml(args.config)
 
+    # Setup output directory
+    config.out_dir = config.out_dir.resolve()
+    config.out_dir.mkdir(exist_ok=True, parents=True)
+
     # Setup logging
     logger = setup_logging('pdfwf', config.out_dir)
 
     # Setup parsl for distributed computing
-    parsl_cfg = config.compute_settings.get_config(args.out_dir / 'parsl')
+    parsl_cfg = config.compute_settings.get_config(config.out_dir / 'parsl', logger)
     parsl.load(parsl_cfg)
-
-    # Setup convsersions
-    out_path = config.out_dir.resolve()
-    out_path.mkdir(exist_ok=True, parents=True)
 
     # TODO: Once we decide on output format, we can probably
     # have a single output directory set via a partial function
@@ -121,7 +122,7 @@ if __name__ == '__main__':
     pdf_paths, out_dirs = [], []
     for pdf_path in config.pdf_dir.glob('**/*.pdf'):
         # Create output directory keeping the same directory structure
-        text_outdir = (out_path / pdf_path.relative_to(config.pdf_dir)).parent
+        text_outdir = (config.out_dir / pdf_path.relative_to(config.pdf_dir)).parent
         text_outdir.mkdir(exist_ok=True, parents=True)
         # Collect the input args
         pdf_paths.append(pdf_path.as_posix())
@@ -146,7 +147,10 @@ if __name__ == '__main__':
             try:
                 res = future.result()
             except Exception as e:
-                res = f'TID: {future.TID}\tError: {e}'
+                # Individual conversion errors are handled from the
+                # exception_handler decorator, this error will occur from a
+                # parsl worker level (likely import errors/package errors)
+                res = [f'TID: {future.TID}\tError: {e}']
 
             f.write('\n'.join(res))
 

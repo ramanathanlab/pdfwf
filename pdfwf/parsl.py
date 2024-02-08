@@ -11,6 +11,7 @@ except ImportError:
 
 from typing import Sequence
 from typing import Union
+import logging
 
 from parsl.addresses import address_by_interface
 from parsl.config import Config
@@ -18,6 +19,7 @@ from parsl.executors import HighThroughputExecutor
 from parsl.launchers import MpiExecLauncher
 from parsl.providers import LocalProvider
 from parsl.providers import PBSProProvider
+from parsl.utils import get_all_checkpoints
 
 from pdfwf.utils import BaseModel
 from pdfwf.utils import PathLike
@@ -126,9 +128,14 @@ class PolarisSettings(BaseComputeSettings):
     """Maximum job time."""
     cpus_per_node: int = 32
     """Up to 64 with multithreading."""
-    strategy: str = 'simple'
+    cores_per_worker: float = 8
+    """Number of cores per worker. Currently evenly distributed between available GPUs."""
+    available_accelerators: int = 4
+    """Number of GPU to use."""
+    retries: int = 1
+    """Number of retries upon failure."""
 
-    def get_config(self, run_dir: PathLike) -> Config:
+    def get_config(self, run_dir: PathLike, logger: logging.Logger | None) -> Config:
         """Create a parsl configuration for running on Polaris@ALCF.
 
         We will launch 4 workers per node, each pinned to a different GPU.
@@ -137,24 +144,27 @@ class PolarisSettings(BaseComputeSettings):
         ----------
         run_dir: PathLike
             Directory in which to store Parsl run files.
+        logger: logging.Logger | None
+            Optional logger to use for parsl config information.
         """
-        return Config(
-            # Allows restarts if jobs are killed by the end of a job
-            retries=1,
+        run_dir = str(run_dir)
+        checkpoints = get_all_checkpoints(run_dir)
+        if logger:
+            logger.info(f'Found the following checkpoints: {checkpoints}')
+
+        config = Config(
             executors=[
                 HighThroughputExecutor(
                     label=self.label,
                     heartbeat_period=15,
                     heartbeat_threshold=120,
                     worker_debug=True,
-                    max_workers=self.cpus_per_node,
-                    # Ensures one worker per accelerator
-                    available_accelerators=4,
+                    # available_accelerators will override settings for max_workers
+                    available_accelerators=self.available_accelerators,
+                    cores_per_worker=self.cores_per_worker,
                     address=address_by_interface('bond0'),
                     cpu_affinity='block-reverse',
-                    # Increase if you have many more tasks than workers
                     prefetch_capacity=0,
-                    start_method='spawn',
                     provider=PBSProProvider(
                         launcher=MpiExecLauncher(
                             bind_cmd='--cpu-bind',
@@ -162,25 +172,29 @@ class PolarisSettings(BaseComputeSettings):
                         ),
                         account=self.account,
                         queue=self.queue,
-                        # PBS directives (header lines): for array jobs
-                        # pass '-J' option
+                        select_options='ngpus=4',
+                        # PBS directives: for array jobs pass '-J' option
                         scheduler_options=self.scheduler_options,
+                        # Command to be run before starting a worker, such as:
                         worker_init=self.worker_init,
+                        # number of compute nodes allocated for each block
                         nodes_per_block=self.num_nodes,
                         init_blocks=1,
                         min_blocks=0,
-                        # Can increase more to have more parallel jobs
-                        max_blocks=1,
+                        max_blocks=1,  # Increase to have more parallel jobs
                         cpus_per_node=self.cpus_per_node,
                         walltime=self.walltime,
                     ),
                 ),
             ],
-            run_dir=str(run_dir),
-            strategy=self.strategy,
+            checkpoint_files=checkpoints,
+            run_dir=run_dir,
+            checkpoint_mode='task_exit',
+            retries=self.retries,
             app_cache=True,
         )
 
+        return config
 
 ComputeSettingsTypes = Union[
     LocalSettings,
