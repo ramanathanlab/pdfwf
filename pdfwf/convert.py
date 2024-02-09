@@ -112,7 +112,9 @@ if __name__ == '__main__':
     logger = setup_logging('pdfwf', config.out_dir)
 
     # Setup parsl for distributed computing
-    parsl_cfg = config.compute_settings.get_config(config.out_dir / 'parsl', logger)
+    parsl_cfg = config.compute_settings.get_config(
+        config.out_dir / 'parsl', logger
+    )
     parsl.load(parsl_cfg)
 
     # TODO: Once we decide on output format, we can probably
@@ -122,7 +124,9 @@ if __name__ == '__main__':
     pdf_paths, out_dirs = [], []
     for pdf_path in config.pdf_dir.glob('**/*.pdf'):
         # Create output directory keeping the same directory structure
-        text_outdir = (config.out_dir / pdf_path.relative_to(config.pdf_dir)).parent
+        text_outdir = (
+            config.out_dir / pdf_path.relative_to(config.pdf_dir)
+        ).parent
         text_outdir.mkdir(exist_ok=True, parents=True)
         # Collect the input args
         pdf_paths.append(pdf_path.as_posix())
