@@ -5,12 +5,8 @@ import json
 import os
 import re
 import sys
-from collections import Counter
 from collections import defaultdict
-from enum import auto
-from enum import Enum
 from pathlib import Path
-from typing import Union
 
 import fitz
 import numpy as np
@@ -29,94 +25,37 @@ if yolo_path not in sys.path:
 from utils.general import non_max_suppression
 
 
-class FileType(Enum):
-    PDF = auto()
-    DOC = auto()
-    DOCX = auto()
+class PDFDataset(Dataset):
+    """Dataset class to handle PDFs."""
 
-
-def infer_file_type(doc_dir: Union[Path, str]) -> str:
-    """Scans the files in the input directory and returns the file format of the most frequently observed file.
-
-    Args:
-        doc_dir (Path): Directory path containing the files.
-
-    Returns:
-        str: The file type or suffix (without `.`) of the most frequently observed file format. Subsequently, only those files will be processed.
-
-    Raises:
-        AssertionError: If `doc_dir` is not a valid directory or contains no files.
-        ValueError: If the most frequent file type does not match the list of allowed file types, even if allowed file types are present in the directory.
-    """
-    # to Path
-    doc_dir = Path(doc_dir)
-
-    # check dir existance
-    assert os.path.isdir(
-        doc_dir
-    ), f'Directory `doc_dir`={doc_dir} does not exist.'
-    assert (
-        len(os.listdir(doc_dir)) > 0
-    ), 'Directory `doc_dir` exists but is empty.'
-
-    # most frequent file format
-    suffix_counts = Counter(
-        [Path(f).suffix for f in os.listdir(doc_dir) if '.' in f]
-    )
-    mode_suffix, mdoe_count = suffix_counts.most_common(1)[0]
-    mode_suffix = mode_suffix.split('.')[1].upper()
-
-    # match
-    if mode_suffix in FileType.__members__:
-        file_type = FileType[mode_suffix].name.lower()
-    else:
-        raise ValueError(
-            f"The mode file type in the directory '{mode_suffix}' does not match any of the allowed file types: '.pdf', '.doc', '.docx'"
-        )
-
-    return file_type
-
-
-class DocDataset(Dataset):
     def __init__(
         self,
-        doc_dir: Union[Path, str],
+        pdf_paths: list[str],
         meta_only: bool = False,
         target_heigth: int = 1280,
-        file_type: str = 'pdf',
     ) -> None:
-        assert (
-            file_type in ['pdf', 'doc', 'docx', 'auto']
-        ), 'DocDataset can handle PDFs (file_type=`pdf`) or Word documents (file_type=`doc(x)`)'
-        if file_type == 'auto':
-            file_type = infer_file_type(doc_dir)
+        """Initialize the PDFDataset.
 
-        if file_type != 'pdf':
-            raise NotImplementedError(
-                'Only file_type that is supported currently is `pdf`'
-            )
-
-        self.doc_file_paths = sorted(
-            [
-                Path(doc_dir) / f
-                for f in os.listdir(doc_dir)
-                if f.lower().endswith(f'.{file_type}')
-            ]
-        )
+        Parameters
+        ----------
+        pdf_paths : list[str]
+            List of paths to the PDF files to process.
+        meta_only : bool, optional
+            Only extract the metadata from the PDFs, by default False.
+        target_heigth : int, optional
+            The target height for the images, by default 1280.
+        """
+        self.doc_file_paths = [Path(f) for f in pdf_paths]
         self.target_heigth = target_heigth
-        self.doc_file_ids = [i for i in range(len(self.doc_file_paths))]
+        self.doc_file_ids = list(range(len(self.doc_file_paths)))
         self.meta_only = meta_only
-        self.file_type = file_type
 
         # image count
         doc_lengths = []
         for doc_path in self.doc_file_paths:
-            if file_type == 'pdf':
-                doc = fitz.open(doc_path)
-                doc_lengths.append(len(doc))
-                doc.close()
-            else:
-                pass
+            doc = fitz.open(doc_path)
+            doc_lengths.append(len(doc))
+            doc.close()
 
         # cummulative page count across documents
         self.doc_csum = np.cumsum(doc_lengths).astype(int)
@@ -132,18 +71,24 @@ class DocDataset(Dataset):
         self.current_doc_idx = 0
 
     def __len__(self) -> int:
-        """Conventional dataset: total number of pages in across all documents in the dataset.
-        If `meta_only`, length equals the number of documents (as only the first page each document is used).
+        """Get the length of the dataset.
+
+        Conventional dataset: total number of pages in across all documents in
+        the dataset. If `meta_only`, length equals the number of documents (as
+        only the first page each document is used).
         """
         return self.len
 
     def __getitem__(self, idx: int) -> torch.Tensor:
-        """A single page (i.e. image) rather than the document is the dataset item.
-        Since page counts vary across documents and batch sizes shall be exhausted, the cummulative sum of pages (up to a document) is pre-computed.
-        For a given page index, determine the corresponding doc (index) it belongs to.
-        Subsequently, compute the relative page index by subtracting the previous page count.
+        """Get a page from the dataset.
 
-        Leverage `shuffle=False` as this Dataset is used for inference only.
+        A single page (i.e. image) rather than the document is the dataset
+        item. Since page counts vary across documents and batch sizes shall be
+        exhausted, the cummulative sum of pages (up to a document) is
+        pre-computed. For a given page index, determine the corresponding doc
+        (index) it belongs to. Subsequently, compute the relative page index by
+        subtracting the previous page count. Leverage `shuffle=False` as this
+        Dataset is used for inference only.
         """
         # identify the document page index `idx` falls into
         # - meta_data only
@@ -180,16 +125,8 @@ class DocDataset(Dataset):
         return (output, self.current_doc_file_id, self.current_doc_file_path)
 
 
-class DatasetSizeError(Exception):
-    """Exception raised when dataset size exceeds maximum limit to perform a certain operation."""
-
-    def __init__(self, n: int):
-        message = f'The dataset contains to many pages (N={n}) to store tables or figures. Increase `max_page_to_store_visuals` to a value >{n} and make sure the outputdir has enough storage; or set leave `--table` and `--figure` out.'
-        self.message = message
-        super().__init__(self.message)
-
-
 def custom_collate(batch):
+    """Custom collate function to handle the output of the DocDataset."""
     # Transpose the batch (unzip)
     tensors, file_ids, file_paths = zip(*batch)
 
@@ -210,21 +147,42 @@ def pre_processing(
     freq_thresh: float = 0.1,
     collapse_agnosticly: bool = True,
 ) -> torch.Tensor:
-    """Emulates the PIL image pre-processing pipeline for texify's OCR model but with torch.tensor (3x improvement).
-    Applies non_max_suppression() and get_y_indexed() as tensor-only operations.
+    """Pre-process the results of the YOLOv5 model.
 
-    Args:
-    - results             : BxNxD-dimensional tensor inferred by Yolov5 (B:b.size, N: # bboxes, D:dim. = #classes + 5 {4 coords+score})
-    - file_ids            : List of IDs from the respective dataset
-    - rel_class_ids       : List of class label IDs used to infer modes (usually 0: Text, potentially 16: List_element etc.)
-    - iou_thres           : Maximum IoU (intersection over union) that is tolerable for bbox predictions
-    - conf_thres          : Confidence score must exceed this threshold to be forwarded
-    - x_delta             : Coarsity with which robust modes are inferred for items along the x-axis
-    - freq_thresh         : Minimum frequency of observations associated to a mode for this mode to be used to identify column indices of items
-    - collapse_agnosticly : Handle overlapping bboxes (True: collapse to single bbox of most likely class; False: maintain all bboxes per class)
+    Emulates the PIL image pre-processing pipeline for texify's OCR model but
+    with torch.tensor (3x improvement). Applies non_max_suppression() and
+    get_y_indexed() as tensor-only operations.
 
-    Raises:
-    -
+    Parameters
+    ----------
+    results : torch.Tensor
+        BxNxD-dimensional tensor inferred by Yolov5 (B:b.size, N: # bboxes,
+        D:dim. = #classes + 5 {4 coords+score})
+    file_ids : list[int]
+        List of IDs from the respective dataset.
+    rel_class_ids : list[int]
+        List of class label IDs used to infer modes (usually 0: Text,
+        potentially 16: List_element etc.)
+    iou_thres : float, optional
+        Maximum IoU (intersection over union) that is tolerable for bbox
+        predictions, by default 0.0001
+    conf_thres : float, optional
+        Confidence score must exceed this threshold to be forwarded,
+        by default 0.6
+    x_delta : int, optional
+        Coarsity with which robust modes are inferred for items along the
+        x-axis, by default 200
+    freq_thresh : float, optional
+        Minimum frequency of observations associated to a mode for this mode to
+        be used to identify column indices of items, by default 0.1
+    collapse_agnosticly : bool, optional
+        Handle overlapping bboxes (True: collapse to single bbox of most likely
+        class; False: maintain all bboxes per class), by default True
+
+    Returns:
+    -------
+    torch.Tensor
+        TODO: Description
     """
     # extract bbox predictions
     y = non_max_suppression(
@@ -1065,13 +1023,20 @@ def merge_patches_into_row(
 def merge_rows_into_patch(
     list_of_row_tensors: list[torch.Tensor],
 ) -> torch.Tensor:
-    """Merges a list of patches tensors (each representing a "row" in a patch.
+    """Merge rows into patch tensor.
+
+    Merges a list of patches tensors (each representing a "row" in a patch.
     Pads rows with 1.0 (white pixels) before concatenating row-by-row
 
     Args:
-    - row_patch_list   : List of patches that is to be arranged in the same row (i.e. next to one another)
-    - btm_pad          : Number of white pixels added to the bottom of the row to increase distance to adjacent rows. If chosen to small, causes hallucinations in OCR if chosen to large causes subsequent rows to be ignored at decoding stage.
-    - sep_flag         : Flag indicating if a separating line is to be added between rows. (Empirical performance underwhelming when included.)
+    - row_patch_list   : List of patches that is to be arranged in the same
+    row (i.e. next to one another)
+    - btm_pad          : Number of white pixels added to the bottom of the row
+      to increase distance to adjacent rows. If chosen to small, causes
+      hallucinations in OCR if chosen to large causes subsequent rows to be
+      ignored at decoding stage.
+    - sep_flag         : Flag indicating if a separating line is to be added
+    between rows. (Empirical performance underwhelming when included.)
     - alpha            : How pronounced the grey bar is (if included)
 
     Returns:
@@ -1521,16 +1486,21 @@ def restate_global_patch_indices(
 def load_spv05_categories(
     spv05_category_file_path: Path = Path('./meta/spv05_categories.yaml'),
 ):
-    """Load SPv05 category file that includes two dictionaries `categories` and `groups` that define the text/non-text categories
+    """Load  SPv05 category file.
+
+    Load SPv05 category file that includes two dictionaries `categories` and
+    `groups` that define the text/non-text categories.
 
     Args:
     - spv05_category_file_path : File path tot the yaml
 
     Returns:
-    - Tuple of dictionary  :  categories (class name : class ID) and groups (group name : list of class names)
+    - Tuple of dictionary  :  categories (class name : class ID) and groups
+    (group name : list of class names)
 
     Raises:
-    - AssertionError  :  Yaml file does not exist or does not have the correct format
+    - AssertionError  :  Yaml file does not exist or does not have the correct
+    format
     """
     # read yaml
     with open(spv05_category_file_path) as file:
@@ -1563,16 +1533,18 @@ def get_relevant_text_classes(
     fig_only: bool = False,
     spv05_category_file_path: Path = Path('./meta/spv05_categories.yaml'),
 ):
-    """Returns class IDs for the SPv05 dataset that are relevant for the input
+    """Returns class IDs for the SPv05 dataset that are relevant for the input.
 
     Args:
-    - file_type      : Document file type that will be handled that determines the category type
+    - file_type : Document file type that will be handled that
+    determines the category type.
 
     Returns:
-    - rel_classes    : List of relevant classes
+    - rel_classes : List of relevant classes
 
     Raises:
-    - AssertionError : When category file is not found or doesn't have the expected format
+    - AssertionError : When category file is not found or doesn't have the
+    expected format
     """
     # load category ID
     if file_type == 'pdf':
@@ -2092,11 +2064,6 @@ def store_completed_docs(
     Raises:
 
     """
-    # check dir existance
-    assert os.path.isdir(
-        store_dir
-    ), f'The directory to which the text output files are stored `store_dir`={store_dir} does not exist.'
-
     # file ids to store (all remaining or either completed)
     if store_all_now:
         completed_file_ids = list(doc_dict['Text'].keys())
@@ -2138,7 +2105,7 @@ def store_visuals(
     i_tab: int,
     i_fig: int,
     prev_file_id: int,
-) -> None:
+) -> tuple[dict[int, dict[int, list[str]]], int, int, int]:
     """Extracts and stores visuals (e.g. figures and/or tables) into the respective subdirectory in `output_dir`
 
     Args:
