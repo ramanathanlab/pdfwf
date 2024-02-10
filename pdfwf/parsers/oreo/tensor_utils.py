@@ -214,21 +214,35 @@ def get_y_indexed(
     y_bin_width: int = 10,
     y_delta: int = 25,
 ) -> torch.Tensor:
-    """Derive row and column indices of each patch. Row indices are derived by y_mid (the lower Y_mid, the higher the patch is located on the page)
-    and column index by robust mode association.
+    """Derive row and column indices of each patch.
 
-    Args:
-    - y             : 2D tensor where each row is a patch/bbox and the columns are (x_min, y_min, x_max, y_max, conf, cls label, page idx)
+    Row indices are derived by y_mid (the lower Y_mid, the higher the patch is
+    located on the page) and column index by robust mode association.
 
-    - rel_class_ids : List of relevant class label IDs used for robust mode estimation
-    - x_delta       : coarsity by which X_midpoints are rounded
-    - freq_thresh   : Frequency threshold at which a column is defined
-
-    - y_freq_thresh : Relative frequency required to be considered for mode estimation. Prevents "outlier" boxes to distort otherwise standard text flow.
-    - y_bin_width   : Binning size.
+    Parameters
+    ----------
+    y : torch.Tensor
+        2D tensor where each row is a patch/bbox and the columns are (x_min,
+        y_min, x_max, y_max, conf, cls label, page idx)
+    rel_class_ids : list[int]
+        List of relevant class label IDs used for robust mode estimation
+    x_delta : int, optional
+        Coarsity by which X_midpoints are rounded, by default 200
+    freq_thresh : float, optional
+        Frequency threshold at which a column is defined, by default 0.15
+    y_freq_thresh : float, optional
+        Relative frequency required to be considered for mode estimation.
+        Prevents "outlier" boxes to distort otherwise standard text flow.
+        by default 0.0
+    y_bin_width : int, optional
+        Binning size, by default 10
+    y_delta : int, optional
+        Coarsity by which Y_midpoints are rounded, by default 25
 
     Returns:
-    - torch.Tensor
+    -------
+    torch.Tensor
+        TODO: Description
     """
     # - columns indices
     xmin_column = 0
@@ -303,7 +317,8 @@ def get_y_indexed(
         (tensor_aug, y_Mid.reshape(x_Mid.size()[0], 1)), dim=1
     )
 
-    # empty mode column: col_index, row_idx, width, height, patch_order_idx, file_idx, element idx
+    # empty mode column: col_index, row_idx, width, height, patch_order_idx,
+    # file_idx, element idx
     zeros_columns = torch.zeros(
         tensor_aug.size(0), 7, device=tensor_aug.device
     )
@@ -388,9 +403,6 @@ def get_y_indexed(
         )
         tensor_aug[idx_cond_col, order_idx_column] = 1.0 * ranks
 
-        # DEBUG: looks good
-        # print('Ranks : ', ranks)
-
     # assign `width` and `height` columns
     tensor_aug[:, width_column] = tensor_aug[:, 2] - tensor_aug[:, 0]
     tensor_aug[:, height_column] = tensor_aug[:, 3] - tensor_aug[:, 1]
@@ -413,23 +425,38 @@ def get_y_indexed(
 def subset_y_by_class(
     y_batch: torch.Tensor, rel_class_ids: list[int]
 ) -> torch.Tensor:
-    """Given a tensor of bbox predictions w/ columns to store metadata on patch location and inferred label. Subsets those "rows" that coincide to `text` predictions.
+    """Subset y by class.
 
-    Assumes 5th column of `y_batch` to hold class label information as per Yolov5 standard.
+    Given a tensor of bbox predictions w/ columns to store metadata on patch
+    location and inferred label. Subsets those "rows" that coincide to `text`
+    predictions. Assumes 5th column of `y_batch` to hold class label
+    information as per Yolov5 standard.
 
-    Args:
-    - y_batch        : 2D tensor of stacked results (n,7) with page index added, 7 columns: x_min, y_min, x_max, y_max, conf, cls_label, page_idx.
-    - rel_class_ids  : list of integers representing the relevant predicted classes per bounding box (0: Text, 1: Title etc.) which are to be selected
+    Parameters
+    ----------
+    y_batch : torch.Tensor
+        2D tensor of stacked results (n,7) with page index added, 7 columns:
+        x_min, y_min, x_max, y_max, conf, cls_label, page_idx.
+    rel_class_ids : list[int]
+        List of integers representing the relevant predicted classes per
+        bounding box (0: Text, 1: Title etc.) which are to be selected
 
     Returns:
-    - subset_tensor  : subset of torch tensor (n_sub, 7) where each bbox belongs to one of the relevant classes
+    -------
+    torch.Tensor
+        Subset of torch tensor (n_sub, 7) where each bbox belongs to one of the
+        relevant classes
 
     Raises:
-    - AssertionError : Number of relevant classes is not in {0,...,21}, i.e. number of SPv05 classes.
+    ------
+    AssertionError
+        Number of relevant classes is not in {0,...,21}, i.e. number of SPv05
+        classes.
     """
-    assert (
-        min(rel_class_ids) >= 0 and max(rel_class_ids) <= 21
-    ), 'Class labels should be '
+    if min(rel_class_ids) < 0 or max(rel_class_ids) > 21:
+        raise AssertionError(
+            'Class labels should be in {0,...,21} as per Yolov5 standard'
+        )
 
     # constants
     cls_column = 5
@@ -464,22 +491,40 @@ def docpage_to_tensor(
     target_width: int = 960,
     fill_value: int = 0,
 ) -> torch.Tensor:
-    """Converts a document-style, fitz instance `Page` into a 3-dimensional torch tensor (C x H x W)
-    Maintains height and width to be a multiple of 64 to not cause misalignment with Yolov5 inference.
+    """Converts a fitz page to a tensor.
 
-    Args:
-    - page           : Page to be converted to a tensor (representing an image of the document page)
-    - target_height  : Height
+    Converts a document-style, fitz instance `Page` into a 3-dimensional torch
+    tensor (C x H x W). Maintains height and width to be a multiple of 64 to
+    not cause misalignment with Yolov5 inference.
+
+    Parameters
+    ----------
+    page : fitz.Page
+        Page to be converted to a tensor (representing an image of the document
+        page)
+    target_height : int, optional
+        Height, by default 1280
+    target_width : int, optional
+        Width, by default 960
+    fill_value : int, optional
+        Fill-value, by default 0
 
     Returns:
-    - x              : output tensor of dimension C x des. Height x des. Width (representing the image)
+    -------
+    torch.Tensor
+        Output tensor of dimension C x des. Height x des. Width (representing
+        the image)
 
     Raises:
-    - AssertionError : Target height of the page images should lie in [640,1280], i.e. from small to large image size.
+    ------
+    AssertionError
+        Target height of the page images should lie in [640,1280], i.e. from
+        small to large image size.
     """
-    assert (
-        640 <= target_height <= 1280
-    ), 'Target height should be in [640, 1280]'
+    if target_height < 640 or target_height > 1280:
+        raise AssertionError(
+            'Target height should be in [640, 1280] as per Yolov5 standard'
+        )
 
     # re-scale (maintain multiple of 64 along width and height)
     scale_factor_y = target_height / page.mediabox_size.y
@@ -515,11 +560,25 @@ def docpage_to_tensor(
 
 
 class ResizeAndCenterCropTensor:
-    def __init__(self, reference_height=1280, reference_width=960):
+    """Resize and center crop a tensor to a given size."""
+
+    def __init__(
+        self, reference_height: int = 1280, reference_width: int = 960
+    ) -> None:
+        """Initialize the ResizeAndCenterCropTensor.
+
+        Parameters
+        ----------
+        reference_height : int, optional
+            The reference height, by default 1280
+        reference_width : int, optional
+            The reference width, by default 960
+        """
         self.reference_height = reference_height
         self.reference_width = reference_width
 
-    def __call__(self, img_tensor):
+    def __call__(self, img_tensor: torch.Tensor) -> torch.Tensor:
+        """Resize and center crop a tensor to a given size."""
         _, height, width = img_tensor.shape
 
         # Resize
@@ -551,19 +610,27 @@ def pad_zeros(
     target_width: int = 960,
     fill_value: int = 0,
 ) -> torch.Tensor:
-    """Pads a given torch tensor with 0s such that it meets (C x H x W) condition.
+    """Zero pad a tensor to a given size.
+
+    Pads a given torch tensor with 0s such that it meets (C x H x W) condition.
     Leaves channel (1st entry untouched)
 
-    Args:
-    - x             : 3-dimensional input tensor of dimension with (channel x height x width) that is to be padded
-    - target_heigth : Desired height of the tensor (i.e. x.size(1))
-    - target_width  : Desired width of the tensor (i.e. x.size(2))
-    - fill_value    : Fill-value
+    Parameters
+    ----------
+    x : torch.Tensor
+        3-dimensional input tensor of dimension with (channel x height x width)
+        that is to be padded
+    target_height : int, optional
+        Desired height of the tensor (i.e. x.size(1)), by default 1280
+    target_width : int, optional
+        Desired width of the tensor (i.e. x.size(2)), by default 960
+    fill_value : int, optional
+        Fill-value, by default 0
 
     Returns:
-    - output tensor : Zero-padded in the bottom rows and rightmost columns
-
-    Raises:
+    -------
+    torch.Tensor
+        Zero-padded in the bottom rows and rightmost columns.
     """
     # height
     if target_height > x.size(1):
@@ -584,15 +651,25 @@ def pad_zeros(
 def center_crop(
     x: torch.Tensor, target_height: int = 1280, target_width: int = 960
 ) -> torch.Tensor:
-    """If the tensor is larger along width or height, center-crops the tensor to match desired heigth/width.
+    """Center crop a tensor to a given size.
 
-    Args:
-    - x             : 3-dimensional input tensor of dimension with (channel x height x width) that is to be padded
-    - target_heigth : Desired height of the tensor (i.e. x.size(1))
-    - target_width  : Desired width of the tensor (i.e. x.size(2))
+    If the tensor is larger along width or height, center-crops the tensor to
+    match desired heigth and width.
+
+    Parameters
+    ----------
+    x : torch.Tensor
+        3-dimensional input tensor of dimension with (channel x height x width)
+        that is to be padded
+    target_height : int, optional
+        Desired height of the tensor (i.e. x.size(1)), by default 1280
+    target_width : int, optional
+        Desired width of the tensor (i.e. x.size(2)), by default 960
 
     Returns:
-    - output        : Zero-padded in the bottom rows and rightmost columns
+    -------
+    torch.Tensor
+        Zero-padded in the bottom rows and rightmost columns.
     """
     h_delta, w_delta = 0, 0
 
@@ -613,13 +690,20 @@ def center_crop(
 
 
 def pad_patch(patch: torch.Tensor, patch_value: int = 255) -> torch.Tensor:
-    """Pads "0"s to a non-square patch
+    """Pads "0"s to a non-square patch.
 
-    Args:
-    - patch_value  : Value that is to be inserted for padding (255: white on RGB scale)
+    Parameters
+    ----------
+    patch : torch.Tensor
+        3D tensor representing an image patch
+    patch_value : int, optional
+        Value that is to be inserted for padding (255: white on RGB scale),
+        by default 255
 
     Returns:
-    - padded_patch : Padded tensor post upscaling
+    -------
+    torch.Tensor
+        Padded tensor post upscaling
     """
     target_length = max(patch.size()[1:])
 
@@ -645,12 +729,22 @@ def pad_patch(patch: torch.Tensor, patch_value: int = 255) -> torch.Tensor:
 def resize_patch(
     patch: torch.Tensor, max_length: int = 420, mode: str = 'bilinear'
 ) -> torch.Tensor:
-    """Scale patch to (3x420x420). the texify default input size
+    """Scale patch to (3x420x420), the texify default input size.
 
-    Args:
-    - patch      : 3D tensor representing an image patch
-    - max_length : Maximum length a patch is allowed to be scaled to
-    - mode       : Mode by which upscaled pixels are interpolated (e.g. `nearest`, `bilinear` is Marker's PIL equivalent)
+    Parameters
+    ----------
+    patch : torch.Tensor
+        3D tensor representing an image patch
+    max_length : int, optional
+        Maximum length a patch is allowed to be scaled to, by default 420
+    mode : str, optional
+        Mode by which upscaled pixels are interpolated (e.g. `nearest`,
+        `bilinear` is Marker's PIL equivalent), by default 'bilinear'
+
+    Returns:
+    -------
+    torch.Tensor
+        Scaled tensor
     """
     # patch = patch.to(torch.float)
     height, width = patch.size()[1:]
@@ -681,18 +775,31 @@ def normalize_pad(
     mean: list[float] = [0.485, 0.456, 0.406],
     std: list[float] = [0.229, 0.224, 0.225],
 ):
-    """Normalizes z_i = (x_i - mu_i) / sigma_i along each channel i in {0,1,2}
+    """Normalizes z_i = (x_i - mu_i) / sigma_i along each channel i in {0,1,2}.
 
-    Args:
-    - t            : Tensor of size BxCxHxW with unnormalized (i.e. native) float pixel values scaled to [0.0, 1.0]
-    - mean         : vector of length 3 (one value per channel) by which every pixel is shifted
-    - std          : vector of length 3 (one value per channel) by by which every shifted pixel is divided
+    Parameters
+    ----------
+    t : torch.Tensor
+        Tensor of size BxCxHxW with unnormalized (i.e. native) float pixel
+        values scaled to [0.0, 1.0]
+    mean : list[float], optional
+        Vector of length 3 (one value per channel) by which every pixel is
+        shifted, by default [0.485, 0.456, 0.406]
+    std : list[float], optional
+        Vector of length 3 (one value per channel) by by which every shifted
+        pixel is divided, by default [0.229, 0.224, 0.225]
 
     Returns:
-    - normalized_t : Tensor of size BxCxHxW for which most pixel fall within [-2.575, +2.575]
+    -------
+    torch.Tensor
+        Normalized tensor of size BxCxHxW for which most pixel fall within
+        [-2.575, +2.575]
 
     Raises:
-    - ValueError   : Mismatch of dimension between arguments. Input tensor `t` does not adhere to Bx3xHxW or mean/std are not of length 3.
+    ------
+    ValueError
+        Mismatch of dimension between arguments. Input tensor `t` does not
+        adhere to Bx3xHxW or mean/std are not of length 3.
     """
     normalize_transform = transforms.Normalize(mean=mean, std=std)
 
@@ -1863,71 +1970,6 @@ def update_main_content_dict(
     return doc_dict
 
 
-def store_completed_docs(
-    main_doc_dict: defaultdict(list),
-    curr_file_ids: torch.Tensor,
-    doc_file_paths: list[Path],
-    store_dir: Path,
-    store_all_now: bool = False,
-    output_style: str = 'text',
-    file_format: str = 'jsonl',
-):
-    """Given a dictionary of documents (key: file id, value: text list), stores the respective documents into local files
-    if they are completed (i.e. their file ids have stopped to appear in the current batch)
-
-    Args:
-    - main_doc_dict    : Dictionary (key: doc file id, values: list of sorted decoded text patches)
-    - curr_file_ids    : file ids that are currently present in batch (if a previous file id is not presented, it has been fully processed -> can be stored)
-    - doc_file_paths   : List of source paths (sorted by file id) from which the document content was extracted
-    - store_dir        : Directory to which the textual output files are stored
-    - store_all_now    : If true, entire content of `main_doc_dict` is stored regardless what file ids are observed (used in last batch to "empty out" all docs)
-    - output_style     : Representation format (text or tex/latex)
-    - file_format      : filetype to which text (regardless of style) is to be stored.
-
-    Returns:
-    - None
-
-    Raises:
-
-    """
-    # check dir existance
-    assert os.path.isdir(
-        store_dir
-    ), f'The directory to which the text output files are stored `store_dir`={store_dir} does not exist.'
-
-    # file ids to store (all remaining or either completed)
-    if store_all_now:
-        completed_file_ids = list(main_doc_dict.keys())
-    else:
-        curr_file_ids_on_cpu = curr_file_ids.detach().cpu().tolist()
-        completed_file_ids = list(
-            set(main_doc_dict.keys()).difference(set(curr_file_ids_on_cpu))
-        )
-
-    assert max(completed_file_ids) < len(
-        doc_file_paths
-    ), 'File ids extend range of `doc_file_paths`'
-
-    # loop completed file ids
-    if len(completed_file_ids) > 0:
-        for compl_file_id in completed_file_ids:
-            file_text = main_doc_dict.pop(compl_file_id, None)
-
-            # FOR NOW: naïve post-processing of text
-            processed_file_text = ''.join(file_text)
-
-            # TODO: actual post-processing
-            # processed_file_text = post_process_text(, output_type=['tex', 'markup', 'txt'], spellcheck=[True,False])
-
-            # save TODO. Uses "dataset" below
-            file_store_path = (
-                store_dir / f'{doc_file_paths[compl_file_id].stem}.txt'
-            )
-            with open(file_store_path, 'w') as file:
-                file.write(processed_file_text)
-    pass
-
-
 def assign_text_inferred_meta_classes(
     txt_cls_model,
     tokenizer,
@@ -2043,26 +2085,32 @@ def store_completed_docs(
     store_dir: Path,
     LaTex2Text: LatexNodes2Text,
     store_all_now: bool = False,
-    output_style: str = 'text',
-    file_format: str = 'jsonl',
-):
-    """Given a dictionary of documents (key: file id, value: text list), stores the respective documents into local files
-    if they are completed (i.e. their file ids have stopped to appear in the current batch)
+) -> None:
+    """Store completed documents.
 
-    Args:
-    - main_doc_dict    : Dictionary (key: doc file id, values: list of sorted decoded text patches)
-    - curr_file_ids    : file ids that are currently present in batch (if a previous file id is not presented, it has been fully processed -> can be stored)
-    - doc_file_paths   : List of source paths (sorted by file id) from which the document content was extracted
-    - store_dir        : Directory to which the textual output files are stored
-    - store_all_now    : If true, entire content of `main_doc_dict` is stored regardless what file ids are observed (used in last batch to "empty out" all docs)
-    - output_style     : Representation format (text or tex/latex)
-    - file_format      : filetype to which text (regardless of style) is to be stored.
+    Given a dictionary of documents (key: file id, value: text list), stores
+    the respective documents into local files if they are completed (i.e.
+    their file ids have stopped to appear in the current batch)
 
-    Returns:
-    - None
-
-    Raises:
-
+    Parameters
+    ----------
+    doc_dict : defaultdict(lambda: defaultdict(list))
+        Dictionary (key: doc file id, values: list of sorted decoded text
+        patches)
+    curr_file_ids : torch.Tensor
+        file ids that are currently present in batch (if a previous file id is
+          not presented, it has been fully processed -> can be stored)
+    doc_file_paths : list[Path]
+        List of source paths (sorted by file id) from which the document
+        content was extracted
+    store_dir : Path
+        Directory to which the textual output files are stored
+    LaTex2Text : LatexNodes2Text
+        Latex2Text object for conversion of latex to text
+    store_all_now : bool, optional
+        If true, entire content of `main_doc_dict` is stored regardless what
+        file ids are observed (used in last batch to "empty out" all docs),
+        by default False
     """
     # file ids to store (all remaining or either completed)
     if store_all_now:
@@ -2092,7 +2140,6 @@ def store_completed_docs(
             )
             with open(file_store_path, 'w') as f:
                 json.dump(one_doc_dict, f)
-    pass
 
 
 def store_visuals(

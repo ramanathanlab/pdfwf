@@ -368,8 +368,6 @@ class OreoParser:
                 store_dir=args.output_dir,
                 LaTex2Text=self.LaTex2Text,
                 store_all_now=last_batch_flag,
-                output_style='text',
-                file_format='jsonl',
             )
 
 
