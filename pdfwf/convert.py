@@ -68,7 +68,7 @@ class WorkflowConfig(BaseModel):
     """Directory containing pdfs to parse."""
 
     out_dir: Path
-    """Directory to place parsed pdfs in."""
+    """The output directory of the workflow."""
 
     num_conversions: int = sys.maxsize
     """Number of pdfs to convert (useful for debugging)."""
@@ -113,10 +113,14 @@ if __name__ == '__main__':
     # Batch the input args
     batched_pdf_paths = batch_data(pdf_paths, config.chunk_size)
 
+    # Create a subdirectory to write the output to
+    pdf_output_dir = config.out_dir / 'parsed_pdfs'
+    pdf_output_dir.mkdir(exist_ok=True)
+
     # Setup the worker function with default arguments
     worker_fn = functools.partial(
         parse_pdfs,
-        output_dir=config.out_dir,
+        output_dir=pdf_output_dir,
         **config.parser_settings.model_dump(),
     )
 

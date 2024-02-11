@@ -139,6 +139,14 @@ python -m pdfwf.convert --config config.yaml
 
 ### Running the OREO parser
 
+#### Installing on Polaris
+```console
+module load conda/2023-10-04
+conda create -n pdfwf python=3.10 -y
+conda activate pdfwf
+mamba install pytorch torchvision pytorch-cuda=11.8 -c pytorch -c nvidia -y
+```
+
 The OREO parser requires two input files containing the model weights
 ```yaml
 detection_weights_path: ./yolov5/runs/train/best_SPv05_run/weights/best.pt

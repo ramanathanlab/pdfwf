@@ -278,6 +278,7 @@ class OreoParser(BaseParser):
 
             # TODO: Implement this such that the I/O is decoupled from the
             #       main parsing logic.
+
             # store visual patches (tables, figures)
             # if self.rel_visual_classes:
             # vis_path_dict, i_tab, i_fig, prev_file_id = store_visuals(

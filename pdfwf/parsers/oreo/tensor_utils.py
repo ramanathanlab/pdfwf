@@ -1238,7 +1238,7 @@ def merge_rows_into_patch(
 
 
 def grouped_patch_list(
-    patch_list: list,
+    patch_list: list[torch.Tensor],
     y: torch.Tensor,
     unpackable_class_ids: list[int],
     by: list[str] = ['file_id', 'cls'],
