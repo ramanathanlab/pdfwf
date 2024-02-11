@@ -5,17 +5,17 @@ from typing import Any
 from typing import Literal
 
 from pdfwf.parsers.base import BaseParser
-from pdfwf.parsers.base import BaseParserSettings
+from pdfwf.parsers.base import BaseParserConfig
 from pdfwf.registry import register
 from pdfwf.utils import exception_handler
 
 __all__ = [
     'MarkerParser',
-    'MarkerParserSettings',
+    'MarkerParserConfig',
 ]
 
 
-class MarkerParserSettings(BaseParserSettings):
+class MarkerParserConfig(BaseParserConfig):
     """Settings for the marker PDF parser."""
 
     # The name of the parser
@@ -31,13 +31,11 @@ class MarkerParser(BaseParser):
     are only loaded once per worker process (i.e., we warmstart the models)
     """
 
-    name: Literal['marker'] = 'marker'
-
-    def __init__(self, name: str) -> None:
+    def __init__(self, config: MarkerParserConfig) -> None:
         """Initialize the marker parser."""
-        super().__init__(name)
         from marker.models import load_all_models
 
+        self.config = config
         self.model_lst = load_all_models()
 
     @exception_handler(default_return=None)

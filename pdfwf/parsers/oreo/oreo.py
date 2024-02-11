@@ -17,11 +17,11 @@ from pydantic import field_validator
 from pydantic import model_validator
 
 from pdfwf.parsers.base import BaseParser
-from pdfwf.parsers.base import BaseParserSettings
+from pdfwf.parsers.base import BaseParserConfig
 from pdfwf.utils import exception_handler
 
 
-class OreoParserSettings(BaseParserSettings):
+class OreoParserConfig(BaseParserConfig):
     """Configuration for the Oreo parser."""
 
     # The name of the parser
@@ -89,30 +89,11 @@ class OreoParserSettings(BaseParserSettings):
 class OreoParser(BaseParser):
     """The Oreo parser."""
 
-    name: Literal['oreo'] = 'oreo'
-
-    def __init__(
-        self,
-        name: str,
-        detection_weights_path: Path,
-        text_cls_weights_path: Path,
-        spv05_category_file_path: Path,
-        meta_only: bool,
-        equation: bool,
-        table: bool,
-        figure: bool,
-        secondary_meta: bool,
-        accelerate: bool,
-        batch_yolo: int,
-        batch_vit: int,
-        batch_cls: int,
-        bbox_offset: int,
-    ) -> None:
+    def __init__(self, config: OreoParserConfig) -> None:
         """Initialize the Oreo parser.
 
-        See the `OreoParserSettings` class for the parameter descriptions.
+        See the `OreoParserConfig` class for the parameter descriptions.
         """
-        super().__init__(name)
         import torch
         from pylatexenc.latex2text import LatexNodes2Text
         from texify.model.model import load_model
@@ -129,14 +110,14 @@ class OreoParser(BaseParser):
         # load models
         # - (1.) detection: Yolov5
         detect_model = torch.hub.load(
-            'ultralytics/yolov5', 'custom', path=detection_weights_path
+            'ultralytics/yolov5', 'custom', path=config.detection_weights_path
         )
         detect_model.to(device)
         detect_model.eval()
 
         # - (2.) text classifier for meta data
         txt_cls_model = AutoModelForSequenceClassification.from_pretrained(
-            text_cls_weights_path
+            config.text_cls_weights_path
         ).to(device)
 
         tokenizer = AutoTokenizer.from_pretrained(
@@ -156,40 +137,36 @@ class OreoParser(BaseParser):
 
         # identify relevant classes and group by treatment
         rel_txt_classes = get_relevant_text_classes(
-            spv05_category_file_path=spv05_category_file_path,
+            spv05_category_file_path=config.spv05_category_file_path,
             file_type='pdf',
-            meta_only=meta_only,
-            equation_flag=equation,
-            table_flag=table,
-            fig_flag=figure,
-            secondary_meta=secondary_meta,
+            meta_only=config.meta_only,
+            equation_flag=config.equation,
+            table_flag=config.table,
+            fig_flag=config.figure,
+            secondary_meta=config.secondary_meta,
         )
         rel_meta_txt_classes = get_relevant_text_classes(
-            spv05_category_file_path=spv05_category_file_path,
+            spv05_category_file_path=config.spv05_category_file_path,
             file_type='pdf',
             meta_only=True,
         )
         rel_visual_classes = get_relevant_visual_classes(
-            spv05_category_file_path=spv05_category_file_path,
+            spv05_category_file_path=config.spv05_category_file_path,
             file_type='pdf',
-            table_flag=table,
-            fig_flag=figure,
+            table_flag=config.table,
+            fig_flag=config.figure,
         )
 
         unpackable_classes = {}
 
         # determine unpackable_classes
-        if accelerate:
+        if config.accelerate:
             # only exclude `meta` cats
             unpackable_classes = rel_meta_txt_classes
         rel_txt_classes.update(rel_meta_txt_classes)
 
         # Set attributes
-        self.meta_only = meta_only
-        self.batch_yolo = batch_yolo
-        self.batch_vit = batch_vit
-        self.batch_cls = batch_cls
-        self.bbox_offset = bbox_offset
+        self.config = config
         self.device = device
         self.detect_model = detect_model
         self.txt_cls_model = txt_cls_model
@@ -228,13 +205,15 @@ class OreoParser(BaseParser):
         from pdfwf.parsers.oreo.tensor_utils import update_main_content_dict
 
         # load dataset
-        dataset = PDFDataset(pdf_paths=pdf_files, meta_only=self.meta_only)
+        dataset = PDFDataset(
+            pdf_paths=pdf_files, meta_only=self.config.meta_only
+        )
 
         # TODO: Experiment with num_workers and pin_memory
         # Create a DataLoader for batching and shuffling
         data_loader = DataLoader(
             dataset=dataset,
-            batch_size=self.batch_yolo,
+            batch_size=self.config.batch_yolo,
             shuffle=False,
             collate_fn=custom_collate,
             # num_workers=1,
@@ -264,7 +243,7 @@ class OreoParser(BaseParser):
             tensors, file_ids, file_paths = batch
             tensors = tensors.to(self.device)
 
-            # Yolov5 inference (object detecion)
+            # Yolov5 inference (object detection)
             results = self.detect_model(tensors)
 
             # y : dataframe of patch features
@@ -288,7 +267,7 @@ class OreoParser(BaseParser):
                 sep_symbol_flag=False,
                 btm_pad=4,
                 by=['file_id'],
-                offset=self.bbox_offset,
+                offset=self.config.bbox_offset,
                 sep_symbol_tensor=None,
             )
 
@@ -317,7 +296,7 @@ class OreoParser(BaseParser):
                 tensors=pack_patch_tensor,
                 model=self.ocr_model,
                 processor=self.ocr_processor,
-                batch_size=self.batch_vit,
+                batch_size=self.config.batch_vit,
             )
 
             # TODO: Debug this, it could be due to small batch size

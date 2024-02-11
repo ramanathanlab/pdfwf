@@ -9,8 +9,8 @@ from typing import Any
 
 from parsl.concurrent import ParslPoolExecutor
 
-from pdfwf.parsers.marker import MarkerParserSettings
-from pdfwf.parsers.oreo import OreoParserSettings
+from pdfwf.parsers.marker import MarkerParserConfig
+from pdfwf.parsers.oreo import OreoParserConfig
 from pdfwf.parsl import ComputeSettingsTypes
 from pdfwf.utils import BaseModel
 from pdfwf.utils import batch_data
@@ -40,15 +40,17 @@ def parse_pdfs(
     # them in a global registry unique to the current parsl worker process.
     # This ensures that the models are only loaded once per worker process
     # (i.e., we warmstart the models)
-    parser_name = parser_kwargs['name']
+    parser_name = parser_kwargs.get('name', '')
     if parser_name == 'marker':
         from pdfwf.parsers.marker import MarkerParser
+        from pdfwf.parsers.marker import MarkerParserConfig
 
-        parser = MarkerParser(**parser_kwargs)
+        parser = MarkerParser(MarkerParserConfig(**parser_kwargs))
     elif parser_name == 'oreo':
         from pdfwf.parsers.oreo import OreoParser
+        from pdfwf.parsers.oreo import OreoParserConfig
 
-        parser = OreoParser(**parser_kwargs)
+        parser = OreoParser(OreoParserConfig(**parser_kwargs))
     else:
         raise ValueError(f'Unknown parser name: {parser_name}')
 
@@ -82,7 +84,7 @@ class WorkflowConfig(BaseModel):
     chunk_size: int = 1
     """Number of pdfs to convert in a single batch."""
 
-    parser_settings: MarkerParserSettings | OreoParserSettings
+    parser_settings: MarkerParserConfig | OreoParserConfig
     """Parser settings (e.g., model paths, etc)."""
 
     compute_settings: ComputeSettingsTypes

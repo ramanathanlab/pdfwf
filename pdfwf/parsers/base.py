@@ -16,17 +16,6 @@ from pdfwf.utils import BaseModel
 class BaseParser(ABC):
     """Base parser class for all parsers to inherit from."""
 
-    # The name of the parser to check that the settings are correct
-    name: Literal[''] = ''
-
-    def __init__(self, name: str) -> None:
-        """Initialize the parser."""
-        if name != self.name:
-            raise ValueError(
-                f'Parser name {name} does not match the parser'
-                f' name {self.name}'
-            )
-
     @property
     def id(self) -> str:
         """Get the unique identifier for the parser."""
@@ -40,7 +29,7 @@ class BaseParser(ABC):
         pass
 
 
-class BaseParserSettings(BaseModel, ABC):
+class BaseParserConfig(BaseModel, ABC):
     """Base settings for all parsers."""
 
     name: Literal[''] = ''
