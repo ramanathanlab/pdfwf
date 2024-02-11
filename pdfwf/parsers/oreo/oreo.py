@@ -1,31 +1,33 @@
 """The Oreo parser for extracting text and visual content from PDFs."""
 from __future__ import annotations
 
+import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
+if sys.version_info >= (3, 10):
+    from typing import Self
+else:
+    from typing_extensions import Self
+
 import torch
-from pydantic import validator
+from pydantic import field_validator
+from pydantic import model_validator
 
 from pdfwf.parsers.base import BaseParser
+from pdfwf.parsers.base import BaseParserSettings
 
 
-class OreoParserSettings(BaseParser):
+class OreoParserSettings(BaseParserSettings):
     """Configuration for the Oreo parser."""
 
-    # Input directory path from which document files are sourced.
-    input_dir: Path
-    # Output path into which json/visuals are stored.
-    output_dir: Path
+    # The name of the parser
+    name: str = 'oreo'
     # Weights to layout detection model.
-    detection_weights_path: Path = Path(
-        './yolov5/runs/train/best_SPv05_run/weights/best.pt'
-    )
+    detection_weights_path: Path
     # Model weights for (meta) text classifier.
-    text_cls_weights_path: Path = Path(
-        './text_classifier/meta_text_classifier'
-    )
+    text_cls_weights_path: Path
     # File type to be parsed (ignores other files in the input_dir).
     detect_only: bool = False
     # Only parse PDFs for meta data
@@ -49,12 +51,7 @@ class OreoParserSettings(BaseParser):
     # Number of pixels along which
     bbox_offset: int = 2
 
-    @validator(
-        'input_dir',
-        'output_dir',
-        'detection_weights_path',
-        'text_cls_weights_path',
-    )
+    @field_validator('detection_weights_path', 'text_cls_weights_path')
     @classmethod
     def validate_path_existence(cls, value: Path) -> Path:
         """Check if the directory exists."""
@@ -62,23 +59,27 @@ class OreoParserSettings(BaseParser):
             raise FileNotFoundError(f'Path does not exist: {value}')
         return value
 
-    @validator('detect_only', 'meta_only')
-    @classmethod
-    def validate_flags(cls, value: bool, values: dict[str, Any]) -> bool:
-        """Check if the flags are used correctly."""
+    @model_validator(mode='after')
+    def validate_flags(self) -> Self:
+        """Validate the flags."""
         check_flags = (
-            values['equation']
-            or values['table']
-            or values['figure']
-            or values['secondary_meta']
-            or values['meta_only']
+            self.equation
+            or self.table
+            or self.figure
+            or self.secondary_meta
+            or self.meta_only
         )
-        if value and check_flags:
+
+        if self.detect_only and check_flags:
             raise ValueError(
-                'The `detect_only` or `meta_only` flag cannot be used with any'
-                ' other flag.'
+                'The `detect_only` flag cannot be used with any other flag.'
             )
-        return value
+        if self.meta_only and check_flags:
+            raise ValueError(
+                'The `meta_only` flag cannot be used with any other flag.'
+            )
+
+        return self
 
 
 class OreoParser(BaseParser):

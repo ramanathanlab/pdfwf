@@ -136,3 +136,11 @@ For example, the workflow can be run using the CLI as follows:
 ```
 python -m pdfwf.convert --config config.yaml
 ```
+
+### Running the OREO parser
+
+The OREO parser requires two input files containing the model weights
+```yaml
+detection_weights_path: ./yolov5/runs/train/best_SPv05_run/weights/best.pt
+text_cls_weights_path: ./text_classifier/meta_text_classifier
+```
