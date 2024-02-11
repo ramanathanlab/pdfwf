@@ -18,6 +18,7 @@ from pydantic import model_validator
 
 from pdfwf.parsers.base import BaseParser
 from pdfwf.parsers.base import BaseParserSettings
+from pdfwf.utils import exception_handler
 
 
 class OreoParserSettings(BaseParserSettings):
@@ -202,7 +203,8 @@ class OreoParser(BaseParser):
         self.unpackable_classes: list[int] = list(unpackable_classes.values())
 
     @torch.no_grad()
-    def parse(self, pdf_files: list[str]) -> list[dict[str, Any]]:
+    @exception_handler(default_return=None)
+    def parse(self, pdf_files: list[str]) -> list[dict[str, Any]] | None:
         """Parse a PDF file and extract markdown.
 
         Parameters

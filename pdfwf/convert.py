@@ -56,8 +56,13 @@ def parse_pdfs(
     else:
         raise ValueError(f'Unknown parser name: {parser_kwargs["name"]}')
     print(f'Built {parser_kwargs["name"]} parser', flush=True)
+
     # Process the PDF files in bulk
     documents = parser.parse(pdf_paths)
+
+    # If parsing failed, return early
+    if documents is None:
+        return
 
     # Convert the document into a JSON lines string
     lines = [json.dumps(doc) for doc in documents]

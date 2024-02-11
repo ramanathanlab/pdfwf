@@ -60,7 +60,8 @@ class MarkerParser(BaseParser):
 
         return full_text, out_meta
 
-    def parse(self, pdf_files: list[str]) -> list[dict[str, Any]]:
+    @exception_handler(default_return=None)
+    def parse(self, pdf_files: list[str]) -> list[dict[str, Any]] | None:
         """Parse a list of pdf files and return the parsed data."""
         documents = []
         # Process each PDF

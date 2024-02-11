@@ -35,7 +35,7 @@ class BaseParser(ABC):
         return self._id
 
     @abstractmethod
-    def parse(self, pdf_files: list[str]) -> list[dict[str, Any]]:
+    def parse(self, pdf_files: list[str]) -> list[dict[str, Any]] | None:
         """Parse a list of pdf files and return the parsed data."""
         pass
 
