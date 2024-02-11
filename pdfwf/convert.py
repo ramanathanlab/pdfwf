@@ -20,7 +20,7 @@ from pdfwf.utils import setup_logging
 def parse_pdfs(
     pdf_paths: list[str],
     output_dir: Path,
-    **parser_kwargs: dict[str, Any],
+    parser_kwargs: dict[str, Any],
 ) -> None:
     """Process a single PDF with marker.
 
@@ -103,12 +103,16 @@ if __name__ == '__main__':
     # Setup logging
     logger = setup_logging('pdfwf', config.out_dir)
 
+    logger.info(f'Loaded configuration: {config}')
+
     # Collect PDFs in batches for more efficient processing
     pdf_paths = [p.as_posix() for p in config.pdf_dir.glob('**/*.pdf')]
 
     # Limit the number of conversions for debugging
     if len(pdf_paths) >= config.num_conversions:
         pdf_paths = pdf_paths[: config.num_conversions]
+
+    logger.info(f'Found {len(pdf_paths)} PDFs to parse')
 
     # Batch the input args
     batched_pdf_paths = batch_data(pdf_paths, config.chunk_size)
@@ -117,11 +121,13 @@ if __name__ == '__main__':
     pdf_output_dir = config.out_dir / 'parsed_pdfs'
     pdf_output_dir.mkdir(exist_ok=True)
 
+    logger.info(f'Writing output to {pdf_output_dir}')
+
     # Setup the worker function with default arguments
     worker_fn = functools.partial(
         parse_pdfs,
         output_dir=pdf_output_dir,
-        **config.parser_settings.model_dump(),
+        parser_kwargs=config.parser_settings.model_dump(),
     )
 
     # Setup parsl for distributed computing
