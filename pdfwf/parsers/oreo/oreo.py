@@ -6,7 +6,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-if sys.version_info >= (3, 10):
+if sys.version_info >= (3, 11):
     from typing import Self
 else:
     from typing_extensions import Self
