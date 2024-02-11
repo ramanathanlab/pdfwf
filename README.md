@@ -86,9 +86,14 @@ pip install --upgrade pip setuptools wheel
 pip install -e .
 ```
 
+To install the dependencies for the Oreo parser
+```
+pip install -r requirements/oreo_requirements.txt
+```
+
 For development, you can install the devtools using:
 ```
-pip install -e '.[dev]'
+pip install -e '.[dev,docs]'
 ```
 
 ## Usage
