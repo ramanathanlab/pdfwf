@@ -6,7 +6,6 @@ import sys
 from argparse import ArgumentParser
 from pathlib import Path
 
-from parsl import python_app
 from parsl.concurrent import ParslPoolExecutor
 
 from pdfwf.parsl import ComputeSettingsTypes
@@ -15,7 +14,6 @@ from pdfwf.utils import batch_data
 from pdfwf.utils import setup_logging
 
 
-@python_app
 def parse_pdfs(pdf_paths: list[str], parser_id: str, output_dir: Path) -> None:
     """Process a single PDF with marker.
 
@@ -117,6 +115,7 @@ if __name__ == '__main__':
     # Batch the input args
     batched_pdf_paths = batch_data(pdf_paths, config.chunk_size)
 
+    # Setup the worker function with default arguments
     worker_fn = functools.partial(
         parse_pdfs, parser_id=config.parser_id, output_dir=config.out_dir
     )
