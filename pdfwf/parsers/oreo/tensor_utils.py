@@ -1,9 +1,9 @@
+"""Tensor-based utilities for Oreo."""
 from __future__ import annotations
 
 import gc
 import os
 import re
-import sys
 from collections import defaultdict
 from pathlib import Path
 
@@ -14,14 +14,82 @@ import torch.nn.functional as F
 import yaml
 from PIL import Image
 from pylatexenc.latex2text import LatexNodes2Text
+from texify.output import postprocess
 from torch.utils.data import Dataset
 from torchvision import transforms
+from yolov5.utils.general import non_max_suppression
 
-# import YOLOv5 dependencies
-yolo_path = './yolov5'
-if yolo_path not in sys.path:
-    sys.path.append(yolo_path)
-from utils.general import non_max_suppression
+
+def accelerated_batch_inference(
+    tensors: torch.Tensor,
+    model,
+    processor,
+    batch_size: int,
+    temperature=0.0,
+    max_tokens=384,
+) -> list[str]:
+    """Accelerated batched inference for texify.
+
+    Runs inference directly on `encodings[`pixekl_values`]` rather than
+    computing it internally like `batched_inference`
+
+    Parameters
+    ----------
+    tensors : torch.Tensor
+        A single batch of packed tensor patches
+    model : instance of class VisionEncoderDecoderModel
+        Previously loaded from pre-trained weights
+    processor : instance of class VariableDonutProcessor
+        Previously loaded from pre-trained weights
+    batch_size : int
+        Splits model input up in chunks of (at most) batch_size before
+        recombining into single output
+    temperature : float, optional
+        Temperature, by default 0.0
+    max_tokens : int, optional
+        Maximum number of tokens, by default 384
+
+    Returns:
+    -------
+    list[str]
+        List of decoded text patches.
+    """
+    assert len(tensors.size()) == 4, ''
+
+    # loop patches in batches
+    ppt_len = tensors.size()[0]
+    n_eff = ppt_len // batch_size
+
+    # set hyperparameters
+    additional_kwargs = {}
+    if temperature > 0:
+        additional_kwargs['temperature'] = temperature
+        additional_kwargs['do_sample'] = True
+        additional_kwargs['top_p'] = 0.95
+
+    # process batches
+    text_results = []
+    for j in range(n_eff + 1):
+        # IDs (comp. bottleneck)
+        generated_ids = model.generate(
+            pixel_values=tensors[
+                j * batch_size : min((j + 1) * batch_size, ppt_len), :, :, :
+            ],
+            max_new_tokens=max_tokens,
+            decoder_start_token_id=processor.tokenizer.bos_token_id,
+            **additional_kwargs,
+        )
+
+        # decoding
+        generated_text_loc = processor.tokenizer.batch_decode(
+            generated_ids, skip_special_tokens=True
+        )
+        generated_text_loc = [postprocess(text) for text in generated_text_loc]
+
+        # append to list
+        text_results += generated_text_loc
+
+    return text_results
 
 
 class PDFDataset(Dataset):
@@ -251,11 +319,11 @@ def get_y_indexed(
     ymin_column = 1
     xmax_column = 2
     ymax_column = 3
-    score_column = 4
+    # score_column = 4
     cls_column = 5
     page_idx_column = 6
     midpoint_x_column = 7
-    midpoint_y_column = 8
+    # midpoint_y_column = 8
     col_idx_column = 9
     row_idx_column = 10
     width_column = 11
@@ -294,15 +362,16 @@ def get_y_indexed(
 
     # - compute midpoints (along x-axis)
     x_Mid = 0.5 * (y_batch[:, xmin_column] + y_batch[:, xmax_column])
-    rounding_values = torch.arange(100, 1300, x_delta)
+    # rounding_values = torch.arange(100, 1300, x_delta)
     x_Mid_rounded = torch.round(x_Mid / x_delta) * x_delta
     x_Mid_rounded = torch.clamp(x_Mid_rounded, min=x_delta, max=1200).reshape(
         x_Mid_rounded.size()[0], 1
     )
 
     # - compute y minpoints (along y-axis)
+    # TODO: check if this is correct
     y_Min = 0.5 * (y_batch[:, ymin_column] + y_batch[:, ymax_column])  # NEW
-    rounding_values = torch.arange(100, 1300, y_delta)
+    # rounding_values = torch.arange(100, 1300, y_delta)
     y_Min_rounded = torch.round(y_Min / y_delta) * y_delta
     y_Mid_rounded = torch.clamp(y_Min_rounded, min=y_delta, max=1300).reshape(
         y_Min_rounded.size()[0], 1
@@ -363,10 +432,10 @@ def get_y_indexed(
         # row_index
         # = = = = =
         # - round y_min values
-        y_bins = torch.arange(0, 1280, y_bin_width).to(tensor_aug.device)
-        y_min_rounded = torch.bucketize(
-            tensor_aug[idx_cond_col, ymin_column], y_bins
-        ).to(torch.float)
+        # y_bins = torch.arange(0, 1280, y_bin_width).to(tensor_aug.device)
+        # y_min_rounded = torch.bucketize(
+        #     tensor_aug[idx_cond_col, ymin_column], y_bins
+        # ).to(torch.float)
 
         # y-axis mode estimation
         modes, counts = torch.unique(
@@ -1741,7 +1810,7 @@ def get_packed_patch_tensor(
     sep_flag: bool = False,
     sep_symbol_flag: bool = False,
     sep_symbol_tensor: torch.Tensor | None = None,
-):
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """Given a list of variably-sized patches and meta data 2D torch tensor, returns a torch tensor of dimensions (BxCxHxW)
 
     Args:

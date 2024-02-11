@@ -17,8 +17,8 @@ __all__ = [
 class MarkerParserSettings(BaseParserSettings):
     """Settings for the marker PDF parser."""
 
+    # The name of the parser
     name: str = 'marker'
-    """Name of the parser to use."""
 
 
 @register()  # type: ignore[arg-type]
@@ -47,8 +47,8 @@ class MarkerParser(BaseParser):
 
         Returns:
         -------
-        tuple[str, dict[str, str]] | None
-            The extracted markdown and metadata or None if an error occurred.
+        list[dict[str, Any]]
+            The extracted documents.
         """
         from marker.convert import convert_single_pdf
 

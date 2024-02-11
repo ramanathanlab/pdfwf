@@ -9,6 +9,7 @@ scipy==1.12.0
 tqdm==4.66.1
 transformers==4.37.2
 ultralytics==8.1.10
+yolov5==7.0.13
 texify==0.1.8
 torch
 torchvision

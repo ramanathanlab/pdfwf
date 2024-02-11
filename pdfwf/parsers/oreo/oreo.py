@@ -108,8 +108,8 @@ class OreoParser(BaseParser):
         from pylatexenc.latex2text import LatexNodes2Text
         from tensor_utils import get_relevant_text_classes
         from tensor_utils import get_relevant_visual_classes
-        from texify2.texify.model.model import load_model
-        from texify2.texify.model.processor import load_processor
+        from texify.model.model import load_model
+        from texify.model.processor import load_processor
         from transformers import AutoModelForSequenceClassification
         from transformers import AutoTokenizer
 
@@ -181,11 +181,11 @@ class OreoParser(BaseParser):
         self.tokenizer = tokenizer
         self.ocr_model = ocr_model
         self.ocr_processor = ocr_processor
-        self.rel_txt_classes = rel_txt_classes
         self.rel_meta_txt_classes = rel_meta_txt_classes
         self.rel_visual_classes = rel_visual_classes
-        self.unpackable_classes = unpackable_classes
         self.latex_to_text = latex_to_text
+        self.rel_txt_classes: list[int] = list(rel_txt_classes.values())
+        self.unpackable_classes: list[int] = list(unpackable_classes.values())
 
     @torch.no_grad()
     def parse(self, pdf_files: list[str]) -> list[dict[str, Any]]:
@@ -198,9 +198,10 @@ class OreoParser(BaseParser):
 
         Returns:
         -------
-        tuple[str, dict[str, str]] | None
-            The extracted markdown and metadata or None if an error occurred.
+        list[dict[str, Any]]
+            The extracted documents.
         """
+        from tensor_utils import accelerated_batch_inference
         from tensor_utils import assign_text_inferred_meta_classes
         from tensor_utils import custom_collate
         from tensor_utils import format_documents
@@ -208,12 +209,12 @@ class OreoParser(BaseParser):
         from tensor_utils import PDFDataset
         from tensor_utils import pre_processing
         from tensor_utils import update_main_content_dict
-        from texify2.texify.inference import accelerated_batch_inference
         from torch.utils.data import DataLoader
 
         # load dataset
         dataset = PDFDataset(pdf_paths=pdf_files, meta_only=self.meta_only)
 
+        # TODO: Experiment with num_workers and pin_memory
         # Create a DataLoader for batching and shuffling
         data_loader = DataLoader(
             dataset=dataset,
@@ -254,7 +255,7 @@ class OreoParser(BaseParser):
             y = pre_processing(
                 results=results,
                 file_ids=file_ids,
-                rel_class_ids=self.rel_txt_classes.values(),
+                rel_class_ids=self.rel_txt_classes,
                 iou_thres=0.001,
             )
 
@@ -266,12 +267,12 @@ class OreoParser(BaseParser):
             ) = get_packed_patch_tensor(
                 tensors=tensors,
                 y=y,
-                rel_class_ids=self.rel_txt_classes.values(),
-                unpackable_class_ids=self.unpackable_classes.values(),
+                rel_class_ids=self.rel_txt_classes,
+                unpackable_class_ids=self.unpackable_classes,
                 sep_symbol_flag=False,
                 btm_pad=4,
                 by=['file_id'],
-                offset=args.bbox_offset,
+                offset=self.bbox_offset,
                 sep_symbol_tensor=None,
             )
 
@@ -296,9 +297,9 @@ class OreoParser(BaseParser):
 
             # ViT: pseudo-OCR inference
             text_results = accelerated_batch_inference(
-                pack_patch_tensor,
-                self.ocr_model,
-                self.ocr_processor,
+                tensors=pack_patch_tensor,
+                model=self.ocr_model,
+                processor=self.ocr_processor,
                 batch_size=self.batch_vit,
             )
 
@@ -306,7 +307,7 @@ class OreoParser(BaseParser):
             index_quadruplet = assign_text_inferred_meta_classes(
                 txt_cls_model=self.txt_cls_model,
                 tokenizer=self.tokenizer,
-                batch_size=args.batch_cls,
+                batch_size=self.batch_cls,
                 index_quadruplet=idx_quad,
                 text_results=text_results,
             )
