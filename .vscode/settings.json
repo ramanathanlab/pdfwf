@@ -1,11 +1,4 @@
 {
-    "editor.formatOnSave": false,
-    "editor.codeActionsOnSave": {
-        "source.fixAll": "explicit"
-    },
-    "editor.defaultFormatter": null,
-    "editor.formatOnPaste": true,
-    "editor.formatOnType": true,
     "editor.rulers": [
         80
     ],
@@ -17,5 +10,28 @@
     "editor.accessibilitySupport": "off",
     "editor.acceptSuggestionOnEnter": "smart",
     "editor.minimap.enabled": false,
-    "black-formatter.args": []
+    "black-formatter.args": [],
+    "[python]": {
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.fixAll": "explicit",
+            "source.organizeImports": "never"
+        },
+        "editor.defaultFormatter": "charliermarsh.ruff"
+    },
+    "ruff.lint.args": [
+        "--config=pyproject.toml"
+    ],
+    "ruff.format.args": [
+        "--config=pyproject.toml"
+    ],
+    "notebook.formatOnSave.enabled": true,
+    "notebook.codeActionsOnSave": {
+        "notebook.source.fixAll": true,
+        "notebook.source.organizeImports": false
+    },
+    "notebook.cellToolbarLocation": {
+        "default": "right",
+        "jupyter-notebook": "left"
+    }
 }
