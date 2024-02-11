@@ -221,9 +221,6 @@ class OreoParser(BaseParser):
         from torch.utils.data import DataLoader
 
         from pdfwf.parsers.oreo.tensor_utils import accelerated_batch_inference
-        from pdfwf.parsers.oreo.tensor_utils import (
-            assign_text_inferred_meta_classes,
-        )
         from pdfwf.parsers.oreo.tensor_utils import custom_collate
         from pdfwf.parsers.oreo.tensor_utils import format_documents
         from pdfwf.parsers.oreo.tensor_utils import get_packed_patch_tensor
@@ -325,13 +322,14 @@ class OreoParser(BaseParser):
             )
 
             # re-assess meta text categories
-            index_quadruplet = assign_text_inferred_meta_classes(
-                txt_cls_model=self.txt_cls_model,
-                tokenizer=self.tokenizer,
-                batch_size=self.batch_cls,
-                index_quadruplet=idx_quad,
-                text_results=text_results,
-            )
+            # index_quadruplet = assign_text_inferred_meta_classes(
+            #     txt_cls_model=self.txt_cls_model,
+            #     tokenizer=self.tokenizer,
+            #     batch_size=self.batch_cls,
+            #     index_quadruplet=idx_quad,
+            #     text_results=text_results,
+            # )
+            index_quadruplet = idx_quad
 
             # assign decoded text to file docs
             doc_dict = update_main_content_dict(
