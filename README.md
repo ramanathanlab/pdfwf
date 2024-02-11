@@ -145,10 +145,13 @@ module load conda/2023-10-04
 conda create -n pdfwf python=3.10 -y
 conda activate pdfwf
 mamba install pytorch torchvision pytorch-cuda=11.8 -c pytorch -c nvidia -y
+pip install --upgrade pip setuptools wheel
+pip install -r requirements/oreo_requirements.txt
+pip install -e .
 ```
 
 The OREO parser requires two input files containing the model weights
 ```yaml
-detection_weights_path: ./yolov5/runs/train/best_SPv05_run/weights/best.pt
-text_cls_weights_path: ./text_classifier/meta_text_classifier
+detection_weights_path: /lus/eagle/projects/argonne_tpc/siebenschuh/N-O-REO/yolov5/runs/train/best_SPv05_run/weights/best.pt
+text_cls_weights_path: /lus/eagle/projects/argonne_tpc/siebenschuh/N-O-REO/text_classifier
 ```
