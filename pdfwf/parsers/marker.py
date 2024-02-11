@@ -18,7 +18,7 @@ __all__ = [
 class MarkerParserConfig(BaseParserConfig):
     """Settings for the marker PDF parser."""
 
-    # The name of the parser
+    # The name of the parser.
     name: Literal['marker'] = 'marker'
 
 

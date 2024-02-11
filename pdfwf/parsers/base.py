@@ -32,5 +32,5 @@ class BaseParser(ABC):
 class BaseParserConfig(BaseModel, ABC):
     """Base settings for all parsers."""
 
+    # The name of the parser.
     name: Literal[''] = ''
-    """Name of the parser to use."""

@@ -12,7 +12,7 @@ chunk_size: 4
 
 # The settings for the pdf parser
 parser_settings:
-  # The name of the parser to use
+  # The name of the parser to use.
   name: oreo
   # Weights to layout detection model.
   detection_weights_path: /lus/eagle/projects/argonne_tpc/siebenschuh/N-O-REO/yolov5/runs/train/best_SPv05_run/weights/best.pt
@@ -20,9 +20,9 @@ parser_settings:
   text_cls_weights_path: /lus/eagle/projects/argonne_tpc/siebenschuh/N-O-REO/text_classifier/meta_text_classifier
   # Path to the SPV05 category file.
   spv05_category_file_path: /lus/eagle/projects/argonne_tpc/siebenschuh/N-O-REO/meta/spv05_categories.yaml
-  # File type to be parsed (ignores other files in the input_dir).
-  #detect_only: false
-  # Only parse PDFs for meta data
+  # Only scan PDFs for meta statistics on its attributes.
+  detect_only: false
+  # Only parse PDFs for meta data.
   meta_only: false
   # Include equations into the text categories
   equation: false
@@ -40,7 +40,7 @@ parser_settings:
   batch_vit: 2
   # Batch size K for subsequent text processing.
   batch_cls: 2
-  # Number of pixels along which
+  # Number of pixels along which.
   bbox_offset: 2
 
 # The compute settings for the workflow

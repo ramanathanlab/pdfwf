@@ -22,11 +22,15 @@ classifiers = [
 dependencies = [
     "parsl>=2024.2.5",
     "pydantic==2.6.1",
+    "typer==0.9.0",
 ]
 
 [project.urls]
 homepage = "https://github.com/ramanathanlab/pdfwf"
 repository = "https://github.com/ramanathanlab/pdfwf"
+
+[project.scripts]
+pdfwf = "pdfwf.cli:main"
 
 [project.optional-dependencies]
 dev = [

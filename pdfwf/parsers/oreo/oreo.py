@@ -24,7 +24,7 @@ from pdfwf.utils import exception_handler
 class OreoParserConfig(BaseParserConfig):
     """Configuration for the Oreo parser."""
 
-    # The name of the parser
+    # The name of the parser.
     name: Literal['oreo'] = 'oreo'
     # Weights to layout detection model.
     detection_weights_path: Path
@@ -32,11 +32,11 @@ class OreoParserConfig(BaseParserConfig):
     text_cls_weights_path: Path
     # Path to the SPV05 category file.
     spv05_category_file_path: Path
-    # File type to be parsed (ignores other files in the input_dir).
-    # detect_only: bool = False
-    # Only parse PDFs for meta data
+    # Only scan PDFs for meta statistics on its attributes.
+    detect_only: bool = False
+    # Only parse PDFs for meta data.
     meta_only: bool = False
-    # Include equations into the text categories
+    # Include equations into the text categories.
     equation: bool = False
     # Include table visualizations (will be stored).
     table: bool = False
@@ -52,7 +52,7 @@ class OreoParserConfig(BaseParserConfig):
     batch_vit: int = 512
     # Batch size K for subsequent text processing.
     batch_cls: int = 512
-    # Number of pixels along which
+    # Number of pixels along which.
     bbox_offset: int = 2
 
     @field_validator('detection_weights_path', 'text_cls_weights_path')
