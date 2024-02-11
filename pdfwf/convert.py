@@ -115,7 +115,9 @@ if __name__ == '__main__':
 
     # Setup the worker function with default arguments
     worker_fn = functools.partial(
-        parse_pdfs, output_dir=config.out_dir, **config.parser_settings.dict()
+        parse_pdfs,
+        output_dir=config.out_dir,
+        **config.parser_settings.model_dump(),
     )
 
     # Setup parsl for distributed computing
