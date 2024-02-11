@@ -34,7 +34,6 @@ def parse_pdfs(
         Keyword arguments to pass to the parser. Contains an extra `name`
         argument to specify the parser to use.
     """
-    # TODO: We should pass in generic kwargs to initialize the parser
     import json
 
     # Initialize the parser. This loads the models into memory and registers
@@ -47,7 +46,7 @@ def parse_pdfs(
 
         parser = MarkerParser(**parser_kwargs)
     elif parser_name == 'oreo':
-        from pdfwf.parsers.oreo.oreo_v2 import OreoParser
+        from pdfwf.parsers.oreo import OreoParser
 
         parser = OreoParser(**parser_kwargs)
 
