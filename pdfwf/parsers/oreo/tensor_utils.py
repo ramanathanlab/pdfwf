@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import gc
-import json
 import os
 import re
 import sys
@@ -79,7 +78,7 @@ class PDFDataset(Dataset):
         """
         return self.len
 
-    def __getitem__(self, idx: int) -> torch.Tensor:
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, int, Path]:
         """Get a page from the dataset.
 
         A single page (i.e. image) rather than the document is the dataset
@@ -122,10 +121,13 @@ class PDFDataset(Dataset):
             page, self.target_heigth, fill_value=1
         )  # (C, H, W)
 
+        assert self.current_doc_file_path is not None
         return (output, self.current_doc_file_id, self.current_doc_file_path)
 
 
-def custom_collate(batch):
+def custom_collate(
+    batch: list[tuple[torch.Tensor, int, Path]],
+) -> tuple[torch.Tensor, list[int], list[Path]]:
     """Custom collate function to handle the output of the DocDataset."""
     # Transpose the batch (unzip)
     tensors, file_ids, file_paths = zip(*batch)
@@ -1857,13 +1859,13 @@ def clear_cuda_cache() -> None:
 
 
 def update_main_content_dict(
-    doc_dict: defaultdict(list),
+    doc_dict: dict[str, dict[int, list[str]]],
     text_results: list[str],
     index_quadruplet: torch.Tensor,
     curr_file_ids: torch.Tensor,
-    vis_path_dict: defaultdict(list),
+    vis_path_dict: dict[int, dict[int, list[str]]],
     dset_name: str = 'SPv05',
-):
+) -> dict[str, dict[int, list[str]]]:
     """Given a list of text patch predictions `text_results`, assigns the text elements to the respective documents (via file_id).
 
     Args:
@@ -1907,7 +1909,8 @@ def update_main_content_dict(
         meta_added_to_text = ['Title']
     else:
         raise NotImplementedError(
-            "Text-based classification only applicable to meta classes of SPv05. Register another dataset's meta class id's here."
+            'Text-based classification only applicable to meta classes of'
+            " SPv05. Register another dataset's meta class id's here."
         )
 
     # index
@@ -2040,20 +2043,29 @@ def assign_text_inferred_meta_classes(
 
 
 def extract_file_specific_doc_dict(
-    doc_dict, file_id: int, LaTex2Text: LatexNodes2Text
-):
-    """Extract doc-specific dict (each category is a key) and the file_id key is dropped.
+    doc_dict: dict[str, dict[int, list[str]]],
+    file_id: int,
+    LaTex2Text: LatexNodes2Text,
+) -> dict[str, str]:
+    """Extract file specific document dictionary.
 
-    Args:
-    - doc_dict   : `defaultdict(lambda: defaultdict(list))` holding a batch of documents with primary keys `categories` (`Title`, `Text` etc.)
-                    and secondary key `file_id`
-    - file_id    :  Integer ID for the specific document that is to be extracted
+    Extract doc-specific dict (each category is a key) and the file_id key is
+    dropped.
+
+    Parameters
+    ----------
+    doc_dict : dict[str, dict[int, list[str]]]
+        Holds a batch of documents with primary keys `categories` (`Title`,
+        `Text` etc.) and secondary key `file_id`.
+    file_id : int
+        Integer ID for the specific document that is to be extracted
+    LaTex2Text : LatexNodes2Text
+        Latex2Text object for conversion of latex to text
 
     Returns:
-    - file_dict  :
-
-    Raises:
-    -
+    -------
+    file_dict : dict[str, str]
+        Dictionary holding the document content for the specific file_id.
     """
     # pattern
     pattern = re.compile(r'(\n\s*)+')
@@ -2061,16 +2073,19 @@ def extract_file_specific_doc_dict(
     # DEBUG
     # print(doc_dict.keys())
 
-    file_dict = {}
+    file_dict: dict[str, str] = {}
     for key in doc_dict.keys():
         if file_id in doc_dict[key]:
             # post-process
             if key in ['Equations', 'Table', 'Figure']:
-                file_dict[key] = doc_dict[key][file_id]  # append list
+                # Stores the decoded equation, and the tables and figures
+                # as a path to the image
+                file_dict[key] = ' '.join(doc_dict[key][file_id])
             else:
                 extracted_text = '\n'.join(doc_dict[key][file_id])
                 if len(extracted_text) > 0:
                     try:
+                        # Sometimes LaTex2Text fails to process the text
                         proc_text = LaTex2Text.latex_to_text(extracted_text)
                         file_dict[key] = re.sub(pattern, '\n', proc_text)
                     except:
@@ -2078,14 +2093,11 @@ def extract_file_specific_doc_dict(
     return file_dict
 
 
-def store_completed_docs(
-    doc_dict: defaultdict(lambda: defaultdict(list)),
-    curr_file_ids: torch.Tensor,
-    doc_file_paths: list[Path],
-    store_dir: Path,
+def format_documents(
+    doc_dict: dict[str, dict[int, list[str]]],
+    doc_file_paths: dict[int, Path],
     LaTex2Text: LatexNodes2Text,
-    store_all_now: bool = False,
-) -> None:
+) -> list[dict[str, str]]:
     """Store completed documents.
 
     Given a dictionary of documents (key: file id, value: text list), stores
@@ -2094,59 +2106,49 @@ def store_completed_docs(
 
     Parameters
     ----------
-    doc_dict : defaultdict(lambda: defaultdict(list))
+    doc_dict : dict[str, dict[int, list[str]]]
         Dictionary (key: doc file id, values: list of sorted decoded text
         patches)
-    curr_file_ids : torch.Tensor
-        file ids that are currently present in batch (if a previous file id is
-          not presented, it has been fully processed -> can be stored)
-    doc_file_paths : list[Path]
+    doc_file_paths : dict[int, Path]
         List of source paths (sorted by file id) from which the document
         content was extracted
-    store_dir : Path
-        Directory to which the textual output files are stored
     LaTex2Text : LatexNodes2Text
         Latex2Text object for conversion of latex to text
-    store_all_now : bool, optional
-        If true, entire content of `main_doc_dict` is stored regardless what
-        file ids are observed (used in last batch to "empty out" all docs),
-        by default False
     """
-    # file ids to store (all remaining or either completed)
-    if store_all_now:
-        completed_file_ids = list(doc_dict['Text'].keys())
-    else:
-        curr_file_ids_on_cpu = curr_file_ids.tolist()
-        completed_file_ids = list(
-            set(doc_dict['Text'].keys()).difference(set(curr_file_ids_on_cpu))
+    # TODO: Run this loop in parallel using a process pool
+    # TODO: Change this function name
+
+    # Get a json lines string for each document
+    documents = []
+    for file_id, file_path in doc_file_paths.items():
+        # Extract file specific document dictionary
+        data = extract_file_specific_doc_dict(doc_dict, file_id, LaTex2Text)
+
+        # Setup the document fields to be stored
+        documents.append(
+            {
+                'text': data['Text'],
+                'path': str(file_path),
+                'abstract': data['Abstract'],
+                'title': data['Title'],
+                'keywords': data['Keywords'],
+                'authors': data['Author'],
+                'institution': data['Institution'],
+                'date': data['Date'],
+                'equations': data['Equations'],
+                'tables': data['Table'],
+                'figures': data['Figure'],
+            }
         )
 
-    if len(completed_file_ids) > 0:
-        assert max(completed_file_ids) < len(
-            doc_file_paths
-        ), 'File ids extend range of `doc_file_paths`'
-
-    # loop completed file ids
-    if len(completed_file_ids) > 0:
-        for compl_file_id in completed_file_ids:
-            # extract
-            one_doc_dict = extract_file_specific_doc_dict(
-                doc_dict, compl_file_id, LaTex2Text
-            )
-
-            # save TODO. Uses "dataset" below
-            file_store_path = (
-                store_dir / f'{doc_file_paths[compl_file_id].stem}.json'
-            )
-            with open(file_store_path, 'w') as f:
-                json.dump(one_doc_dict, f)
+    return documents
 
 
 def store_visuals(
     tensors: torch.Tensor,
     y: torch.Tensor,
     rel_visual_classes: dict[str, int],
-    file_paths: list[str],
+    file_paths: list[Path],
     file_ids: list[int],
     output_dir: Path,
     i_tab: int,
@@ -2217,9 +2219,7 @@ def store_visuals(
     )
 
     # mapping file_id -> filename
-    file_id_name_mapping = {
-        f_id: f_name for (f_id, f_name) in zip(file_ids, file_paths)
-    }
+    file_id_name_mapping = dict(zip(file_ids, file_paths))
 
     # create dir if necessary
     for vis_name, vis_class_id in rel_visual_classes.items():

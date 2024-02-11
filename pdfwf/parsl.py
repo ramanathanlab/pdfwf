@@ -11,7 +11,6 @@ except ImportError:
 
 from typing import Sequence
 from typing import Union
-import logging
 
 from parsl.addresses import address_by_interface
 from parsl.config import Config
@@ -135,7 +134,7 @@ class PolarisSettings(BaseComputeSettings):
     retries: int = 1
     """Number of retries upon failure."""
 
-    def get_config(self, run_dir: PathLike, logger: logging.Logger | None) -> Config:
+    def get_config(self, run_dir: PathLike) -> Config:
         """Create a parsl configuration for running on Polaris@ALCF.
 
         We will launch 4 workers per node, each pinned to a different GPU.
@@ -144,13 +143,9 @@ class PolarisSettings(BaseComputeSettings):
         ----------
         run_dir: PathLike
             Directory in which to store Parsl run files.
-        logger: logging.Logger | None
-            Optional logger to use for parsl config information.
         """
         run_dir = str(run_dir)
         checkpoints = get_all_checkpoints(run_dir)
-        if logger:
-            logger.info(f'Found the following checkpoints: {checkpoints}')
 
         config = Config(
             executors=[
@@ -195,6 +190,7 @@ class PolarisSettings(BaseComputeSettings):
         )
 
         return config
+
 
 ComputeSettingsTypes = Union[
     LocalSettings,

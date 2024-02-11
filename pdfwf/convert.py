@@ -1,12 +1,13 @@
 """PDF conversion workflow with marker."""
 from __future__ import annotations
 
+import functools
 import sys
 from argparse import ArgumentParser
 from pathlib import Path
 
-import parsl
 from parsl import python_app
+from parsl.concurrent import ParslPoolExecutor
 
 from pdfwf.parsl import ComputeSettingsTypes
 from pdfwf.utils import BaseModel
@@ -15,71 +16,58 @@ from pdfwf.utils import setup_logging
 
 
 @python_app
-def marker_single_app(pdf_paths: list[str], out_dirs: list[str]) -> list[str]:
+def parse_pdfs(pdf_paths: list[str], parser_id: str, output_dir: Path) -> None:
     """Process a single PDF with marker.
 
     Parameters
     ----------
     pdf_path : list[str]
         Paths to a batch of PDF file to convert.
-    out_dirs : list[str]
-        Paths to a batch of output directories to place the parsed PDFs.
-
-    Returns:
-    -------
-    list[str]
-        The paths to the output prefix (i.e., a reference to the output files).
+    parser_id: str
+        The parser to use.
+    output_dir: Path
+        Directory to write the output JSON lines file to.
     """
+    # TODO: We should pass in generic kwargs to initialize the parser
     import json
-    from pathlib import Path
 
-    from pdfwf.parsers.marker import MarkerParser
+    # Initialize the parser. This loads the models into memory and registers
+    # them in a global registry unique to the current parsl worker process.
+    # This ensures that the models are only loaded once per worker process
+    # (i.e., we warmstart the models)
+    if parser_id == 'marker':
+        from pdfwf.parsers.marker import MarkerParser
 
-    # Initialize the marker parser. This loads the models into memory
-    # and registers them in a global registry unique to the current
-    # parsl worker process. This ensures that the models are only
-    # loaded once per worker process (i.e., we warmstart the models)
-    parser = MarkerParser()
+        parser = MarkerParser()
+    elif parser_id == 'oreo':
+        from pdfwf.parsers.oreo.oreo_v2 import OreoParser
 
-    output_prefixes = []
-    # Process each PDF
-    for pdf_path, out_dir in zip(pdf_paths, out_dirs):
-        # Parse the PDF
-        output = parser.parse(pdf_path)
-        if output is None:
-            output_prefixes.append(f'Error: Failed to parse {pdf_path}')
-            continue
+        parser = OreoParser()
+    else:
+        raise ValueError(f'Invalid parser_id: {parser_id}')
 
-        # Unpack the output
-        full_text, out_meta = output
+    # Process the PDF files in bulk
+    documents = parser.parse(pdf_paths)
 
-        # Set the output path prefix as the name of the PDF file
-        prefix = Path(out_dir) / Path(pdf_path).stem
+    # Convert the document into a JSON lines string
+    lines = [json.dumps(doc) for doc in documents]
 
-        # Write the output markdown file /out_dir/pdf_name.md
-        out_path = prefix.with_suffix('.md')
-        with open(out_path, 'w+', encoding='utf-8') as f:
-            f.write(full_text)
-
-        # Write the output metadata file /out_dir/pdf_name.metadata.json
-        out_path = prefix.with_suffix('.metadata.json')
-        with open(out_path, 'w+', encoding='utf-8') as f:
-            f.write(json.dumps(out_meta, indent=4))
-
-        # Collect the output prefix
-        output_prefixes.append(prefix.as_posix())
-
-    return output_prefixes
+    # Store the JSON lines strings to a disk using a single write operation
+    with open(output_dir / f'{parser.id}.jsonl', 'a+') as f:
+        f.writelines(lines)
 
 
 class WorkflowConfig(BaseModel):
-    """Configuration for the PDF conversion workflow."""
+    """Configuration for the PDF parsing workflow."""
 
     pdf_dir: Path
-    """Directory containing pdfs to convert."""
+    """Directory containing pdfs to parse."""
 
     out_dir: Path
-    """Directory to place converted pdfs in."""
+    """Directory to place parsed pdfs in."""
+
+    parser_id: str
+    """The parser to use."""
 
     num_conversions: int = sys.maxsize
     """Number of pdfs to convert (useful for debugging)."""
@@ -112,50 +100,27 @@ if __name__ == '__main__':
     logger = setup_logging('pdfwf', config.out_dir)
 
     # Setup parsl for distributed computing
-    parsl_cfg = config.compute_settings.get_config(
-        config.out_dir / 'parsl', logger
-    )
-    parsl.load(parsl_cfg)
+    parsl_config = config.compute_settings.get_config(config.out_dir / 'parsl')
 
-    # TODO: Once we decide on output format, we can probably
-    # have a single output directory set via a partial function
+    # Log the checkpoint files
+    logger.info(
+        f'Found the following checkpoints: {parsl_config.checkpoint_files}'
+    )
 
     # Collect PDFs in batches for more efficient processing
-    pdf_paths, out_dirs = [], []
-    for pdf_path in config.pdf_dir.glob('**/*.pdf'):
-        # Create output directory keeping the same directory structure
-        text_outdir = (
-            config.out_dir / pdf_path.relative_to(config.pdf_dir)
-        ).parent
-        text_outdir.mkdir(exist_ok=True, parents=True)
-        # Collect the input args
-        pdf_paths.append(pdf_path.as_posix())
-        out_dirs.append(text_outdir.as_posix())
+    pdf_paths = [p.as_posix() for p in config.pdf_dir.glob('**/*.pdf')]
 
-        if len(pdf_paths) >= config.num_conversions:
-            break
+    # Limit the number of conversions for debugging
+    if len(pdf_paths) >= config.num_conversions:
+        pdf_paths = pdf_paths[: config.num_conversions]
 
     # Batch the input args
     batched_pdf_paths = batch_data(pdf_paths, config.chunk_size)
-    batched_out_paths = batch_data(out_dirs, config.chunk_size)
-    batched_args = zip(batched_pdf_paths, batched_out_paths)
 
-    # Submit jobs
-    futures = [marker_single_app(*args) for args in batched_args]
+    worker_fn = functools.partial(
+        parse_pdfs, parser_id=config.parser_id, output_dir=config.out_dir
+    )
 
-    logger.info(f'Submitted {len(futures)} jobs')
-
-    # Wait for jobs to complete and log success/failure
-    with open(config.out_dir / 'result_log.txt', 'w+') as f:
-        for future in futures:
-            try:
-                res = future.result()
-            except Exception as e:
-                # Individual conversion errors are handled from the
-                # exception_handler decorator, this error will occur from a
-                # parsl worker level (likely import errors/package errors)
-                res = [f'TID: {future.TID}\tError: {e}']
-
-            f.write('\n'.join(res))
-
-    logger.info(f'Completed {len(futures)} jobs')
+    # Distribute the input files across processes
+    with ParslPoolExecutor(parsl_config) as pool:
+        pool.map(worker_fn, batched_pdf_paths)

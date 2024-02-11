@@ -3,17 +3,19 @@ from __future__ import annotations
 import argparse
 from collections import defaultdict
 from pathlib import Path
+from typing import Any
 
 import torch
+from pydantic import BaseModel
 from pylatexenc.latex2text import LatexNodes2Text
 from tensor_utils import assign_text_inferred_meta_classes
 from tensor_utils import custom_collate
+from tensor_utils import format_documents
 from tensor_utils import get_packed_patch_tensor
 from tensor_utils import get_relevant_text_classes
 from tensor_utils import get_relevant_visual_classes
 from tensor_utils import PDFDataset
 from tensor_utils import pre_processing
-from tensor_utils import store_completed_docs
 from tensor_utils import store_visuals
 from tensor_utils import update_main_content_dict
 from texify2.texify.inference import accelerated_batch_inference
@@ -22,6 +24,8 @@ from texify2.texify.model.processor import load_processor
 from torch.utils.data import DataLoader
 from transformers import AutoModelForSequenceClassification  # pipeline
 from transformers import AutoTokenizer  # pipeline
+
+from pdfwf.parsers.base import BaseParser
 
 
 def parse_args() -> argparse.Namespace:
@@ -174,7 +178,7 @@ class OreoConfig(BaseModel):
     )
 
 
-class OreoParser:
+class OreoParser(BaseParser):
     """The Oreo PDF parser."""
 
     def __init__(self) -> None:
@@ -248,7 +252,7 @@ class OreoParser:
         self.LaTex2Text = LaTex2Text
 
     @torch.no_grad()
-    def parse(self, pdf_paths: list[str]) -> tuple[str, dict[str, str]] | None:
+    def parse(self, pdf_files: list[str]) -> list[dict[str, Any]]:
         """Parse a PDF file and extract markdown.
 
         Parameters
@@ -262,7 +266,7 @@ class OreoParser:
             The extracted markdown and metadata or None if an error occurred.
         """
         # load dataset
-        dataset = PDFDataset(pdf_paths=pdf_paths, meta_only=args.meta_only)
+        dataset = PDFDataset(pdf_paths=pdf_files, meta_only=args.meta_only)
 
         # Create a DataLoader for batching and shuffling
         data_loader = DataLoader(
@@ -274,8 +278,14 @@ class OreoParser:
             # pin_memory=True
         )
 
-        # track data
-        doc_dict = defaultdict(lambda: defaultdict(list))
+        # Maps the keys [Text, Title, Keywords, Tables, Figures, Equations
+        # Author] to a another dictionary containing the file_id and the list
+        # of text
+        doc_dict: dict[str, dict[int, list[str]]] = defaultdict(
+            lambda: defaultdict(list)
+        )
+        # Maps the file_id to the file_path
+        doc_file_paths: dict[int, Path] = {}
 
         # init visual extraction variables
         if self.rel_visual_classes:
@@ -284,7 +294,7 @@ class OreoParser:
             vis_path_dict = {}
 
         # Iterate through the DataLoader
-        for i, batch in enumerate(data_loader):
+        for batch in data_loader:
             tensors, file_ids, file_paths = batch
             tensors = tensors.to(self.device)
 
@@ -319,15 +329,15 @@ class OreoParser:
             # store visual patches (tables, figures)
             if self.rel_visual_classes:
                 vis_path_dict, i_tab, i_fig, prev_file_id = store_visuals(
-                    tensors,
-                    y,
-                    self.rel_visual_classes,
-                    file_paths,
-                    file_ids,
-                    args.output_dir,
-                    i_tab,
-                    i_fig,
-                    prev_file_id,
+                    tensors=tensors,
+                    y=y,
+                    rel_visual_classes=self.rel_visual_classes,
+                    file_paths=file_paths,
+                    file_ids=file_ids,
+                    output_dir=args.output_dir,
+                    i_tab=i_tab,
+                    i_fig=i_fig,
+                    prev_file_id=prev_file_id,
                 )
 
             # no use for page images pass this point
@@ -359,16 +369,17 @@ class OreoParser:
                 vis_path_dict,
             )
 
-            # store
-            last_batch_flag = i == len(data_loader) - 1
-            store_completed_docs(
-                doc_dict,
-                curr_file_ids,
-                doc_file_paths=dataset.doc_file_paths,
-                store_dir=args.output_dir,
-                LaTex2Text=self.LaTex2Text,
-                store_all_now=last_batch_flag,
-            )
+            # Store the file path for each file_id in the batch
+            doc_file_paths.update(dict(zip(file_ids, file_paths)))
+
+        # Store the parsed documents
+        documents = format_documents(
+            doc_dict=doc_dict,
+            doc_file_paths=doc_file_paths,
+            LaTex2Text=self.LaTex2Text,
+        )
+
+        return documents
 
 
 def main(args: OreoConfig) -> None:
