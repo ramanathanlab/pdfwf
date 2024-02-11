@@ -1661,9 +1661,7 @@ def restate_global_patch_indices(
     return new_packed_indices
 
 
-def load_spv05_categories(
-    spv05_category_file_path: Path = Path('./meta/spv05_categories.yaml'),
-):
+def load_spv05_categories(spv05_category_file_path: Path):
     """Load  SPv05 category file.
 
     Load SPv05 category file that includes two dictionaries `categories` and
@@ -1701,6 +1699,7 @@ def load_spv05_categories(
 
 
 def get_relevant_text_classes(
+    spv05_category_file_path: Path,
     file_type: str = 'pdf',
     meta_only: bool = False,
     equation_flag: bool = False,
@@ -1709,7 +1708,6 @@ def get_relevant_text_classes(
     secondary_meta: bool = False,
     table_only: bool = False,
     fig_only: bool = False,
-    spv05_category_file_path: Path = Path('./meta/spv05_categories.yaml'),
 ):
     """Returns class IDs for the SPv05 dataset that are relevant for the input.
 
@@ -1757,10 +1755,10 @@ def get_relevant_text_classes(
 
 
 def get_relevant_visual_classes(
+    spv05_category_file_path: Path,
     file_type: str = 'pdf',
     table_flag: bool = False,
     fig_flag: bool = False,
-    spv05_category_file_path: Path = Path('./meta/spv05_categories.yaml'),
 ):
     """TODO 2: Finish implementation / logic to track names of columns (tabs and figures are treated differently)
 

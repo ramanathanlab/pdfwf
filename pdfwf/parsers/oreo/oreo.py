@@ -29,8 +29,10 @@ class OreoParserSettings(BaseParserSettings):
     detection_weights_path: Path
     # Model weights for (meta) text classifier.
     text_cls_weights_path: Path
+    # Path to the SPV05 category file.
+    spv05_category_file_path: Path
     # File type to be parsed (ignores other files in the input_dir).
-    #detect_only: bool = False
+    # detect_only: bool = False
     # Only parse PDFs for meta data
     meta_only: bool = False
     # Include equations into the text categories
@@ -71,7 +73,7 @@ class OreoParserSettings(BaseParserSettings):
             or self.meta_only
         )
 
-        #if self.detect_only and check_flags:
+        # if self.detect_only and check_flags:
         #    raise ValueError(
         #        'The `detect_only` flag cannot be used with any other flag.'
         #    )
@@ -90,6 +92,7 @@ class OreoParser(BaseParser):
         self,
         detection_weights_path: Path,
         text_cls_weights_path: Path,
+        spv05_category_file_path: Path,
         meta_only: bool,
         equation: bool,
         table: bool,
@@ -107,12 +110,13 @@ class OreoParser(BaseParser):
         """
         import torch
         from pylatexenc.latex2text import LatexNodes2Text
-        from pdfwf.parsers.oreo.tensor_utils import get_relevant_text_classes
-        from pdfwf.parsers.oreo.tensor_utils import get_relevant_visual_classes
         from texify.model.model import load_model
         from texify.model.processor import load_processor
         from transformers import AutoModelForSequenceClassification
         from transformers import AutoTokenizer
+
+        from pdfwf.parsers.oreo.tensor_utils import get_relevant_text_classes
+        from pdfwf.parsers.oreo.tensor_utils import get_relevant_visual_classes
 
         # Set device
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -150,16 +154,24 @@ class OreoParser(BaseParser):
 
         # identify relevant classes and group by treatment
         rel_txt_classes = get_relevant_text_classes(
-            'pdf',
-            meta_only,
-            equation,
-            table,
-            figure,
-            secondary_meta,
+            spv05_category_file_path=spv05_category_file_path,
+            file_type='pdf',
+            meta_only=meta_only,
+            equation_flag=equation,
+            table_flag=table,
+            fig_flag=figure,
+            secondary_meta=secondary_meta,
         )
-        rel_meta_txt_classes = get_relevant_text_classes('pdf', meta_only=True)
+        rel_meta_txt_classes = get_relevant_text_classes(
+            spv05_category_file_path=spv05_category_file_path,
+            file_type='pdf',
+            meta_only=True,
+        )
         rel_visual_classes = get_relevant_visual_classes(
-            'pdf', table_flag=table_flag, fig_flag=figure
+            spv05_category_file_path=spv05_category_file_path,
+            file_type='pdf',
+            table_flag=table,
+            fig_flag=figure,
         )
 
         unpackable_classes = {}
@@ -202,15 +214,18 @@ class OreoParser(BaseParser):
         list[dict[str, Any]]
             The extracted documents.
         """
+        from torch.utils.data import DataLoader
+
         from pdfwf.parsers.oreo.tensor_utils import accelerated_batch_inference
-        from pdfwf.parsers.oreo.tensor_utils import assign_text_inferred_meta_classes
+        from pdfwf.parsers.oreo.tensor_utils import (
+            assign_text_inferred_meta_classes,
+        )
         from pdfwf.parsers.oreo.tensor_utils import custom_collate
         from pdfwf.parsers.oreo.tensor_utils import format_documents
         from pdfwf.parsers.oreo.tensor_utils import get_packed_patch_tensor
         from pdfwf.parsers.oreo.tensor_utils import PDFDataset
         from pdfwf.parsers.oreo.tensor_utils import pre_processing
         from pdfwf.parsers.oreo.tensor_utils import update_main_content_dict
-        from torch.utils.data import DataLoader
 
         # load dataset
         dataset = PDFDataset(pdf_paths=pdf_files, meta_only=self.meta_only)
