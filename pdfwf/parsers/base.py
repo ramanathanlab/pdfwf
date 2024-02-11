@@ -6,6 +6,9 @@ import uuid
 from abc import ABC
 from abc import abstractmethod
 from typing import Any
+from typing import Literal
+
+from pdfwf.utils import BaseModel
 
 # TODO: We should update the parser return type to be a dataclass
 
@@ -24,3 +27,10 @@ class BaseParser(ABC):
     def parse(self, pdf_files: list[str]) -> list[dict[str, Any]]:
         """Parse a list of pdf files and return the parsed data."""
         pass
+
+
+class BaseParserSettings(BaseModel, ABC):
+    """Base settings for all parsers."""
+
+    name: Literal[''] = ''
+    """Name of the parser to use."""

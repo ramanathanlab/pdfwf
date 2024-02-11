@@ -5,26 +5,34 @@ import functools
 import sys
 from argparse import ArgumentParser
 from pathlib import Path
+from typing import Any
 
 from parsl.concurrent import ParslPoolExecutor
 
+from pdfwf.parsers.marker import MarkerParserSettings
+from pdfwf.parsers.oreo import OreoParserSettings
 from pdfwf.parsl import ComputeSettingsTypes
 from pdfwf.utils import BaseModel
 from pdfwf.utils import batch_data
 from pdfwf.utils import setup_logging
 
 
-def parse_pdfs(pdf_paths: list[str], parser_id: str, output_dir: Path) -> None:
+def parse_pdfs(
+    pdf_paths: list[str],
+    output_dir: Path,
+    **parser_kwargs: dict[str, Any],
+) -> None:
     """Process a single PDF with marker.
 
     Parameters
     ----------
     pdf_path : list[str]
         Paths to a batch of PDF file to convert.
-    parser_id: str
-        The parser to use.
     output_dir: Path
         Directory to write the output JSON lines file to.
+    parser_kwargs : dict[str, Any]
+        Keyword arguments to pass to the parser. Contains an extra `name`
+        argument to specify the parser to use.
     """
     # TODO: We should pass in generic kwargs to initialize the parser
     import json
@@ -33,16 +41,15 @@ def parse_pdfs(pdf_paths: list[str], parser_id: str, output_dir: Path) -> None:
     # them in a global registry unique to the current parsl worker process.
     # This ensures that the models are only loaded once per worker process
     # (i.e., we warmstart the models)
-    if parser_id == 'marker':
+    parser_name = parser_kwargs.pop('name', None)
+    if parser_name == 'marker':
         from pdfwf.parsers.marker import MarkerParser
 
-        parser = MarkerParser()
-    elif parser_id == 'oreo':
+        parser = MarkerParser(**parser_kwargs)
+    elif parser_name == 'oreo':
         from pdfwf.parsers.oreo.oreo_v2 import OreoParser
 
-        parser = OreoParser()
-    else:
-        raise ValueError(f'Invalid parser_id: {parser_id}')
+        parser = OreoParser(**parser_kwargs)
 
     # Process the PDF files in bulk
     documents = parser.parse(pdf_paths)
@@ -64,14 +71,14 @@ class WorkflowConfig(BaseModel):
     out_dir: Path
     """Directory to place parsed pdfs in."""
 
-    parser_id: str
-    """The parser to use."""
-
     num_conversions: int = sys.maxsize
     """Number of pdfs to convert (useful for debugging)."""
 
     chunk_size: int = 1
     """Number of pdfs to convert in a single batch."""
+
+    parser_settings: MarkerParserSettings | OreoParserSettings
+    """Parser settings (e.g., model paths, etc)."""
 
     compute_settings: ComputeSettingsTypes
     """Compute settings (HPC platform, number of GPUs, etc)."""
@@ -109,7 +116,7 @@ if __name__ == '__main__':
 
     # Setup the worker function with default arguments
     worker_fn = functools.partial(
-        parse_pdfs, parser_id=config.parser_id, output_dir=config.out_dir
+        parse_pdfs, output_dir=config.out_dir, **config.parser_settings.dict()
     )
 
     # Setup parsl for distributed computing

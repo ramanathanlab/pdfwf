@@ -4,8 +4,16 @@ from __future__ import annotations
 from typing import Any
 
 from pdfwf.parsers.base import BaseParser
+from pdfwf.parsers.base import BaseParserSettings
 from pdfwf.registry import register
 from pdfwf.utils import exception_handler
+
+
+class MarkerParserSettings(BaseParserSettings):
+    """Settings for the marker PDF parser."""
+
+    name: str = 'marker'
+    """Name of the parser to use."""
 
 
 @register()  # type: ignore[arg-type]

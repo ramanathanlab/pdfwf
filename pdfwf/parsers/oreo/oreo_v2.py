@@ -5,25 +5,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-import torch
 from pydantic import BaseModel
-from pylatexenc.latex2text import LatexNodes2Text
-from tensor_utils import assign_text_inferred_meta_classes
-from tensor_utils import custom_collate
-from tensor_utils import format_documents
-from tensor_utils import get_packed_patch_tensor
-from tensor_utils import get_relevant_text_classes
-from tensor_utils import get_relevant_visual_classes
-from tensor_utils import PDFDataset
-from tensor_utils import pre_processing
-from tensor_utils import store_visuals
-from tensor_utils import update_main_content_dict
-from texify2.texify.inference import accelerated_batch_inference
-from texify2.texify.model.model import load_model
-from texify2.texify.model.processor import load_processor
-from torch.utils.data import DataLoader
-from transformers import AutoModelForSequenceClassification  # pipeline
-from transformers import AutoTokenizer  # pipeline
 
 from pdfwf.parsers.base import BaseParser
 
@@ -183,6 +165,15 @@ class OreoParser(BaseParser):
 
     def __init__(self) -> None:
         """Initialize the Oreo parser."""
+        import torch
+        from pylatexenc.latex2text import LatexNodes2Text
+        from tensor_utils import get_relevant_text_classes
+        from tensor_utils import get_relevant_visual_classes
+        from texify2.texify.model.model import load_model
+        from texify2.texify.model.processor import load_processor
+        from transformers import AutoModelForSequenceClassification
+        from transformers import AutoTokenizer
+
         # Set device
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         # load models
@@ -265,6 +256,17 @@ class OreoParser(BaseParser):
         tuple[str, dict[str, str]] | None
             The extracted markdown and metadata or None if an error occurred.
         """
+        from tensor_utils import assign_text_inferred_meta_classes
+        from tensor_utils import custom_collate
+        from tensor_utils import format_documents
+        from tensor_utils import get_packed_patch_tensor
+        from tensor_utils import PDFDataset
+        from tensor_utils import pre_processing
+        from tensor_utils import store_visuals
+        from tensor_utils import update_main_content_dict
+        from texify2.texify.inference import accelerated_batch_inference
+        from torch.utils.data import DataLoader
+
         # load dataset
         dataset = PDFDataset(pdf_paths=pdf_files, meta_only=args.meta_only)
 
