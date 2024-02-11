@@ -97,14 +97,6 @@ if __name__ == '__main__':
     # Setup logging
     logger = setup_logging('pdfwf', config.out_dir)
 
-    # Setup parsl for distributed computing
-    parsl_config = config.compute_settings.get_config(config.out_dir / 'parsl')
-
-    # Log the checkpoint files
-    logger.info(
-        f'Found the following checkpoints: {parsl_config.checkpoint_files}'
-    )
-
     # Collect PDFs in batches for more efficient processing
     pdf_paths = [p.as_posix() for p in config.pdf_dir.glob('**/*.pdf')]
 
@@ -118,6 +110,14 @@ if __name__ == '__main__':
     # Setup the worker function with default arguments
     worker_fn = functools.partial(
         parse_pdfs, parser_id=config.parser_id, output_dir=config.out_dir
+    )
+
+    # Setup parsl for distributed computing
+    parsl_config = config.compute_settings.get_config(config.out_dir / 'parsl')
+
+    # Log the checkpoint files
+    logger.info(
+        f'Found the following checkpoints: {parsl_config.checkpoint_files}'
     )
 
     # Distribute the input files across processes
