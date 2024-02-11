@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from typing import Any
+from typing import Literal
 
 from pdfwf.parsers.base import BaseParser
 from pdfwf.parsers.base import BaseParserSettings
@@ -18,7 +19,7 @@ class MarkerParserSettings(BaseParserSettings):
     """Settings for the marker PDF parser."""
 
     # The name of the parser
-    name: str = 'marker'
+    name: Literal['marker'] = 'marker'
 
 
 @register()  # type: ignore[arg-type]

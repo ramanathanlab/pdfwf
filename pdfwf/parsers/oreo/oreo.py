@@ -5,6 +5,7 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
+from typing import Literal
 
 if sys.version_info >= (3, 11):
     from typing import Self
@@ -23,7 +24,7 @@ class OreoParserSettings(BaseParserSettings):
     """Configuration for the Oreo parser."""
 
     # The name of the parser
-    name: str = 'oreo'
+    name: Literal['oreo'] = 'oreo'
     # Weights to layout detection model.
     detection_weights_path: Path
     # Model weights for (meta) text classifier.
