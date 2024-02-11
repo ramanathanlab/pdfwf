@@ -1732,18 +1732,15 @@ def get_packed_patch_tensor(
     tensors: torch.Tensor,
     y: torch.Tensor,
     rel_class_ids: list[int],
-    unpackable_class_ids: list[
-        int
-    ] = None,  # sharp corner : lists as arguments in Python "is a bitch"
-    by: list[str] = None,  # sharp corner
+    unpackable_class_ids: list[int] | None = None,
+    by: list[str] | None = None,  # sharp corner
     offset: int = 2,
     btm_pad: int = 6,
     max_width: int = 420,
     max_height: int = 420,
     sep_flag: bool = False,
     sep_symbol_flag: bool = False,
-    sep_symbol_tensor: torch.Tensor = None,
-    dtype: torch.dtype = torch.float16,
+    sep_symbol_tensor: torch.Tensor | None = None,
 ):
     """Given a list of variably-sized patches and meta data 2D torch tensor, returns a torch tensor of dimensions (BxCxHxW)
 
@@ -1780,7 +1777,8 @@ def get_packed_patch_tensor(
     # subset y given the classes of interest
     y_subset = subset_y_by_class(y_batch=y, rel_class_ids=rel_class_ids)
 
-    # sort y_subset by patch order; infer patch order from meta table --> induces "right" order for decoding for the rest of the code
+    # sort y_subset by patch order; infer patch order from meta table -->
+    # induces "right" order for decoding for the rest of the code
     patch_ids_in_order = torch_lexsort(
         y_subset[
             :, [file_idx_column, page_idx_column, order_idx_column, cls_column]
@@ -1838,9 +1836,13 @@ def get_packed_patch_tensor(
         ].to(torch.int)
 
         # packed_patch_list -> tensor
-        packed_patches_tensor = patch_list_to_tensor(flat_patches, dtype=dtype)
+        packed_patches_tensor = patch_list_to_tensor(
+            flat_patches, dtype=torch.float16
+        )
     else:
-        packed_patches_tensor = patch_list_to_tensor(patch_list, dtype=dtype)
+        packed_patches_tensor = patch_list_to_tensor(
+            patch_list, dtype=torch.float16
+        )
         index_quadruplet = y_subset[
             :, [file_idx_column, page_idx_column, order_idx_column, cls_column]
         ].to(torch.int)
