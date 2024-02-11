@@ -35,12 +35,16 @@ def parse_pdfs(
         argument to specify the parser to use.
     """
     import json
-
+    
+    #raise ValueError(f"Received parser kwargs: {parser_kwargs}, name type: {type(parser_kwargs['name'])}")
+    print(parser_kwargs, flush=True)
     # Initialize the parser. This loads the models into memory and registers
     # them in a global registry unique to the current parsl worker process.
     # This ensures that the models are only loaded once per worker process
     # (i.e., we warmstart the models)
     parser_name = parser_kwargs.pop('name', None)
+    print(parser_name, flush=True)
+    print(parser_kwargs, flush=True)
     if parser_name == 'marker':
         from pdfwf.parsers.marker import MarkerParser
 
@@ -51,7 +55,7 @@ def parse_pdfs(
         parser = OreoParser(**parser_kwargs)
     else:
         raise ValueError(f'Unknown parser name: {parser_name}')
-
+    print(f"Built {parser_name} parser", flush=True)
     # Process the PDF files in bulk
     documents = parser.parse(pdf_paths)
 

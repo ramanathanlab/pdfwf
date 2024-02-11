@@ -19,7 +19,7 @@ parser_settings:
   # Model weights for (meta) text classifier.
   text_cls_weights_path: /lus/eagle/projects/argonne_tpc/siebenschuh/N-O-REO/text_classifier/meta_text_classifier
   # File type to be parsed (ignores other files in the input_dir).
-  detect_only: false
+  #detect_only: false
   # Only parse PDFs for meta data
   meta_only: false
   # Include equations into the text categories
