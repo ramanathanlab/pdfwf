@@ -92,7 +92,7 @@ pip install -r requirements/oreo_requirements.txt
 ```
 
 ## Usage
-Requires having the tool (e.g `marker`, `nougat` etc.) installed. See [Tool installation](#tool-installation) for more details.
+Requires having the tool (e.g `marker`, `oreo` etc.) installed. See [Tool installation](#tool-installation) for more details.
 
 The `pdfwf` workflow can be run using the CLI as follows:
 ```
@@ -114,6 +114,11 @@ pdf_dir: /lus/eagle/projects/argonne_tpc/hippekp/small-pdf-set
 # The directory to place the converted pdfs in
 out_dir: output-text
 
+# The settings for the pdf parser
+parser_settings:
+  # The name of the parser to use
+  name: marker
+
 # The compute settings for the workflow
 compute_settings:
   name: polaris
@@ -129,7 +134,7 @@ compute_settings:
 
 For example, the workflow can be run using the CLI as follows:
 ```
-python -m pdfwf.convert --config config.yaml
+nohup python -m pdfwf.convert --config config.yaml &> nohup.out &
 ```
 
 ### Running the OREO parser
