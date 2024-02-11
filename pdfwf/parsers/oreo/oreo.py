@@ -5,8 +5,6 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel
-
 from pdfwf.parsers.base import BaseParser
 
 
@@ -134,7 +132,7 @@ def parse_args() -> argparse.Namespace:
     return args
 
 
-class OreoConfig(BaseModel):
+class OreoParserSettings(BaseParser):
     """Configuration for the Oreo parser."""
 
     input_dir: Path

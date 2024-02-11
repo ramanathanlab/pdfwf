@@ -8,6 +8,11 @@ from pdfwf.parsers.base import BaseParserSettings
 from pdfwf.registry import register
 from pdfwf.utils import exception_handler
 
+__all__ = [
+    'MarkerParser',
+    'MarkerParserSettings',
+]
+
 
 class MarkerParserSettings(BaseParserSettings):
     """Settings for the marker PDF parser."""
