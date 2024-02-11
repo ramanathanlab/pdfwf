@@ -49,6 +49,8 @@ def parse_pdfs(
         from pdfwf.parsers.oreo import OreoParser
 
         parser = OreoParser(**parser_kwargs)
+    else:
+        raise ValueError(f'Unknown parser name: {parser_name}')
 
     # Process the PDF files in bulk
     documents = parser.parse(pdf_paths)
