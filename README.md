@@ -140,6 +140,7 @@ python -m pdfwf.convert --config config.yaml
 ### Running the OREO parser
 
 #### Installing on Polaris
+On a compute node, run:
 ```console
 module load conda/2023-10-04
 conda create -n pdfwf python=3.10 -y
@@ -150,8 +151,8 @@ pip install -r requirements/oreo_requirements.txt
 pip install -e .
 ```
 
-The OREO parser requires two input files containing the model weights
-```yaml
-detection_weights_path: /lus/eagle/projects/argonne_tpc/siebenschuh/N-O-REO/yolov5/runs/train/best_SPv05_run/weights/best.pt
-text_cls_weights_path: /lus/eagle/projects/argonne_tpc/siebenschuh/N-O-REO/text_classifier/meta_text_classifier
+#### Running the OREO parser
+On the login node, run:
+```console
+nohup python -m pdfwf.convert --config examples/oreo/oreo_test.yaml &> nohup.out &
 ```
