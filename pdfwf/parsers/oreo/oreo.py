@@ -88,7 +88,7 @@ class OreoParser(BaseParser):
     def __init__(
         self,
         detection_weights_path: Path,
-        txt_cls_weights_path: Path,
+        text_cls_weights_path: Path,
         meta_only: bool,
         equation_flag: bool,
         table_flag: bool,
@@ -129,7 +129,7 @@ class OreoParser(BaseParser):
 
         # - (2.) text classifier for meta data
         txt_cls_model = AutoModelForSequenceClassification.from_pretrained(
-            txt_cls_weights_path
+            text_cls_weights_path
         ).to(device)
 
         tokenizer = AutoTokenizer.from_pretrained(

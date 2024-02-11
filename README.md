@@ -153,5 +153,5 @@ pip install -e .
 The OREO parser requires two input files containing the model weights
 ```yaml
 detection_weights_path: /lus/eagle/projects/argonne_tpc/siebenschuh/N-O-REO/yolov5/runs/train/best_SPv05_run/weights/best.pt
-text_cls_weights_path: /lus/eagle/projects/argonne_tpc/siebenschuh/N-O-REO/text_classifier
+text_cls_weights_path: /lus/eagle/projects/argonne_tpc/siebenschuh/N-O-REO/text_classifier/meta_text_classifier
 ```
