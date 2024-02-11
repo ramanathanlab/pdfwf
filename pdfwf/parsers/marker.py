@@ -31,8 +31,11 @@ class MarkerParser(BaseParser):
     are only loaded once per worker process (i.e., we warmstart the models)
     """
 
-    def __init__(self) -> None:
+    name: Literal['marker'] = 'marker'
+
+    def __init__(self, name: str) -> None:
         """Initialize the marker parser."""
+        super().__init__(name)
         from marker.models import load_all_models
 
         self.model_lst = load_all_models()

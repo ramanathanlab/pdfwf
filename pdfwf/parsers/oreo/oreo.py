@@ -88,8 +88,11 @@ class OreoParserSettings(BaseParserSettings):
 class OreoParser(BaseParser):
     """The Oreo parser."""
 
+    name: Literal['oreo'] = 'oreo'
+
     def __init__(
         self,
+        name: str,
         detection_weights_path: Path,
         text_cls_weights_path: Path,
         spv05_category_file_path: Path,
@@ -108,6 +111,7 @@ class OreoParser(BaseParser):
 
         See the `OreoParserSettings` class for the parameter descriptions.
         """
+        super().__init__(name)
         import torch
         from pylatexenc.latex2text import LatexNodes2Text
         from texify.model.model import load_model

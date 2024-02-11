@@ -35,27 +35,27 @@ def parse_pdfs(
         argument to specify the parser to use.
     """
     import json
-    
-    #raise ValueError(f"Received parser kwargs: {parser_kwargs}, name type: {type(parser_kwargs['name'])}")
+
+    # raise ValueError(f"Received parser kwargs: {parser_kwargs}, name type: {type(parser_kwargs['name'])}")
     print(parser_kwargs, flush=True)
     # Initialize the parser. This loads the models into memory and registers
     # them in a global registry unique to the current parsl worker process.
     # This ensures that the models are only loaded once per worker process
     # (i.e., we warmstart the models)
-    parser_name = parser_kwargs.pop('name', None)
-    print(parser_name, flush=True)
+    # parser_name = parser_kwargs.pop('name', None)
+    print(parser_kwargs['name'], flush=True)
     print(parser_kwargs, flush=True)
-    if parser_name == 'marker':
+    if parser_kwargs['name'] == 'marker':
         from pdfwf.parsers.marker import MarkerParser
 
         parser = MarkerParser(**parser_kwargs)
-    elif parser_name == 'oreo':
+    elif parser_kwargs['name'] == 'oreo':
         from pdfwf.parsers.oreo import OreoParser
 
         parser = OreoParser(**parser_kwargs)
     else:
-        raise ValueError(f'Unknown parser name: {parser_name}')
-    print(f"Built {parser_name} parser", flush=True)
+        raise ValueError(f'Unknown parser name: {parser_kwargs["name"]}')
+    print(f'Built {parser_kwargs["name"]} parser', flush=True)
     # Process the PDF files in bulk
     documents = parser.parse(pdf_paths)
 
