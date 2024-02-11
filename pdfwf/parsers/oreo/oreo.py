@@ -321,6 +321,7 @@ class OreoParser(BaseParser):
                 batch_size=self.batch_vit,
             )
 
+            # TODO: Debug this, it could be due to small batch size
             # re-assess meta text categories
             # index_quadruplet = assign_text_inferred_meta_classes(
             #     txt_cls_model=self.txt_cls_model,

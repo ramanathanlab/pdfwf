@@ -2187,6 +2187,20 @@ def format_documents(
     # TODO: Run this loop in parallel using a process pool
     # TODO: Change this function name
 
+    # Keywords to check for
+    keywords = [
+        'Text',
+        'Title',
+        'Abstract',
+        'Keywords',
+        'Author',
+        'Institution',
+        'Date',
+        'Equations',
+        'Table',
+        'Figure',
+    ]
+
     # Get a json lines string for each document
     documents = []
     for file_id, file_path in doc_file_paths.items():
@@ -2194,21 +2208,13 @@ def format_documents(
         data = extract_file_specific_doc_dict(doc_dict, file_id, LaTex2Text)
 
         # Setup the document fields to be stored
-        documents.append(
-            {
-                'text': data['Text'],
-                'path': str(file_path),
-                'abstract': data['Abstract'],
-                'title': data['Title'],
-                'keywords': data['Keywords'],
-                'authors': data['Author'],
-                'institution': data['Institution'],
-                'date': data['Date'],
-                'equations': data['Equations'],
-                'tables': data['Table'],
-                'figures': data['Figure'],
-            }
-        )
+        document = {'path': str(file_path)}
+        for key in keywords:
+            if key in data:
+                document[key.lower()] = data[key]
+
+        # Append the document to the list
+        documents.append(document)
 
     return documents
 
