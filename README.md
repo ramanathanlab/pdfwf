@@ -188,7 +188,7 @@ Parse PDFs using the marker parser.
 **Usage**:
 
 ```console
-$ marker [OPTIONS]
+$ pdfwf marker [OPTIONS]
 ```
 
 **Options**:
@@ -204,7 +204,7 @@ Parse PDFs using the oreo parser.
 **Usage**:
 
 ```console
-$ oreo [OPTIONS]
+$ pdfwf oreo [OPTIONS]
 ```
 
 **Options**:
