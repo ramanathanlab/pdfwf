@@ -115,15 +115,16 @@ class OreoParser(BaseParser):
         detect_model.to(device)
         detect_model.eval()
 
+        # TODO: Determine if subsequent text classification is even useful.
         # - (2.) text classifier for meta data
-        txt_cls_model = AutoModelForSequenceClassification.from_pretrained(
-            config.text_cls_weights_path
-        ).to(device)
+        #txt_cls_model = AutoModelForSequenceClassification.from_pretrained(
+        #    config.text_cls_weights_path
+        #).to(device)
 
-        tokenizer = AutoTokenizer.from_pretrained(
-            'distilbert-base-uncased', device=device
-        )
-        txt_cls_model.eval()
+        #tokenizer = AutoTokenizer.from_pretrained(
+        #    'distilbert-base-uncased', device=device
+        #)
+        #txt_cls_model.eval()
 
         # - (3.) load ViT (i.e. pseudo-OCR) model
         ocr_model = load_model()
@@ -169,8 +170,8 @@ class OreoParser(BaseParser):
         self.config = config
         self.device = device
         self.detect_model = detect_model
-        self.txt_cls_model = txt_cls_model
-        self.tokenizer = tokenizer
+        #self.txt_cls_model = txt_cls_model
+        #self.tokenizer = tokenizer
         self.ocr_model = ocr_model
         self.ocr_processor = ocr_processor
         self.rel_meta_txt_classes = rel_meta_txt_classes
@@ -239,7 +240,7 @@ class OreoParser(BaseParser):
             vis_path_dict = {}
 
         # Iterate through the DataLoader
-        for batch in data_loader:
+        for j,batch in enumerate(data_loader):
             tensors, file_ids, file_paths = batch
             tensors = tensors.to(self.device)
 
@@ -271,6 +272,10 @@ class OreoParser(BaseParser):
                 sep_symbol_tensor=None,
             )
 
+            # skip empty document batches
+            if(pack_patch_tensor is None):
+                continue
+
             # TODO: Implement this such that the I/O is decoupled from the
             #       main parsing logic.
 
@@ -292,14 +297,21 @@ class OreoParser(BaseParser):
             tensors = None
 
             # ViT: pseudo-OCR inference
-            text_results = accelerated_batch_inference(
-                tensors=pack_patch_tensor,
-                model=self.ocr_model,
-                processor=self.ocr_processor,
-                batch_size=self.config.batch_vit,
-            )
+            if(pack_patch_tensor is not None):
+                text_results = accelerated_batch_inference(
+                    tensors=pack_patch_tensor,
+                    model=self.ocr_model,
+                    processor=self.ocr_processor,
+                    batch_size=self.config.batch_vit,
+                )
+            else:
+                text_results = []
 
-            # TODO: Debug this, it could be due to small batch size
+
+            # TODO: *Retool* this. Use (text) Transformer to get text patch
+            #       embedding
+            #       Regardless, no use for this method anyway as subsequent text
+            #       classification does not appear to be favorable for accuracy
             # re-assess meta text categories
             # index_quadruplet = assign_text_inferred_meta_classes(
             #     txt_cls_model=self.txt_cls_model,
@@ -308,13 +320,12 @@ class OreoParser(BaseParser):
             #     index_quadruplet=idx_quad,
             #     text_results=text_results,
             # )
-            index_quadruplet = idx_quad
 
             # assign decoded text to file docs
             doc_dict = update_main_content_dict(
                 doc_dict=doc_dict,
                 text_results=text_results,
-                index_quadruplet=index_quadruplet,
+                index_quadruplet=idx_quad,
                 curr_file_ids=curr_file_ids,
                 vis_path_dict=vis_path_dict,
             )
@@ -322,11 +333,17 @@ class OreoParser(BaseParser):
             # Store the file path for each file_id in the batch
             doc_file_paths.update(dict(zip(file_ids, file_paths)))
 
+            # DEBUG
+            print(doc_file_paths.keys())
+
         # Store the parsed documents
         documents = format_documents(
             doc_dict=doc_dict,
             doc_file_paths=doc_file_paths,
             LaTex2Text=self.latex_to_text,
         )
+
+        # DEBUG
+        print(len(documents))
 
         return documents

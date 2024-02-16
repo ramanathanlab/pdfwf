@@ -20,7 +20,7 @@ from pdfwf.utils import setup_logging
 def parse_pdfs(
     pdf_paths: list[str],
     output_dir: Path,
-    parser_kwargs: dict[str, Any],
+    parser_kwargs: dict[str, Any]
 ) -> None:
     """Process a single PDF with marker.
 
@@ -61,13 +61,12 @@ def parse_pdfs(
     if documents is None:
         return
 
-    # Convert the document into a JSON lines string
-    lines = [json.dumps(doc) for doc in documents]
+    # merge PDFs
+    lines = "".join(f"{json.dumps(doc)}\n" for doc in documents)
 
-    # Store the JSON lines strings to a disk using a single write operation
+    # `Fixed` store the JSON lines strings to a disk using a single write operation
     with open(output_dir / f'{parser.id}.jsonl', 'a+') as f:
-        f.writelines(lines)
-
+        f.write(lines)
 
 class WorkflowConfig(BaseModel):
     """Configuration for the PDF parsing workflow."""
@@ -119,8 +118,7 @@ if __name__ == '__main__':
     # Limit the number of conversions for debugging
     if len(pdf_paths) >= config.num_conversions:
         pdf_paths = pdf_paths[: config.num_conversions]
-
-    logger.info(f'Found {len(pdf_paths)} PDFs to parse')
+        logger.info(f'len(pdf_paths) exceeds {config.num_conversions}. Only first {config.num_conversions} pdfs passed.')
 
     # Batch the input args
     batched_pdf_paths = batch_data(pdf_paths, config.chunk_size)

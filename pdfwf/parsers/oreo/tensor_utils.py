@@ -70,24 +70,28 @@ def accelerated_batch_inference(
     # process batches
     text_results = []
     for j in range(n_eff + 1):
-        # IDs (comp. bottleneck)
-        generated_ids = model.generate(
-            pixel_values=tensors[
-                j * batch_size : min((j + 1) * batch_size, ppt_len), :, :, :
-            ],
-            max_new_tokens=max_tokens,
-            decoder_start_token_id=processor.tokenizer.bos_token_id,
-            **additional_kwargs,
-        )
+        # non-empty tensor
+        if(j * batch_size < min((j + 1) * batch_size, ppt_len)):
+            # IDs (comp. bottleneck)
+            generated_ids = model.generate(
+                pixel_values=tensors[
+                    j * batch_size : min((j + 1) * batch_size, ppt_len), :, :, :
+                ],
+                max_new_tokens=max_tokens,
+                decoder_start_token_id=processor.tokenizer.bos_token_id,
+                **additional_kwargs,
+            )
 
-        # decoding
-        generated_text_loc = processor.tokenizer.batch_decode(
-            generated_ids, skip_special_tokens=True
-        )
-        generated_text_loc = [postprocess(text) for text in generated_text_loc]
+            # decoding
+            generated_text_loc = processor.tokenizer.batch_decode(
+                generated_ids, skip_special_tokens=True
+            )
 
-        # append to list
-        text_results += generated_text_loc
+            # post-processing
+            generated_text_loc = [postprocess(text) for text in generated_text_loc]
+
+            # append to list
+            text_results += generated_text_loc
 
     return text_results
 
@@ -273,7 +277,8 @@ def pre_processing(
 
     return y
 
-
+# TODO: write functions that do tasks make the code of get_y_indexed()
+#       more readable
 def get_y_indexed(
     y: torch.Tensor,
     file_ids: list[int],
@@ -1856,14 +1861,14 @@ def get_packed_patch_tensor(
     # sort
     y_subset = y_subset[patch_ids_in_order, :]
 
+    if(len(y_subset)==0):
+        return None, None, None
+
     # get patch list
     patch_list = get_patch_list(tensors, y_subset, offset=offset)
 
     # pack patches
     if sorted(rel_class_ids) != sorted(unpackable_class_ids):
-        # DEBUG
-        # print('unpackable_class_ids: ', unpackable_class_ids)
-
         # group patches
         grouped_patches, group_indices = grouped_patch_list(
             patch_list,
@@ -2139,9 +2144,6 @@ def extract_file_specific_doc_dict(
     # pattern
     pattern = re.compile(r'(\n\s*)+')
 
-    # DEBUG
-    # print(doc_dict.keys())
-
     file_dict: dict[str, str] = {}
     for key in doc_dict.keys():
         if file_id in doc_dict[key]:
@@ -2338,8 +2340,5 @@ def store_visuals(
             print('tensors.size() : ', tensors.size())
 
     last_file_id = file_id
-
-    # DEBUG
-    print('i_dict[14], i_dict[15] : ', i_dict[14], i_dict[15])
 
     return vis_path_dict, i_dict[14], i_dict[15], last_file_id
