@@ -11,15 +11,14 @@ except ImportError:
 
 from typing import Sequence
 from typing import Union
-import logging
 
 from parsl.addresses import address_by_interface
 from parsl.config import Config
 from parsl.executors import HighThroughputExecutor
 from parsl.launchers import MpiExecLauncher
+from parsl.monitoring.monitoring import MonitoringHub
 from parsl.providers import LocalProvider
 from parsl.providers import PBSProProvider
-from parsl.monitoring.monitoring import MonitoringHub
 from parsl.utils import get_all_checkpoints
 
 from pdfwf.utils import BaseModel
@@ -130,15 +129,15 @@ class PolarisSettings(BaseComputeSettings):
     cpus_per_node: int = 32
     """Up to 64 with multithreading."""
     cores_per_worker: float = 8
-    """Number of cores per worker. Currently evenly distributed between available GPUs."""
+    """Number of cores per worker. Currently distributed between GPUs."""
     available_accelerators: int = 4
     """Number of GPU to use."""
     retries: int = 1
     """Number of retries upon failure."""
     monitoring_settings: MonitoringSettings | None = None
-    """Optional monitoring settings, if not provided no monitoring will occur."""
+    """Optional monitoring settings, if not provided, skip monitoring."""
 
-    def get_config(self, run_dir: PathLike, logger: logging.Logger | None) -> Config:
+    def get_config(self, run_dir: PathLike) -> Config:
         """Create a parsl configuration for running on Polaris@ALCF.
 
         We will launch 4 workers per node, each pinned to a different GPU.
@@ -152,8 +151,6 @@ class PolarisSettings(BaseComputeSettings):
         """
         run_dir = str(run_dir)
         checkpoints = get_all_checkpoints(run_dir)
-        if logger:
-            logger.info(f'Found the following checkpoints: {checkpoints}')
 
         monitoring = None
         if self.monitoring_settings:
@@ -173,7 +170,8 @@ class PolarisSettings(BaseComputeSettings):
                     heartbeat_period=15,
                     heartbeat_threshold=120,
                     worker_debug=True,
-                    # available_accelerators will override settings for max_workers
+                    # available_accelerators will override settings
+                    # for max_workers
                     available_accelerators=self.available_accelerators,
                     cores_per_worker=self.cores_per_worker,
                     address=address_by_interface('bond0'),
@@ -216,8 +214,8 @@ class MonitoringSettings(BaseModel):
     """Monitoring settings."""
 
     # hub_address: str = 'bond0'
-    """TODO: parameterize hub_address so other configs can use it, currenlty let
-    Polaris config handle this."""
+    """TODO: parameterize hub_address so other configs can use it, currently
+    let Polaris config handle this."""
     hub_port: int = 55055
     """Database port for monitoring."""
     monitoring_debug: bool = False
@@ -229,6 +227,7 @@ class MonitoringSettings(BaseModel):
     Will be created if does not exist (*MUST BE ABSOLUTE PATH*)."""
     workflow_name: str | None = None
     """Name for workflow, used in web interface."""
+
 
 ComputeSettingsTypes = Union[
     LocalSettings,
