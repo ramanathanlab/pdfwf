@@ -9,8 +9,7 @@ from typing import Any
 
 from parsl.concurrent import ParslPoolExecutor
 
-from pdfwf.parsers.marker import MarkerParserConfig
-from pdfwf.parsers.oreo import OreoParserConfig
+from pdfwf.parsers import ParserTypes
 from pdfwf.parsl import ComputeSettingsTypes
 from pdfwf.utils import BaseModel
 from pdfwf.utils import batch_data
@@ -18,9 +17,7 @@ from pdfwf.utils import setup_logging
 
 
 def parse_pdfs(
-    pdf_paths: list[str],
-    output_dir: Path,
-    parser_kwargs: dict[str, Any]
+    pdf_paths: list[str], output_dir: Path, parser_kwargs: dict[str, Any]
 ) -> None:
     """Process a single PDF with marker.
 
@@ -36,23 +33,13 @@ def parse_pdfs(
     """
     import json
 
+    from pdfwf.parsers import get_parser
+
     # Initialize the parser. This loads the models into memory and registers
     # them in a global registry unique to the current parsl worker process.
     # This ensures that the models are only loaded once per worker process
     # (i.e., we warmstart the models)
-    parser_name = parser_kwargs.get('name', '')
-    if parser_name == 'marker':
-        from pdfwf.parsers.marker import MarkerParser
-        from pdfwf.parsers.marker import MarkerParserConfig
-
-        parser = MarkerParser(MarkerParserConfig(**parser_kwargs))
-    elif parser_name == 'oreo':
-        from pdfwf.parsers.oreo import OreoParser
-        from pdfwf.parsers.oreo import OreoParserConfig
-
-        parser = OreoParser(OreoParserConfig(**parser_kwargs))
-    else:
-        raise ValueError(f'Unknown parser name: {parser_name}')
+    parser = get_parser(parser_kwargs)
 
     # Process the PDF files in bulk
     documents = parser.parse(pdf_paths)
@@ -61,12 +48,13 @@ def parse_pdfs(
     if documents is None:
         return
 
-    # merge PDFs
-    lines = "".join(f"{json.dumps(doc)}\n" for doc in documents)
+    # Merge parsed documents into a single string of JSON lines
+    lines = ''.join(f'{json.dumps(doc)}\n' for doc in documents)
 
-    # `Fixed` store the JSON lines strings to a disk using a single write operation
-    with open(output_dir / f'{parser.id}.jsonl', 'a+') as f:
+    # Store the JSON lines strings to a disk using a single write operation
+    with open(output_dir / f'{parser.unique_id}.jsonl', 'a+') as f:
         f.write(lines)
+
 
 class WorkflowConfig(BaseModel):
     """Configuration for the PDF parsing workflow."""
@@ -83,7 +71,7 @@ class WorkflowConfig(BaseModel):
     chunk_size: int = 1
     """Number of pdfs to convert in a single batch."""
 
-    parser_settings: MarkerParserConfig | OreoParserConfig
+    parser_settings: ParserTypes
     """Parser settings (e.g., model paths, etc)."""
 
     compute_settings: ComputeSettingsTypes
@@ -118,7 +106,10 @@ if __name__ == '__main__':
     # Limit the number of conversions for debugging
     if len(pdf_paths) >= config.num_conversions:
         pdf_paths = pdf_paths[: config.num_conversions]
-        logger.info(f'len(pdf_paths) exceeds {config.num_conversions}. Only first {config.num_conversions} pdfs passed.')
+        logger.info(
+            f'len(pdf_paths) exceeds {config.num_conversions}. '
+            f'Only first {config.num_conversions} pdfs passed.'
+        )
 
     # Batch the input args
     batched_pdf_paths = batch_data(pdf_paths, config.chunk_size)

@@ -126,7 +126,8 @@ def oreo(  # noqa: PLR0913
         512,
         '--batch_vit',
         '-v',
-        help='Batch size of pre-processed patches for ViT pseudo-OCR inference',
+        help='Batch size of pre-processed patches for ViT '
+        'pseudo-OCR inference',
     ),
     batch_cls: int = typer.Option(
         512,

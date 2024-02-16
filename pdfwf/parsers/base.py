@@ -17,11 +17,11 @@ class BaseParser(ABC):
     """Base parser class for all parsers to inherit from."""
 
     @property
-    def id(self) -> str:
+    def unique_id(self) -> str:
         """Get the unique identifier for the parser."""
-        if not hasattr(self, '_id'):
-            self._id = str(uuid.uuid4())
-        return self._id
+        if not hasattr(self, '_unique_id'):
+            self._unique_id = str(uuid.uuid4())
+        return self._unique_id
 
     @abstractmethod
     def parse(self, pdf_files: list[str]) -> list[dict[str, Any]] | None:

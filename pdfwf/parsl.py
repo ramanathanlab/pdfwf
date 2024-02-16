@@ -39,7 +39,7 @@ class BaseComputeSettings(BaseModel, ABC):
         run_dir : PathLike
             Path to store monitoring DB and parsl logs.
 
-        Returns:
+        Returns
         -------
         Config
             Parsl configuration.
@@ -128,7 +128,7 @@ class PolarisSettings(BaseComputeSettings):
     cpus_per_node: int = 32
     """Up to 64 with multithreading."""
     cores_per_worker: float = 8
-    """Number of cores per worker. Currently evenly distributed between available GPUs."""
+    """Number of cores per worker. Evenly distributed between GPUs."""
     available_accelerators: int = 4
     """Number of GPU to use."""
     retries: int = 1
@@ -154,7 +154,8 @@ class PolarisSettings(BaseComputeSettings):
                     heartbeat_period=15,
                     heartbeat_threshold=120,
                     worker_debug=True,
-                    # available_accelerators will override settings for max_workers
+                    # available_accelerators will override settings
+                    # for max_workers
                     available_accelerators=self.available_accelerators,
                     cores_per_worker=self.cores_per_worker,
                     address=address_by_interface('bond0'),

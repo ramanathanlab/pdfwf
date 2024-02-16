@@ -154,7 +154,7 @@ required-imports = ["from __future__ import annotations"]
 "*/*_test.py" = ["D10"]
 
 [tool.ruff.pydocstyle]
-convention = "google"
+convention = "numpy"
 
 [tool.setuptools.packages.find]
 exclude = ["tests*", "testing*"]

@@ -19,7 +19,7 @@ class MarkerParserConfig(BaseParserConfig):
     """Settings for the marker PDF parser."""
 
     # The name of the parser.
-    name: Literal['marker'] = 'marker'
+    name: Literal['marker'] = 'marker'  # type: ignore[assignment]
 
 
 @register()  # type: ignore[arg-type]
@@ -47,7 +47,7 @@ class MarkerParser(BaseParser):
         pdf_path : str
             Path to the PDF file to convert.
 
-        Returns:
+        Returns
         -------
         list[dict[str, Any]]
             The extracted documents.

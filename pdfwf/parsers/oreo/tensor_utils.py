@@ -10,23 +10,27 @@ from pathlib import Path
 import fitz
 import numpy as np
 import torch
-import torch.nn.functional as F
+import torch.nn.functional as F  # noqa: N812
 import yaml
 from PIL import Image
 from pylatexenc.latex2text import LatexNodes2Text
 from texify.output import postprocess
 from torch.utils.data import Dataset
 from torchvision import transforms
+from transformers import AutoModelForSequenceClassification
+from transformers import AutoTokenizer
+from transformers import DonutProcessor
+from transformers import VisionEncoderDecoderModel
 from yolov5.utils.general import non_max_suppression
 
 
-def accelerated_batch_inference(
+def accelerated_batch_inference(  # noqa: PLR0913
     tensors: torch.Tensor,
-    model,
-    processor,
+    model: VisionEncoderDecoderModel,
+    processor: DonutProcessor,
     batch_size: int,
-    temperature=0.0,
-    max_tokens=384,
+    temperature: float = 0.0,
+    max_tokens: int = 384,
 ) -> list[str]:
     """Accelerated batched inference for texify.
 
@@ -49,12 +53,14 @@ def accelerated_batch_inference(
     max_tokens : int, optional
         Maximum number of tokens, by default 384
 
-    Returns:
+    Returns
     -------
     list[str]
         List of decoded text patches.
     """
-    assert len(tensors.size()) == 4, ''
+    # check input
+    input_dims = 4  # (B, C, H, W)
+    assert len(tensors.size()) == input_dims
 
     # loop patches in batches
     ppt_len = tensors.size()[0]
@@ -71,11 +77,14 @@ def accelerated_batch_inference(
     text_results = []
     for j in range(n_eff + 1):
         # non-empty tensor
-        if(j * batch_size < min((j + 1) * batch_size, ppt_len)):
+        if j * batch_size < min((j + 1) * batch_size, ppt_len):
             # IDs (comp. bottleneck)
             generated_ids = model.generate(
                 pixel_values=tensors[
-                    j * batch_size : min((j + 1) * batch_size, ppt_len), :, :, :
+                    j * batch_size : min((j + 1) * batch_size, ppt_len),
+                    :,
+                    :,
+                    :,
                 ],
                 max_new_tokens=max_tokens,
                 decoder_start_token_id=processor.tokenizer.bos_token_id,
@@ -88,7 +97,9 @@ def accelerated_batch_inference(
             )
 
             # post-processing
-            generated_text_loc = [postprocess(text) for text in generated_text_loc]
+            generated_text_loc = [
+                postprocess(text) for text in generated_text_loc
+            ]
 
             # append to list
             text_results += generated_text_loc
@@ -128,7 +139,7 @@ class PDFDataset(Dataset):
             doc_lengths.append(len(doc))
             doc.close()
 
-        # cummulative page count across documents
+        # Cumulative page count across documents
         self.doc_csum = np.cumsum(doc_lengths).astype(int)
 
         # total page count
@@ -137,7 +148,7 @@ class PDFDataset(Dataset):
         else:
             self.len = sum(doc_lengths)
 
-        self.current_doc_file_path = None
+        self.current_doc_file_path: Path | None = None
         self.current_doc_doc = None
         self.current_doc_idx = 0
 
@@ -155,7 +166,7 @@ class PDFDataset(Dataset):
 
         A single page (i.e. image) rather than the document is the dataset
         item. Since page counts vary across documents and batch sizes shall be
-        exhausted, the cummulative sum of pages (up to a document) is
+        exhausted, the cumulative sum of pages (up to a document) is
         pre-computed. For a given page index, determine the corresponding doc
         (index) it belongs to. Subsequently, compute the relative page index by
         subtracting the previous page count. Leverage `shuffle=False` as this
@@ -185,6 +196,8 @@ class PDFDataset(Dataset):
             self.current_doc_doc = fitz.open(self.current_doc_file_path)
             self.current_doc_idx = doc_index
 
+        assert self.current_doc_doc is not None
+
         # requested page of current document
         page = self.current_doc_doc[rel_page_idx]
 
@@ -200,7 +213,7 @@ class PDFDataset(Dataset):
 def custom_collate(
     batch: list[tuple[torch.Tensor, int, Path]],
 ) -> tuple[torch.Tensor, list[int], list[Path]]:
-    """Custom collate function to handle the output of the DocDataset."""
+    """Collate the output of the DocDataset."""
     # Transpose the batch (unzip)
     tensors, file_ids, file_paths = zip(*batch)
 
@@ -208,10 +221,10 @@ def custom_collate(
     stacked_tensors = torch.stack(tensors)
 
     # Return the stacked tensor and the list of file strings
-    return stacked_tensors, file_ids, file_paths
+    return stacked_tensors, file_ids, file_paths  # type: ignore[return-value]
 
 
-def pre_processing(
+def pre_processing(  # noqa: PLR0913
     results: torch.Tensor,
     file_ids: list[int],
     rel_class_ids: list[int],
@@ -253,7 +266,7 @@ def pre_processing(
         Handle overlapping bboxes (True: collapse to single bbox of most likely
         class; False: maintain all bboxes per class), by default True
 
-    Returns:
+    Returns
     -------
     torch.Tensor
         TODO: Description
@@ -277,9 +290,10 @@ def pre_processing(
 
     return y
 
+
 # TODO: write functions that do tasks make the code of get_y_indexed()
 #       more readable
-def get_y_indexed(
+def get_y_indexed(  # noqa: PLR0913, PLR0915
     y: torch.Tensor,
     file_ids: list[int],
     rel_class_ids: list[int],
@@ -314,7 +328,7 @@ def get_y_indexed(
     y_delta : int, optional
         Coarsity by which Y_midpoints are rounded, by default 25
 
-    Returns:
+    Returns
     -------
     torch.Tensor
         TODO: Description
@@ -366,31 +380,31 @@ def get_y_indexed(
         )
 
     # - compute midpoints (along x-axis)
-    x_Mid = 0.5 * (y_batch[:, xmin_column] + y_batch[:, xmax_column])
+    x_mid = 0.5 * (y_batch[:, xmin_column] + y_batch[:, xmax_column])
     # rounding_values = torch.arange(100, 1300, x_delta)
-    x_Mid_rounded = torch.round(x_Mid / x_delta) * x_delta
-    x_Mid_rounded = torch.clamp(x_Mid_rounded, min=x_delta, max=1200).reshape(
-        x_Mid_rounded.size()[0], 1
+    x_mid_rounded = torch.round(x_mid / x_delta) * x_delta
+    x_mid_rounded = torch.clamp(x_mid_rounded, min=x_delta, max=1200).reshape(
+        x_mid_rounded.size()[0], 1
     )
 
     # - compute y minpoints (along y-axis)
     # TODO: check if this is correct
-    y_Min = 0.5 * (y_batch[:, ymin_column] + y_batch[:, ymax_column])  # NEW
+    y_min = 0.5 * (y_batch[:, ymin_column] + y_batch[:, ymax_column])  # NEW
     # rounding_values = torch.arange(100, 1300, y_delta)
-    y_Min_rounded = torch.round(y_Min / y_delta) * y_delta
-    y_Mid_rounded = torch.clamp(y_Min_rounded, min=y_delta, max=1300).reshape(
-        y_Min_rounded.size()[0], 1
+    y_min_rounded = torch.round(y_min / y_delta) * y_delta
+    y_mid_rounded = torch.clamp(y_min_rounded, min=y_delta, max=1300).reshape(
+        y_min_rounded.size()[0], 1
     )
 
     # - augment w/ midpoints
     tensor_aug = torch.cat(
-        (y_batch, x_Mid_rounded.reshape(x_Mid_rounded.size()[0], 1)), dim=1
+        (y_batch, x_mid_rounded.reshape(x_mid_rounded.size()[0], 1)), dim=1
     )
 
     # - compute midpoints (along y-axis)
-    y_Mid = 0.5 * (y_batch[:, ymin_column] + y_batch[:, ymax_column])
+    y_mid = 0.5 * (y_batch[:, ymin_column] + y_batch[:, ymax_column])
     tensor_aug = torch.cat(
-        (tensor_aug, y_Mid.reshape(x_Mid.size()[0], 1)), dim=1
+        (tensor_aug, y_mid.reshape(x_mid.size()[0], 1)), dim=1
     )
 
     # empty mode column: col_index, row_idx, width, height, patch_order_idx,
@@ -409,11 +423,11 @@ def get_y_indexed(
 
         # x-axis mode estimation
         modes, counts = torch.unique(
-            x_Mid_rounded[idx_cond_col & loc_cond_col], return_counts=True
+            x_mid_rounded[idx_cond_col & loc_cond_col], return_counts=True
         )
         freqs = (
-            counts.float() / len(x_Mid_rounded[idx_cond_col])
-            if len(x_Mid_rounded[idx_cond_col]) > 0
+            counts.float() / len(x_mid_rounded[idx_cond_col])
+            if len(x_mid_rounded[idx_cond_col]) > 0
             else 1
         )
         robust_modes = modes[freqs > freq_thresh]
@@ -444,11 +458,11 @@ def get_y_indexed(
 
         # y-axis mode estimation
         modes, counts = torch.unique(
-            y_Mid_rounded[idx_cond_col], return_counts=True
+            y_mid_rounded[idx_cond_col], return_counts=True
         )
         freqs = (
-            counts.float() / len(x_Mid_rounded[idx_cond_col])
-            if len(y_Mid_rounded[idx_cond_col]) > 0
+            counts.float() / len(x_mid_rounded[idx_cond_col])
+            if len(y_mid_rounded[idx_cond_col]) > 0
             else 1
         )
         y_robust_modes = modes[freqs > y_freq_thresh]
@@ -517,19 +531,20 @@ def subset_y_by_class(
         List of integers representing the relevant predicted classes per
         bounding box (0: Text, 1: Title etc.) which are to be selected
 
-    Returns:
+    Returns
     -------
     torch.Tensor
         Subset of torch tensor (n_sub, 7) where each bbox belongs to one of the
         relevant classes
 
-    Raises:
+    Raises
     ------
     AssertionError
         Number of relevant classes is not in {0,...,21}, i.e. number of SPv05
         classes.
     """
-    if min(rel_class_ids) < 0 or max(rel_class_ids) > 21:
+    num_yolo_classes = 21
+    if min(rel_class_ids) < 0 or max(rel_class_ids) > num_yolo_classes:
         raise AssertionError(
             'Class labels should be in {0,...,21} as per Yolov5 standard'
         )
@@ -544,7 +559,7 @@ def subset_y_by_class(
     # column w/ class label
     cls_column = data_tensor[:, cls_column]
 
-    # condtion
+    # condition
     condition_tensor = torch.zeros(data_tensor.size(0), dtype=torch.bool).to(
         current_device
     )
@@ -567,7 +582,7 @@ def docpage_to_tensor(
     target_width: int = 960,
     fill_value: int = 0,
 ) -> torch.Tensor:
-    """Converts a fitz page to a tensor.
+    """Convert a fitz page to a tensor.
 
     Converts a document-style, fitz instance `Page` into a 3-dimensional torch
     tensor (C x H x W). Maintains height and width to be a multiple of 64 to
@@ -585,19 +600,21 @@ def docpage_to_tensor(
     fill_value : int, optional
         Fill-value, by default 0
 
-    Returns:
+    Returns
     -------
     torch.Tensor
         Output tensor of dimension C x des. Height x des. Width (representing
         the image)
 
-    Raises:
+    Raises
     ------
     AssertionError
         Target height of the page images should lie in [640,1280], i.e. from
         small to large image size.
     """
-    if target_height < 640 or target_height > 1280:
+    # check target height
+    min_height, max_height = 640, 1280
+    if target_height < min_height or target_height > max_height:
         raise AssertionError(
             'Target height should be in [640, 1280] as per Yolov5 standard'
         )
@@ -703,7 +720,7 @@ def pad_zeros(
     fill_value : int, optional
         Fill-value, by default 0
 
-    Returns:
+    Returns
     -------
     torch.Tensor
         Zero-padded in the bottom rows and rightmost columns.
@@ -730,7 +747,7 @@ def center_crop(
     """Center crop a tensor to a given size.
 
     If the tensor is larger along width or height, center-crops the tensor to
-    match desired heigth and width.
+    match desired height and width.
 
     Parameters
     ----------
@@ -742,7 +759,7 @@ def center_crop(
     target_width : int, optional
         Desired width of the tensor (i.e. x.size(2)), by default 960
 
-    Returns:
+    Returns
     -------
     torch.Tensor
         Zero-padded in the bottom rows and rightmost columns.
@@ -765,8 +782,8 @@ def center_crop(
     return x
 
 
-def pad_patch(patch: torch.Tensor, patch_value: int = 255) -> torch.Tensor:
-    """Pads "0"s to a non-square patch.
+def pad_patch(patch: torch.Tensor, patch_value: float = 255.0) -> torch.Tensor:
+    """Pad "0"s to a non-square patch.
 
     Parameters
     ----------
@@ -776,7 +793,7 @@ def pad_patch(patch: torch.Tensor, patch_value: int = 255) -> torch.Tensor:
         Value that is to be inserted for padding (255: white on RGB scale),
         by default 255
 
-    Returns:
+    Returns
     -------
     torch.Tensor
         Padded tensor post upscaling
@@ -817,7 +834,7 @@ def resize_patch(
         Mode by which upscaled pixels are interpolated (e.g. `nearest`,
         `bilinear` is Marker's PIL equivalent), by default 'bilinear'
 
-    Returns:
+    Returns
     -------
     torch.Tensor
         Scaled tensor
@@ -848,10 +865,10 @@ def resize_patch(
 
 def normalize_pad(
     t: torch.Tensor,
-    mean: list[float] = [0.485, 0.456, 0.406],
-    std: list[float] = [0.229, 0.224, 0.225],
-):
-    """Normalizes z_i = (x_i - mu_i) / sigma_i along each channel i in {0,1,2}.
+    mean: list[float] | None = None,
+    std: list[float] | None = None,
+) -> torch.Tensor:
+    """Normalize z_i = (x_i - mu_i) / sigma_i along each channel i in {0,1,2}.
 
     Parameters
     ----------
@@ -865,20 +882,21 @@ def normalize_pad(
         Vector of length 3 (one value per channel) by by which every shifted
         pixel is divided, by default [0.229, 0.224, 0.225]
 
-    Returns:
+    Returns
     -------
     torch.Tensor
         Normalized tensor of size BxCxHxW for which most pixel fall within
         [-2.575, +2.575]
 
-    Raises:
+    Raises
     ------
     ValueError
         Mismatch of dimension between arguments. Input tensor `t` does not
         adhere to Bx3xHxW or mean/std are not of length 3.
     """
+    mean = mean if mean is not None else [0.485, 0.456, 0.406]
+    std = std if std is not None else [0.229, 0.224, 0.225]
     normalize_transform = transforms.Normalize(mean=mean, std=std)
-
     return normalize_transform(t)
 
 
@@ -887,21 +905,33 @@ def tens_proc(
     max_length: int = 420,
     mode: str = 'bilinear',
     patch_value: float = 1.0,
-):
-    """Processing stages of torch.Tensor that emulates the PIL.Image transformation pipeline of VariableDonutImageProcessor's `process_inner()`
+) -> torch.Tensor:
+    """Process a patch tensor to match the PIL.Image transformation pipeline.
 
-    Note:
-    The pipeline matches around 95% of the pixels exactly with a remainder of 2.5% of pixels varying by either -1 or +1 pixel in {0,1,,...,255} scale - likely due to
-    rounding.
+    Processing stages of torch.Tensor that emulates the PIL.Image
+    transformation pipeline of VariableDonutImageProcessor's `process_inner()`
 
-    Args:
-    - t           : Input torch tensor BxCxHxW
-    - max_length  : Maximum length a patch is allowed to be scaled to
-    - mode        : Mode by which upscaled pixels are interpolated (e.g. `nearest`, `bilinear` is Marker's PIL equivalent)
-    - patch_value : The padding value that is to be inserted to fill out space (1.0 or 255 is white)
+    Note: The pipeline matches around 95% of the pixels exactly with a
+    remainder of 2.5% of pixels varying by either -1 or +1 pixel in
+    {0,1,,...,255} scale - likely due to rounding.
 
-    Raises:
-    -
+    Parameters
+    ----------
+    t : torch.Tensor
+        Input torch tensor BxCxHxW
+    max_length : int, optional
+        Maximum length a patch is allowed to be scaled to, by default 420
+    mode : str, optional
+        Mode by which upscaled pixels are interpolated (e.g. `nearest`,
+        `bilinear` is Marker's PIL equivalent), by default 'bilinear'
+    patch_value : float, optional
+        The padding value that is to be inserted to fill out space (1.0 or 255
+        is white), by default 1.0
+
+    Returns
+    -------
+    torch.Tensor
+        Processed tensor
     """
     # dtype float & resize
     t = t.to(torch.float)
@@ -924,31 +954,47 @@ def get_patch_batch(
     y: torch.Tensor,
     max_width: int = 420,
     max_height: int = 420,
-    dtype=torch.float16,
+    dtype: torch.dtype = torch.float16,
 ) -> torch.Tensor:
-    """Given a batch of images (BxCxHxW) and a tensor of meta information on patches, return the batch of (similarily sized) patches after pre-processing the
-    images in a PIL-like fashion.
+    """Get a batch of patches from a batch of images.
 
-    Args:
-    - tensors     : Tensor of page images, i.e. of size Bx3x1280x960
-    - y           : 2D tensor that stores the patches' metadata (e.g. location, inferred class label and derived attributes relevant for subsequent OCR and patch order reconstruction)
-    - max_width   : Width to which a patch is scaled if it's width exceeds this value
-    - max_height  : Height -||- height exceeds this value
-    - dtype       : Datatype to which tensor of patches is set (float16 is
+    Given a batch of images (BxCxHxW) and a tensor of meta information on
+    patches, return the batch of (similarly sized) patches after pre-processing
+    the images in a PIL-like fashion.
 
-    Returns:
-    - patch_batch : Tensor of size N x 3 x H_m x W_m where `N` is the number of patches given by `N`, 3 channels are maintained and H_m=W_m=420.
+    Parameters
+    ----------
+    tensors : torch.Tensor
+        Tensor of page images, i.e. of size Bx3x1280x960
+    y : torch.Tensor
+        2D tensor that stores the patches' metadata (e.g. location, inferred
+        class label and derived attributes relevant for subsequent OCR and
+        patch order reconstruction)
+    max_width : int, optional
+        Width to which a patch is scaled if it's width exceeds this value,
+        by default 420
+    max_height : int, optional
+        Height -||- height exceeds this value, by default 420
+    dtype : torch.dtype, optional
+        Datatype to which tensor of patches is set (float16 is recommended),
+        by default torch.float16
 
+    Returns
+    -------
+    torch.Tensor
+        Tensor of size N x 3 x H_m x W_m where `N` is the number of patches
+        given by `N`, 3 channels are maintained and H_m=W_m=420.
     """
-    # Number of patches can only be inferred from meta table (as one page can have 0 or many patches)
-    N = y.size()[0]
+    # Number of patches can only be inferred from meta table (as one page can
+    # have 0 or many patches)
+    n = y.size()[0]
 
     # convert to target dtype
     tensors = tensors.to(dtype=dtype)
 
     # placeholder batch
     patch_batch = torch.zeros(
-        (N, 3, max_height, max_width),
+        (n, 3, max_height, max_width),
         device=tensors.device,
         dtype=tensors.dtype,
     )
@@ -957,7 +1003,7 @@ def get_patch_batch(
     y_rel = y.round().to(int)
 
     # extract each patch from page
-    for i in range(N):
+    for i in range(n):
         x_min, y_min, x_max, y_max = y_rel[i, :4]
         b = y_rel[i, 6]
 
@@ -975,84 +1021,44 @@ def get_patch_batch(
     return patch_batch
 
 
-def vectorized_patch_batch(
-    tensors: torch.Tensor,
-    y: torch.Tensor,
-    max_width: int = 420,
-    max_height: int = 420,
-    mean: list[float] = [0.485, 0.456, 0.406],
-    std: list[float] = [0.229, 0.224, 0.225],
-) -> torch.Tensor:
-    """HELPER Function that was merely setup to assess the quality of the PIL-like processing pipeline.
-
-    Given a batch of images (BxCxHxW) and a tensor of meta information on patches, return the batch of patch tensors
-    """
-    # No of patches
-    y = y[:, [0, 1, 2, 3, 6]].round().to(int)
-    N = y.size()[0]
-
-    # transform
-    tensors = tensors.to(torch.float) * 255.0
-
-    # placeholder batch
-    patch_batch = torch.zeros((N, 3, max_height, max_width))
-
-    for i in range(N):
-        x_min, y_min, x_max, y_max, b = y[i]
-        # extract patch
-        patch = tensors[b, :, y_min:y_max, x_min:x_max]  # challenge
-
-        # resize
-        t = resize_patch(patch, max_length=420, mode='bilinear')  # challenge
-
-        # assign
-        patch_batch[i, :, :, :] = pad_patch(t, 255.0)
-
-    # rescale & normalize
-    patch_batch = patch_batch / 255.0
-    patch_batch = normalize_pad(patch_batch)
-
-    return patch_batch
-
-
 def get_patch_list(
-    tensors: torch.Tensor,
-    y: torch.Tensor,
-    max_width: int = 420,
-    max_height: int = 420,
-    mean: list[float] = [0.485, 0.456, 0.406],
-    std: list[float] = [0.229, 0.224, 0.225],
-    offset: int = 0,
-) -> tuple[torch.Tensor, list[int]]:
-    """Given a batch of images (BxCxHxW) and a tensor of meta information on patches, return the batch of patch tensors.
+    tensors: torch.Tensor, y: torch.Tensor, offset: int = 0
+) -> list[torch.Tensor]:
+    """Get a list of patches from a batch of images.
 
-    Args:
-    - tensors     : Tensor of page images, i.e. of size Bx3x1280x960
-    - y           : 2D tensor that stores the patches' metadata (e.g. location, inferred class label and derived attributes relevant for subsequent OCR and patch order reconstruction)
-    - max_width   : Width to which a patch is scaled if it's width exceeds this value
-    - max_height  : Height -||- height exceeds this value
-    - dtype       : Datatype to which tensor of patches is set (float16 is
-    - mean        : vector of length 3 (one value per channel) by which every pixel is shifted
-    - std         : vector of length 3 (one value per channel) by by which every shifted pixel is divided
-    - offset      : Number of pixels by which the bounding box is extended in both directions along x- and y-axis less tight fit of text and better OCR performance
+    Given a batch of images (BxCxHxW) and a tensor of meta information on
+    patches, return the batch of patch tensors.
 
-    Returns:
-    - patch_list  : List of variable sized patches as extracted from the tensor images
+    Parameters
+    ----------
+    tensors : torch.Tensor
+        Tensor of page images, i.e. of size Bx3x1280x960
+    y : torch.Tensor
+        2D tensor that stores the patches' metadata (e.g. location, inferred
+        class label and derived attributes relevant for subsequent OCR and
+        patch order reconstruction)
+    offset : int, optional
+        Number of pixels by which the bounding box is extended in both
+        directions along x- and y-axis less tight fit of text and better OCR
+        performance, by default 0
 
+    Returns
+    -------
+    list[torch.Tensor]
+        List of variable sized patches as extracted from the tensor images
     """
-    # contsant
-    order_idx_columns = 13
+    # Note: the order idx column is index 13
 
     # No of patches
     y_sub = y[:, [0, 1, 2, 3, 6]].round().to(int)
-    N = y.size()[0]
+    n = y.size()[0]
 
     # transform
     tensors = tensors.to(torch.float) * 255.0
 
     # placeholder batch
     patch_list = []
-    for i in range(N):
+    for i in range(n):
         x_min, y_min, x_max, y_max, b = y_sub[i]
         _, _, page_h, page_w = tensors.size()
         # apply offset (artificially increase bbox)
@@ -1076,46 +1082,48 @@ def patch_list_to_tensor(
     dtype: torch.dtype,
     max_width: int = 420,
     max_height: int = 420,
-    mean: list[float] = [0.485, 0.456, 0.406],
-    std: list[float] = [0.229, 0.224, 0.225],
-    offset: int = 0,
-) -> tuple[torch.Tensor, list[int]]:
-    """Given an list of variably-sized, raw patches, turns them into a single torch tensor of dimension (N_eff,C,H,W)
+) -> torch.Tensor:
+    """Convert a list of patches to a tensor.
 
-    Args:
-    - grouped_patch_list : List of sublists where each sublist refers to patches that can be packed into one joint patch
-    - dtype              : Target datatype to which the output tensor is cast
-    - max_width          : Width to which a patch is scaled if it's width exceeds this value
-    - max_height         : Height -||- height exceeds this value
-    - mean               : vector of length 3 (one value per channel) by which every pixel is shifted
-    - std                : vector of length 3 (one value per channel) by by which every shifted pixel is divided
-    - offset             : Number of pixels by which the bounding box is extended in both directions along x- and y-axis less tight fit of text and better OCR performance
+    Given an list of variably-sized, raw patches, turns them into a single
+    torch tensor of dimension (N_eff,C,H,W)
 
-    Returns:
-    - packed_batch       : Tensor of patches of size N_eff x 3 x 420 x 420 where each patch potentially contains several re-scaled patches
+    Parameters
+    ----------
+    grouped_patch_list : list[torch.Tensor]
+        List of sublists where each sublist refers to patches that can be
+        packed into one joint patch
+    dtype : torch.dtype
+        Target datatype to which the output tensor is cast
+    max_width : int, optional
+        Width to which a patch is scaled if it's width exceeds this value,
+        by default 420
+    max_height : int, optional
+        Height -||- height exceeds this value, by default 420
 
+    Returns
+    -------
+    torch.Tensor
+        Tensor of patches of size N_eff x 3 x 420 x 420 where each patch
+        potentially contains several re-scaled patches.
     """
     # No of patches
-    N_eff = len(grouped_patch_list)
+    n_eff = len(grouped_patch_list)
 
     # transform
     packed_batch = (
-        torch.zeros((N_eff, 3, max_height, max_width)).to(
+        torch.zeros((n_eff, 3, max_height, max_width)).to(
             grouped_patch_list[0].device
         )
         * 255.0
     )
 
     # placeholder batch
-    patch_list = []
     for i, patch in enumerate(grouped_patch_list):
-        # scale up
-        patch *= 255.0
+        # scale up patch *= 255.0
 
         # resize
-        t = resize_patch(
-            patch, max_length=max_width, mode='bilinear'
-        )  # challenge
+        t = resize_patch(patch * 255.0, max_length=max_width, mode='bilinear')
 
         # assign
         packed_batch[i, :, :, :] = pad_patch(t, 255.0)
@@ -1130,57 +1138,40 @@ def patch_list_to_tensor(
     return packed_batch
 
 
-def lower_bound_patch_batch(
-    tensors: torch.Tensor,
-    y: torch.Tensor,
-    max_width: int = 420,
-    max_height: int = 420,
-    mean: list[float] = [0.485, 0.456, 0.406],
-    std: list[float] = [0.229, 0.224, 0.225],
-) -> torch.Tensor:
-    """HELPER FUNCTION ONLY to determine runtim of loops over torch.Tensors and normalization. Provides a lower bound for runtime of other functions.
-
-    Given a batch of images (BxCxHxW) and a tensor of meta information on patches, return the batch of patch tensors
-    """
-    # No of patches
-    y = y[:, [0, 1, 2, 3, 6]].round().to(int)
-    tensors = tensors.to(torch.float) * 255.0
-    N = tensors.size()[0]
-
-    # placeholder batch
-    patch_batch = torch.zeros((N, 3, max_height, max_width))
-
-    for i in range(N):
-        j = i + 1
-
-    # rescale & normalize
-    patch_batch = patch_batch / 255.0
-    patch_batch = normalize_pad(patch_batch)
-
-    return patch_batch
-
-
 def merge_patches_into_row(
     row_patch_list: list[torch.Tensor],
     btm_pad: int,
     sep_flag: bool = False,
     alpha: float = 0.5,
 ) -> torch.Tensor:
-    """Merges a list of patches tensors into a tensor assumed to be a row. Output tensor is of size C x H_max x W_row
-    where H_max is the maximum patch height (inferred from the list) and W_row is the sum of all patch widths
+    """Merge patches into a row.
 
-    Args:
-    - row_patch_list   : List of patches that is to be arranged in the same row (i.e. next to one another)
-    - btm_pad          : Number of white pixels added to the bottom of the row to increase distance to adjacent rows. If chosen to small, causes hallucinations in OCR if chosen to large causes subsequent rows to be ignored at decoding stage.
-    - sep_flag         : Flag indicating if a separating line is to be added between rows. (Empirical performance underwhelming when included.)
-    - alpha            : How pronounced the grey bar is (if included)
+    Merges a list of patches tensors into a tensor assumed to be a row. Output
+    tensor is of size C x H_max x W_row where H_max is the maximum patch height
+    (inferred from the list) and W_row is the sum of all patch widths.
 
-    Returns:
-    - row_tensor       : Tensor representing a row of patches.
+    Parameters
+    ----------
+    row_patch_list : list[torch.Tensor]
+        List of patches that is to be arranged in the same row (i.e. next to
+        one another)
+    btm_pad : int
+        Number of white pixels added to the bottom of the row to increase
+        distance to adjacent rows. If chosen to small, causes hallucinations in
+        OCR if chosen to large causes subsequent rows to be ignored at decoding
+        stage.
+    sep_flag : bool, optional
+        Flag indicating if a separating line is to be added between rows.
+        (Empirical performance underwhelming when included.), by default False
+    alpha : float, optional
+        How pronounced the grey bar is (if included), by default 0.5
 
+    Returns
+    -------
+    torch.Tensor
+        Tensor representing a row of patches.
     """
     row_height = max([patch.size()[1] for patch in row_patch_list])
-    # row_tensor = torch.cat([F.pad(patch, (0, 0, 0, row_height-patch.size()[1]), value=1.0) for patch in row_patch_list], dim=2) # bottom-padding
     row_tensor = torch.cat(
         [
             F.pad(patch, (0, 0, row_height - patch.size()[1], 0), value=1.0)
@@ -1209,21 +1200,18 @@ def merge_rows_into_patch(
     """Merge rows into patch tensor.
 
     Merges a list of patches tensors (each representing a "row" in a patch.
-    Pads rows with 1.0 (white pixels) before concatenating row-by-row
+    Pads rows with 1.0 (white pixels) before concatenating row-by-row.
 
-    Args:
-    - row_patch_list   : List of patches that is to be arranged in the same
-    row (i.e. next to one another)
-    - btm_pad          : Number of white pixels added to the bottom of the row
-      to increase distance to adjacent rows. If chosen to small, causes
-      hallucinations in OCR if chosen to large causes subsequent rows to be
-      ignored at decoding stage.
-    - sep_flag         : Flag indicating if a separating line is to be added
-    between rows. (Empirical performance underwhelming when included.)
-    - alpha            : How pronounced the grey bar is (if included)
+    Parameters
+    ----------
+    list_of_row_tensors : list[torch.Tensor]
+        List of patches that is to be arranged in the same row (i.e. next to
+        one another)
 
-    Returns:
-    - row_tensor       : Tensor representing a row of patches.
+    Returns
+    -------
+    torch.Tensor
+        Tensor representing a row of patches.
     """
     patch_width = max(
         [row_tensor.size()[2] for row_tensor in list_of_row_tensors]
@@ -1246,34 +1234,51 @@ def grouped_patch_list(
     patch_list: list[torch.Tensor],
     y: torch.Tensor,
     unpackable_class_ids: list[int],
-    by: list[str] = ['file_id', 'cls'],
-) -> list[list[torch.Tensor]]:
-    """Given a list of variably-sized patches, groups them by paper and cls type. Each group represented by a sublist in the returned list.
-    def get_packed_patch_list
-    Args:
-    - patch_list           : List of (variably-sized) patches
-    - y                    : 2D torch tensor storing the meta data
-    - unpackable_class_ids : List of class IDs for which respective patches are not grouped but rather decoded individually
-    - by                   : Str indicating by which criteria grouping is applied (class_label, file_id etc.) Corresponds to `inner merge`
+    by: list[str] | None = None,
+) -> tuple[list[list[torch.Tensor]], list[list[int]]]:
+    """Group patches by file_id and class label.
 
-    Returns:
-    - grouped_lists      : List of sublists
+    Given a list of variably-sized patches, groups them by paper and cls type.
+    Each group represented by a sublist in the returned list.
 
-    Raises:
-    - AssertionError     :
+    Parameters
+    ----------
+    patch_list: list[torch.Tensor]
+        List of (variably-sized) patches
+    y: torch.Tensor
+        2D torch tensor storing the meta data
+    unpackable_class_ids: list[int]
+        List of class IDs for which respective patches are not grouped but
+        rather decoded individually
+    by: list[str]
+        List of strings indicating by which criteria grouping is applied
+        (e.g. class_label, file id etc.) Corresponds to `inner merge`.
+
+    Returns
+    -------
+    tuple[list[list[torch.Tensor]], list[list[int]]]
+        Tuple of two lists: 1) list of sublists of patches and 2) list of
+        sublists of indices of the patches in the original list of patches.
     """
+    by = by if by is not None else ['file_id', 'cls']
+
     # check input
-    assert (
-        len(y.size()) == 2 and y.size()[1] == 16
-    ), 'Tensor of patch meta data must be 2-dimensional with 16 columns.'
-    assert len(patch_list) == len(
-        y
-    ), 'List of raw patches and length of metadata tensor must coincide.'
-    assert set(
-        by
-    ).issubset(
-        {'file_id', 'cls', 'page_id'}
-    ), 'Can only group by `file_id` (within pdf file), `cls` (same class label id), or `page_id` (within same pdf page).'
+    y_dim, y_col = 2, 16
+    if len(y.size()) != y_dim or y.size()[1] != y_col:
+        raise AssertionError(
+            'Tensor of patch meta data must be 2-dimensional with 16 columns.'
+        )
+
+    if len(patch_list) != len(y):
+        raise AssertionError(
+            'List of raw patches and length of metadata tensor must coincide.'
+        )
+
+    if not set(by).issubset({'file_id', 'cls', 'page_id'}):
+        raise AssertionError(
+            'Can only group by `file_id` (within pdf file), `cls` (same class '
+            'label id), or `page_id` (within same pdf page).'
+        )
 
     # constants
     cls_column = 5
@@ -1307,9 +1312,10 @@ def grouped_patch_list(
         )
         + 1
     )
-    keys_aug = keys + [unpack_col]
+    keys_aug = keys + [unpack_col]  # noqa: RUF005
 
-    # cumsum -> groups different streaks of `0`s together (when interrupted by non-zero, i.e. non-packable entry) add those entries with *100
+    # cumsum -> groups different streaks of `0`s together (when interrupted by
+    # non-zero, i.e. non-packable entry) add those entries with *100
     y_aug[:, unpack_col] = torch.cumsum(y_aug[:, unpack_col], dim=0) + (
         1000 * y_aug[:, unpack_col]
     )
@@ -1334,67 +1340,7 @@ def grouped_patch_list(
     return patch_sublists, subset_indices
 
 
-def grouped_patch_list_LEGACY(
-    patch_list: list, y: torch.Tensor, by=['file_id', 'cls']
-) -> list[list[torch.Tensor]]:
-    """Given a list of variably-sized patches, groups them by paper and cls type. Each group represented by a sublist in the returned list.
-    def get_packed_patch_list
-    Args:
-    - patch_list         : List of (variably-sized) patches
-    - y                  : 2D torch tensor storing the meta data
-    - unpackable_classes : List of class IDs for which respective patches are not grouped but rather decoded individually
-    - by                 : Str indicating by which criteria grouping is applied (e.g. class_label, file_id, or page_id). Corresponds to `inner merge`
-
-    Returns:
-    - grouped_lists      : List of sublists
-
-    Raises:
-    - AssertionError     :
-    """
-    # check input
-    assert (
-        len(y.size()) == 2 and y.size()[1] == 16
-    ), 'Tensor of patch meta data must be 2-dimensional with 16 columns.'
-    assert len(patch_list) == len(
-        y
-    ), 'List of raw patches and length of metadata tensor must coincide.'
-    assert set(
-        by
-    ).issubset(
-        {'file_id', 'cls', 'page_id'}
-    ), 'Can only group by `file_id` (within pdf file), `cls` (same class label id), or `page_id` (within same pdf page).'
-
-    # constants
-    cls_column = 5
-    page_idx_column = 6
-    file_idx_column = 14
-
-    # set of potential keys
-    keys_dict = {
-        'cls': cls_column,
-        'page_id': page_idx_column,
-        'file_id': file_idx_column,
-    }
-    keys = [keys_dict[k] for k in by]
-
-    # processing
-    index_set = torch.arange(len(y)).to(y.device).to(torch.int)
-    y_sub = y[:, keys].to(torch.int)
-    _, index_groups = torch.unique(y_sub, return_inverse=True, dim=0)
-    unique_vals = torch.unique(index_groups).detach().tolist()
-
-    # subset list
-    subset_indices = [
-        index_set[index_groups == v].tolist() for v in unique_vals
-    ]
-    patch_sublists = [
-        [patch_list[i] for i in sub_ind] for sub_ind in subset_indices
-    ]
-
-    return patch_sublists, subset_indices
-
-
-def get_packed_patch_list(
+def get_packed_patch_list(  # noqa: PLR0913, PLR0912, PLR0915
     patch_list: list[torch.Tensor],
     sep_tensor: torch.Tensor,
     return_indices: bool = True,
@@ -1405,24 +1351,43 @@ def get_packed_patch_list(
     max_height: int = 420,
     alpha: float = 0.5,
 ) -> list[torch.Tensor]:
-    """Merges the patches (CxHxW patches) as tightly as possible into a list of packed patches
+    """Merge patches into packed patches.
 
-    Args:
-    - patch_list      : (Flat) list of variably-sized patch images each being a 3xH_{i}xW_{i} image
-    - sep_tensor      : Separator image stores as a tensor to be inserted into the patch at the end or each row (if sep_flag=True)
-    - return_indices  : Flag indicating if the indices of the respective patches are to be returned (for debgging)
-    - sep_flag        : Flag indicating if a separation line is to be included in between lines
-    - sep_symbol_flag : Flag indicating if a  `sep_tensor` is to be included to allow unpacking a packed patch
-    - btm_pad         : Number of white pixel lines added after each row to spread out rows in each patch
-    - max_width       : Width to which a patch is scaled if it's width exceeds this value
-    - max_height      : Height -||- height exceeds this value
-    - alpha           : How pronounced the grey bar is (if included)
+    Merges the patches (CxHxW patches) as tightly as possible into a list
+    of packed patches.
 
-    Returns:
-    - out_patches     : Tensor of packed patches N_eff x B x 420 x 420 where N_eff is the number of packed patches from N (unpacked), variably-sized patches
+    Parameters
+    ----------
+    patch_list : list[torch.Tensor]
+        List of variably-sized patch images each being a 3xH_{i}xW_{i} image
+    sep_tensor : torch.Tensor
+        Separator image stores as a tensor to be inserted into the patch at the
+        end or each row (if sep_flag=True)
+    return_indices : bool, optional
+        Flag indicating if the indices of the respective patches are to be
+        returned (for debgging), by default True
+    sep_flag : bool, optional
+        Flag indicating if a separation line is to be included in between
+        lines, by default False
+    sep_symbol_flag : bool, optional
+        Flag indicating if a `sep_tensor` is to be included to allow unpacking
+        a packed patch, by default False
+    btm_pad : int, optional
+        Number of white pixel lines added after each row to spread out rows in
+        each patch, by default 6
+    max_width : int, optional
+        Width to which a patch is scaled if it's width exceeds this value,
+        by default 420
+    max_height : int, optional
+        Height -||- height exceeds this value, by default 420
+    alpha : float, optional
+        How pronounced the grey bar is (if included), by default 0.5
 
-    Raises:
-
+    Returns
+    -------
+    list[torch.Tensor]
+        Tensor of packed patches N_eff x B x 420 x 420 where N_eff is the
+        number of packed patches from N (unpacked), variably-sized patches.
     """
     # init lists
     out_patches = []
@@ -1499,15 +1464,15 @@ def get_packed_patch_list(
             current_row = [patch]
             if return_indices:
                 current_row_indices = [j]
-            # sperator symbol
+            # separator symbol
             if sep_symbol_flag:
                 current_row.append(sep_tensor)
                 current_row_width += w_sep
                 max_row_height = max(h_sep, max_row_height)
 
-    # after loop: clean-up excesss patches - append last row
+    # after loop: clean-up excess patches - append last row
     if current_row:
-        # list existant?
+        # list existent?
         if list_of_rows:
             list_of_rows.append(
                 merge_patches_into_row(
@@ -1531,34 +1496,39 @@ def get_packed_patch_list(
             ]
             list_of_rows_indices = current_row_indices
 
-        # patch existant
+        # patch existent
         if out_patches:
             out_patches.append(merge_rows_into_patch(list_of_rows))
             out_indices.append(list_of_rows_indices)
         else:
             out_patches = [merge_rows_into_patch(list_of_rows)]
             out_indices = [list_of_rows_indices]
-    # return
-    if return_indices:
-        return out_patches, out_indices
 
     return out_patches
 
 
-def lexsort(keys, dim=-1) -> list[int]:
-    """Emulates np.lexsort to sort a 2-dimensional array according to columns indexed by `keys`
-    Source: https://discuss.pytorch.org/t/numpy-lexsort-equivalent-in-pytorch/47850/4
+def lexsort(keys: torch.Tensor, dim: int = -1) -> torch.Tensor:
+    """Lexicographical sort of keys along the specified dimension.
 
-    Args:
-    - keys  : torch.Tensor to be sorted. Keys in reverse order of importance, i.e. primary key in keys[-1], least significant key in keys[0]
+    Emulates np.lexsort to sort a 2-dimensional array according to columns
+    indexed by `keys` Source:
+    https://discuss.pytorch.org/t/numpy-lexsort-equivalent-in-pytorch/47850/4
 
-    Returns:
-    - idx   : Index set of sorted indices
+    Parameters
+    ----------
+    keys : torch.Tensor
+        Torch tensor to be sorted. Keys in reverse order of importance, i.e.
+        primary key in keys[-1], least significant key in keys[0]
+    dim : int, optional
+        Dimension along which the sorting is applied, by default -1
 
-    Raises:
-    -
+    Returns
+    -------
+    torch.Tensor
+        Index set of sorted indices
     """
-    if keys.ndim < 2:
+    min_dim = 2
+    if keys.ndim < min_dim:
         raise ValueError(
             f'keys must be at least 2 dimensional, but {keys.ndim=}.'
         )
@@ -1572,40 +1542,54 @@ def lexsort(keys, dim=-1) -> list[int]:
     return idx
 
 
-def torch_lexsort(T: torch.Tensor, keys: list[int]):
-    """Wraps the torch emulation of np.lexsort allowing to sort a tensor for multiple keys indexed by columns idx
+def torch_lexsort(tensor: torch.Tensor, keys: list[int]) -> torch.Tensor:
+    """Lexicographical sort of keys along the specified dimension.
 
-    Args:
-    - T.    : Torch tensor that is to be sorted. Rows are sorted according to columns with primary key keys[-1], secondary key keys[-2] etc.
-    - keys  : Integers representing the column index. Keys in reverse order of importance, i.e. primary key in keys[-1], least significant key in keys[0]
+    Wraps the torch emulation of np.lexsort allowing to sort a tensor for
+    multiple keys indexed by columns idx.
 
-    Returns:
-    - T     : Row-sorted torch tensor (according to columns)
+    Parameters
+    ----------
+    T : torch.Tensor
+        Torch tensor to be sorted. Keys in reverse order of importance, i.e.
+        primary key in keys[-1], least significant key in keys[0]
+    keys : list[int]
+        List of integers representing the column index. Keys in reverse order
+        of importance, i.e. primary key in keys[-1], least significant key in
+        keys[0]
 
-    Raises:
-    - AssertionError:
+    Returns
+    -------
+    torch.Tensor
+        Row-sorted torch tensor (according to columns)
     """
-    assert len(T.size()) == 2, 'T should be a 2D tensor.'
-    assert max(keys) < T.size()[1], 'keys cannot exceed column index of T'
+    tensor_dim = 2
+    assert len(tensor.size()) == tensor_dim, 'T should be a 2D tensor.'
+    assert max(keys) < tensor.size()[1], 'keys cannot exceed column index of T'
 
-    sort_indices = lexsort(T.t()[keys], dim=-1)
+    sort_indices = lexsort(tensor.t()[keys], dim=-1)
 
     return sort_indices
 
 
-def post_process_text(text_raw_results: list[str]) -> list[str]:
-    """Post-processing (unpacking, Tex-conversion of text list)"""
+def post_process_text(text_raw_results: str) -> str:
+    """Post-processing (unpacking, Tex-conversion of text list)."""
     raise NotImplementedError('No code yet.')
 
-    pass
 
+def get_separator_tensor(img_path: Path) -> torch.Tensor:
+    """Load the separator symbol from an image and turns it into a tensor.
 
-def get_separator_tensor(
-    img_path: Path = Path(
-        '/home/siebenschuh/Projects/N-O-REO/sep_image/square.png'
-    ),
-) -> torch.Tensor:
-    """Loads the separator symbol from an image and turns it into a tensor"""
+    Parameters
+    ----------
+    img_path : Path
+        Path to the separator symbol image.
+
+    Returns
+    -------
+    torch.Tensor
+        Tensor representing the separator symbol.
+    """
     img_path = Path(img_path)
     assert os.path.isfile(
         img_path
@@ -1624,19 +1608,28 @@ def get_separator_tensor(
 def restate_global_patch_indices(
     packed_indices: list[list[list[int]]],
 ) -> list[list[list[int]]]:
-    """Consumes the list of patch indices and re-instates a global batch index (rather than j=0 for each group within the batch) by
-    adding the previous groups largest index added to the current indices.
-    Global indices are required to look-up meta data for each patch (in a grouped, packed patch).
+    """Re-state global patch indices.
 
-    Args:
-    - List of indices  :  List of list of list. 1st list (groups of patches that can be merged theoretically), 2nd list (actual packed patches)
+    Consumes the list of patch indices and re-instates a global batch index
+    (rather than j=0 for each group within the batch) by adding the previous
+    groups largest index added to the current indices. Global indices are
+    required to look-up meta data for each patch (in a grouped, packed patch).
 
-    Returns:
-    - List of indices  : Same structure as input, indices just shifted.
+    Parameters
+    ----------
+    packed_indices : list[list[list[int]]]
+        List of list of list. 1st list (groups of patches that can be merged
+        theoretically), 2nd list (actual packed patches)
 
-    Raises:
-    - AssertionError : Misfit of input and output
+    Returns
+    -------
+    list[list[list[int]]]
+        Same structure as input, indices just shifted.
 
+    Raises
+    ------
+    AssertionError
+        Misfit of input and output
     """
     new_packed_indices = []
     j_acc = 0
@@ -1666,7 +1659,9 @@ def restate_global_patch_indices(
     return new_packed_indices
 
 
-def load_spv05_categories(spv05_category_file_path: Path):
+def load_spv05_categories(
+    spv05_category_file_path: Path,
+) -> tuple[dict[str, int], dict[str, list[str]]]:
     """Load  SPv05 category file.
 
     Load SPv05 category file that includes two dictionaries `categories` and
@@ -1675,11 +1670,14 @@ def load_spv05_categories(spv05_category_file_path: Path):
     Args:
     - spv05_category_file_path : File path tot the yaml
 
-    Returns:
-    - Tuple of dictionary  :  categories (class name : class ID) and groups
-    (group name : list of class names)
+    Returns
+    -------
+    tuple[dict[str, int], dict[str, list[str]]]
+        Categories (class name : class ID) and groups (group name : list of
+        class names)
 
-    Raises:
+    Raises
+    ------
     - AssertionError  :  Yaml file does not exist or does not have the correct
     format
     """
@@ -1688,9 +1686,11 @@ def load_spv05_categories(spv05_category_file_path: Path):
         spv05_meta_file = yaml.safe_load(file)
 
     # categories
-    assert all(
-        [k in spv05_meta_file.keys() for k in ['names', 'groups']]
-    ), "File exists but doesn't have key `names` and `groups` in it."
+    if not all(k in spv05_meta_file.keys() for k in ['names', 'groups']):
+        raise AssertionError(
+            "File exists but doesn't have key `names` and `groups` in it."
+        )
+
     inv_categories = spv05_meta_file['names']
 
     groups = spv05_meta_file['groups']
@@ -1703,7 +1703,7 @@ def load_spv05_categories(spv05_category_file_path: Path):
     return categories, groups
 
 
-def get_relevant_text_classes(
+def get_relevant_text_classes(  # noqa: PLR0913
     spv05_category_file_path: Path,
     file_type: str = 'pdf',
     meta_only: bool = False,
@@ -1711,29 +1711,42 @@ def get_relevant_text_classes(
     table_flag: bool = False,
     fig_flag: bool = False,
     secondary_meta: bool = False,
-    table_only: bool = False,
-    fig_only: bool = False,
-):
-    """Returns class IDs for the SPv05 dataset that are relevant for the input.
+) -> dict[str, int]:
+    """Return class IDs for the SPv05 dataset that are relevant for the input.
 
-    Args:
-    - file_type : Document file type that will be handled that
-    determines the category type.
+    Parameters
+    ----------
+    spv05_category_file_path : Path
+        Path to the SPv05 category file
+    file_type : str, optional
+        Document file type that will be handled that determines the category
+        type, by default 'pdf'
+    meta_only : bool, optional
+        Flag indicating if only meta text is to be included, by default False
+    equation_flag : bool, optional
+        Flag indicating if equations are to be included, by default False
+    table_flag : bool, optional
+        Flag indicating if tables are to be included, by default False
+    fig_flag : bool, optional
+        Flag indicating if figures are to be included, by default False
+    secondary_meta : bool, optional
+        Flag indicating if secondary meta text is to be included, by default
+        False
 
-    Returns:
-    - rel_classes : List of relevant classes
+    Returns
+    -------
+    dict[str, int]
+        Dictionary of relevant classes.
 
-    Raises:
-    - AssertionError : When category file is not found or doesn't have the
-    expected format
+    Raises
+    ------
+    - NotImplementedError : Only available for PDFs at this point
     """
     # load category ID
     if file_type == 'pdf':
         dset_category_file_path = spv05_category_file_path
         categories, groups = load_spv05_categories(dset_category_file_path)
     else:
-        dset_category_file_path = None
-        categories, groups = None, None
         raise NotImplementedError('Only available for PDFs at this point')
 
     # parse
@@ -1764,20 +1777,33 @@ def get_relevant_visual_classes(
     file_type: str = 'pdf',
     table_flag: bool = False,
     fig_flag: bool = False,
-):
-    """TODO 2: Finish implementation / logic to track names of columns (tabs and figures are treated differently)
+) -> dict[str, int]:
+    """Return class IDs for the SPv05 dataset that are relevant for the input.
 
-    Returns class IDs for the SPv05 dataset that are relevant for the input
+    Parameters
+    ----------
+    spv05_category_file_path : Path
+        Path to the SPv05 category file
+    file_type : str, optional
+        Document file type that will be handled that determines the category
+        type, by default 'pdf'
+    table_flag : bool, optional
+        Flag indicating if tables are to be included, by default False
+    fig_flag : bool, optional
+        Flag indicating if figures are to be included, by default False
 
-    Args:
-    - file_type      : Document file type (which also implies the dataset, e.g. `SPv05` for `PDF`) that will be handled that determines the category type
+    Returns
+    -------
+    dict[str, int]
+        Dictionary of relevant classes.
 
-    Returns:
-    - rel_classes    : List of relevant classes
-
-    Raises:
-    - AssertionError : When category file is not found or doesn't have the expected format
+    Raises
+    ------
+    - NotImplementedError : Only available for PDFs at this point
     """
+    # TODO: Finish implementation / logic to track names of columns
+    #       (tabs and figures are treated differently)
+
     # load category ID
     if file_type == 'pdf':
         dset_category_file_path = spv05_category_file_path
@@ -1787,7 +1813,6 @@ def get_relevant_visual_classes(
 
     # visual classes
     visual_classes = []
-    visual_names = ['table', 'figure']
     if table_flag:
         visual_classes += groups['table_visual']
     if fig_flag:
@@ -1800,51 +1825,77 @@ def get_relevant_visual_classes(
     return rel_class
 
 
-def get_packed_patch_tensor(
+def get_packed_patch_tensor(  # noqa: PLR0913
     tensors: torch.Tensor,
     y: torch.Tensor,
     rel_class_ids: list[int],
     unpackable_class_ids: list[int] | None = None,
-    by: list[str] | None = None,  # sharp corner
+    by: list[str] | None = None,
     offset: int = 2,
     btm_pad: int = 6,
-    max_width: int = 420,
-    max_height: int = 420,
     sep_flag: bool = False,
     sep_symbol_flag: bool = False,
     sep_symbol_tensor: torch.Tensor | None = None,
-) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    """Given a list of variably-sized patches and meta data 2D torch tensor, returns a torch tensor of dimensions (BxCxHxW)
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor] | tuple[None, None, None]:
+    """Packs patches into a tensor.
 
-    Args:
-    - tensors              : Tensor of page images usually of dimension (Bx3x1280x960)
-    - y                    : 2D torch tensor that stores meta data for each patch (row)
-    - rel_class_ids        : ...
-    - unpackable_class_ids : class ids that are not to be packed but decoded individually for increased accuracy
-    - by                   : columns by which patches are *not* to be aggregated (file, page, class). (default: `file_id`)
-    - offset               : number of pixels by which a bounding box is extended along each direction of the y- and x-axis (to extend bbox)
-    - sep_symbol_tensor    : tensor that is inserted as a separation symbol (if one is used). Default: none as newline is sufficient for separation
-    - dtype                : datatype to which the tensor is converted (float16 is the ViT default datatype)
+    Given a list of variably-sized patches and meta data 2D torch tensor,
+    returns a torch tensor of dimensions (BxCxHxW).
 
-    Returns:
-    - packed_patches_tensor : torch Tensor with similarily sized patches (3x420x420)
+    Parameters
+    ----------
+    tensors : torch.Tensor
+        Tensor of page images usually of dimension (Bx3x1280x960)
+    y : torch.Tensor
+        2D torch tensor that stores meta data for each patch (row)
+    rel_class_ids : list[int]
+        List of class IDs that are to be packed
+    unpackable_class_ids : list[int], optional
+        Class IDs that are not to be packed but decoded individually for
+        increased accuracy, by default None
+    by : list[str], optional
+        Columns by which patches are *not* to be aggregated (file, page,
+        class), by default None
+    offset : int, optional
+        Number of pixels by which a bounding box is extended along each
+        direction of the y- and x-axis (to extend bbox), by default 2
+    btm_pad : int, optional
+        Number of white pixel lines added after each row to spread out rows in
+        each patch, by default 6
+    sep_flag : bool, optional
+        Flag indicating if a separation line is to be included in between
+        lines, by default False
+    sep_symbol_flag : bool, optional
+        Flag indicating if a `sep_tensor` is to be included to allow unpacking
+        a packed patch, by default False
+    sep_symbol_tensor : torch.Tensor, optional
+        Tensor that is inserted as a separation symbol (if one is used), by
+        default a newline is sufficient for separation, by default None
 
-    Raises:
-    - AssertionError     : X
+    Returns
+    -------
+    tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+        Packed patches tensor, index quadruplet, current file ids
+        with similarly sized patches (3x420x420)
+
+    Raises
+    ------
+    - AssertionError : If input data structures do not coincide
     """
+    unpackable_class_ids = unpackable_class_ids if unpackable_class_ids else []
+
+    expected_dim, y_size = 4, 2
     assert (
-        len(tensors.size()) == 4
+        len(tensors.size()) == expected_dim
     ), '`tensors` must be 4-dimensional (BxCxHxW).'
-    assert len(y.size()) == 2, '`y` must be a 2-dimensional tensor.'
+    assert len(y.size()) == y_size, '`y` must be a 2-dimensional tensor.'
     assert by is not None, 'Argument `by` is None but should be a list of str'
 
     # constants
-    file_idx_column, page_idx_column, order_idx_column, cls_column = (
-        14,
-        6,
-        13,
-        5,
-    )
+    file_idx_column = 14
+    page_idx_column = 6
+    order_idx_column = 13
+    cls_column = 5
 
     # subset y given the classes of interest
     y_subset = subset_y_by_class(y_batch=y, rel_class_ids=rel_class_ids)
@@ -1861,7 +1912,7 @@ def get_packed_patch_tensor(
     # sort
     y_subset = y_subset[patch_ids_in_order, :]
 
-    if(len(y_subset)==0):
+    if len(y_subset) == 0:
         return None, None, None
 
     # get patch list
@@ -1899,9 +1950,8 @@ def get_packed_patch_tensor(
         # flatten patch & index lists
         flat_patches = [item for sublist in packed_patches for item in sublist]
         flat_indices = [idx for sublist in packed_indices for idx in sublist]
-        flat_indices = [
-            f for f in flat_indices if len(f) > 0
-        ]  # del. empty list elements
+        # del. empty list elements
+        flat_indices = [f for f in flat_indices if len(f) > 0]
 
         index_quadruplet = y_subset[[f[0] for f in flat_indices], :][
             :, [file_idx_column, page_idx_column, order_idx_column, cls_column]
@@ -1926,13 +1976,14 @@ def get_packed_patch_tensor(
 
 
 def clear_cuda_cache() -> None:
+    """Clear the CUDA cache."""
     gc.collect()
     with torch.no_grad():
         torch.cuda.empty_cache()
         torch.clear_autocast_cache()
 
 
-def update_main_content_dict(
+def update_main_content_dict(  # noqa: PLR0913
     doc_dict: dict[str, dict[int, list[str]]],
     text_results: list[str],
     index_quadruplet: torch.Tensor,
@@ -1940,19 +1991,41 @@ def update_main_content_dict(
     vis_path_dict: dict[int, dict[int, list[str]]],
     dset_name: str = 'SPv05',
 ) -> dict[str, dict[int, list[str]]]:
-    """Given a list of text patch predictions `text_results`, assigns the text elements to the respective documents (via file_id).
+    """Update main content dictionary.
 
-    Args:
-    - main_doc_dict    : Dictionary (key: doc file id, values: list of sorted decoded text patches)
-    - text_results     : list of sorted text segments, decoded from (sorted) list of packed patches
-    - index_quadruplet : 2D tensor that stores columns file_id, page_id, order_id, and inferred class_id for each patch (row)
-    - curr_file_ids    : file ids that are currently present in batch (if a previous file id is not presented, it has been fully processed -> can be stored)
+    Given a list of text patch predictions `text_results`, assigns the text
+    elements to the respective documents (via file_id).
 
-    Returns:
-    - main_doc_dict    : pre-exisitng files appended with current text patches
+    Parameters
+    ----------
+    doc_dict : dict[str, dict[int, list[str]]]
+        Dictionary that stores the text elements for each document.
+        (key: doc file id, values: list of sorted decoded text patches)
+    text_results : list[str]
+        List of sorted text segments, decoded from (sorted) list of packed
+        patches.
+    index_quadruplet : torch.Tensor
+        2D tensor that stores columns file_id, page_id, order_id, and inferred
+        class_id for each patch (row)
+    curr_file_ids : torch.Tensor
+        File ids that are currently present in batch (if a previous file id is
+        not presented, it has been fully processed -> can be stored)
+    vis_path_dict : dict[int, dict[int, list[str]]]
+        Dictionary that stores the visual elements for each document.
+        (key: doc file id, values: list of sorted decoded visual elements)
+    dset_name : str, optional
+        Name of the dataset, by default 'SPv05'
 
-    Raises:
-    - AssertionError   : Lengths of data strcutures does not coincide (i.e. meta data not commensurate to data entries)
+    Returns
+    -------
+    dict[str, dict[int, list[str]]]
+        Pre-existing files appended with current text patches
+
+    Raises
+    ------
+    AssertionError
+        Lengths of data structures does not coincide (i.e. meta data not
+        commensurate to data entries)
     """
     assert len(index_quadruplet) == len(
         text_results
@@ -2015,15 +2088,13 @@ def update_main_content_dict(
         index_quadruplet[:, cls_column]
     ).bool() & (~torch.any(tensors_excl_meta, dim=0))
 
-    # assign infered text `text_results` to respective files
+    # assign inferred text `text_results` to respective files
     curr_file_ids_on_cpu = curr_file_ids.tolist()
     for file_id, file_id_cpu in zip(curr_file_ids, curr_file_ids_on_cpu):
         # subset text per document
         file_id_indices = torch.isclose(
             index_quadruplet[:, file_id_column], file_id
         )
-        file_patch_indices = file_index_set[file_id_indices]
-        file_text_results = [text_results[i] for i in file_patch_indices]
         # loop groups
         for cls_label in all_index_dict.keys():
             cls_meta_patch_indices = (
@@ -2047,31 +2118,41 @@ def update_main_content_dict(
     return doc_dict
 
 
-def assign_text_inferred_meta_classes(
-    txt_cls_model,
-    tokenizer,
+def assign_text_inferred_meta_classes(  # noqa: PLR0913
+    txt_cls_model: AutoModelForSequenceClassification,
+    tokenizer: AutoTokenizer,
     batch_size: int,
     index_quadruplet: torch.Tensor,
     text_results: list[str],
     dset_name: str = 'SPv05',
 ) -> torch.Tensor:
-    """Re-assess the detection model's label predictions for meta classes with a text classifier's predictions
-    based on pseudo OCR-inferred text.
+    """Assign text-inferred meta classes.
 
-    Args:
-    - txt_cls_model     : Text classification model (DistilBertForSequenceClassification) to infer meta category from ViT-inferred text
-    - tokenizer         : Tokenizer for model
-    - batch_size        : Batch size for inference
-    - index_quadruplet  : 2D tensor that tracks file_id, page_id, order_id, & (inferred) class label id for each patch (row)
-    - text_results      : list of str
-    - dset_name         :
+    Re-assess the detection model's label predictions for meta classes with
+    a text classifier's predictions based on pseudo OCR-inferred text.
 
-    Returns:
-    - index_quadruplet  : 2D tensor w/ modified cls_label column for patches that are inferred to be meta categories
+    Parameters
+    ----------
+    txt_cls_model : DistilBertForSequenceClassification
+        Text classification model (DistilBertForSequenceClassification) to
+        infer meta category from ViT-inferred text
+    tokenizer : Tokenizer
+        Tokenizer for model
+    batch_size : int
+        Batch size for inference
+    index_quadruplet : torch.Tensor
+        2D tensor that tracks file_id, page_id, order_id, & (inferred) class
+        label id for each patch (row)
+    text_results : list[str]
+        List of text segments inferred from the patches
+    dset_name : str, optional
+        Name of the dataset, by default 'SPv05'
 
-    Raises:
-    -
-
+    Returns
+    -------
+    torch.Tensor
+        2D tensor w/ modified cls_label column for patches that are inferred
+        to be meta categories.
     """
     # constant
     cls_column = 3
@@ -2081,10 +2162,10 @@ def assign_text_inferred_meta_classes(
         class_id_mapping_tensor = torch.tensor(
             [1, 6, 10, 11, 12], device=index_quadruplet.device, dtype=torch.int
         )
-
     else:
         raise NotImplementedError(
-            "Text-based classification only applicable to meta classes of SPv05. Register another dataset's meta class id's here."
+            'Text-based classification only applicable to meta classes of '
+            "SPv05. Register another dataset's meta class id's here."
         )
 
     # subset to meta classes
@@ -2119,7 +2200,7 @@ def assign_text_inferred_meta_classes(
 def extract_file_specific_doc_dict(
     doc_dict: dict[str, dict[int, list[str]]],
     file_id: int,
-    LaTex2Text: LatexNodes2Text,
+    latex_to_text: LatexNodes2Text,
 ) -> dict[str, str]:
     """Extract file specific document dictionary.
 
@@ -2136,7 +2217,7 @@ def extract_file_specific_doc_dict(
     LaTex2Text : LatexNodes2Text
         Latex2Text object for conversion of latex to text
 
-    Returns:
+    Returns
     -------
     file_dict : dict[str, str]
         Dictionary holding the document content for the specific file_id.
@@ -2157,9 +2238,9 @@ def extract_file_specific_doc_dict(
                 if len(extracted_text) > 0:
                     try:
                         # Sometimes LaTex2Text fails to process the text
-                        proc_text = LaTex2Text.latex_to_text(extracted_text)
+                        proc_text = latex_to_text.latex_to_text(extracted_text)
                         file_dict[key] = re.sub(pattern, '\n', proc_text)
-                    except:
+                    except:  # noqa: E722
                         print(extracted_text)
     return file_dict
 
@@ -2167,7 +2248,7 @@ def extract_file_specific_doc_dict(
 def format_documents(
     doc_dict: dict[str, dict[int, list[str]]],
     doc_file_paths: dict[int, Path],
-    LaTex2Text: LatexNodes2Text,
+    latex_to_text: LatexNodes2Text,
 ) -> list[dict[str, str]]:
     """Store completed documents.
 
@@ -2183,7 +2264,7 @@ def format_documents(
     doc_file_paths : dict[int, Path]
         List of source paths (sorted by file id) from which the document
         content was extracted
-    LaTex2Text : LatexNodes2Text
+    latex_to_text : LatexNodes2Text
         Latex2Text object for conversion of latex to text
     """
     # TODO: Run this loop in parallel using a process pool
@@ -2207,7 +2288,7 @@ def format_documents(
     documents = []
     for file_id, file_path in doc_file_paths.items():
         # Extract file specific document dictionary
-        data = extract_file_specific_doc_dict(doc_dict, file_id, LaTex2Text)
+        data = extract_file_specific_doc_dict(doc_dict, file_id, latex_to_text)
 
         # Setup the document fields to be stored
         document = {'path': str(file_path)}
@@ -2221,7 +2302,7 @@ def format_documents(
     return documents
 
 
-def store_visuals(
+def store_visuals(  # noqa: PLR0913
     tensors: torch.Tensor,
     y: torch.Tensor,
     rel_visual_classes: dict[str, int],
@@ -2230,26 +2311,45 @@ def store_visuals(
     output_dir: Path,
     i_tab: int,
     i_fig: int,
-    prev_file_id: int,
 ) -> tuple[dict[int, dict[int, list[str]]], int, int, int]:
-    """Extracts and stores visuals (e.g. figures and/or tables) into the respective subdirectory in `output_dir`
+    """Store visual elements.
 
-    Args:
-    - tensors            : Tensor of batched patch images of dimension BxCxHxW with C,H,W=3,1280,960 usually
-    - y                  : 2D tensor of patch meta data (location, inferred class label, score, file_id etc.)
-    - rel_visual_classes : Dictionary with relevant visual class ids/names (Table and or Figure) that are to be stored
-    - file_paths         : List of file paths of the particular batch relating to `tensors` and `y`
-    - file_ids           :    -||-       IDs               -||-
-    - output_dir         : location where patches are to be stored (be default, in subdirectories `Table` and `Figure`)
-    - i_tab              : current patch index of table  (of the current file id), allows ordering of table images across batches
-    - i_fig              :            -||-        figure         -||-
-    - prev_file_id       : previous batch's last file_id (required to properly increment and index table/figure patches)
+    Extracts and stores visuals (e.g. figures and/or tables) into the
+    respective subdirectory in `output_dir`.
 
-    Returns:
-    - (vis_path_dict, i_tab, i_fig, last_file_id) : Tuple of vis path dictionary, table index, figure index, and last file_id
+    Parameters
+    ----------
+    tensors : torch.Tensor
+        Tensor of batched patch images of dimension BxCxHxW usually with
+        dimension C,H,W=3,1280,960
+    y : torch.Tensor
+        2D tensor of patch meta data (location, inferred class label, score,
+        file_id etc.)
+    rel_visual_classes : dict[str, int]
+        Dictionary with relevant visual class ids/names (Table and or Figure)
+        that are to be stored
+    file_paths : list[Path]
+        List of file paths of the particular batch relating to `tensors` and
+        `y`
+    file_ids : list[int]
+        List of file ids of the particular batch relating to `tensors` and `y`
+    output_dir : Path
+        Location where patches are to be stored (be default, in subdirectories
+        `Table` and `Figure`)
+    i_tab : int
+        Current patch index of table (of the current file id), allows ordering
+        of table images across batches
+    i_fig : int
+        Current patch index of figure (of the current file id), allows ordering
+        of figure images across batches
 
-    Raises:
 
+    Returns
+    -------
+    tuple[dict[int, dict[int, list[str]]], int, int, int]
+        Dictionary of visual elements (key: file_id, values: list of sorted
+        decoded visual elements), current patch index of table, current patch
+        index of figure, last file id
     """
     # CONSTANTS
     xmin_column = 0
@@ -2281,7 +2381,7 @@ def store_visuals(
     )
 
     # clip
-    _, C, H, W = tensors.size()
+    _, C, H, W = tensors.size()  # noqa: N806
     y_sub_visual[:, ymin_column] = y_sub_visual[:, ymin_column].clamp(
         min=0, max=H
     )
@@ -2299,7 +2399,7 @@ def store_visuals(
     file_id_name_mapping = dict(zip(file_ids, file_paths))
 
     # create dir if necessary
-    for vis_name, vis_class_id in rel_visual_classes.items():
+    for vis_name in rel_visual_classes:
         store_path = output_dir / vis_name
         os.makedirs(store_path, exist_ok=True)
 
@@ -2308,7 +2408,9 @@ def store_visuals(
     file_id_list = y_sub_visual[:, file_idx_column].tolist()
 
     # filepath list
-    vis_path_dict = defaultdict(lambda: defaultdict(list))
+    vis_path_dict: dict[int, dict[int, list[str]]] = defaultdict(
+        lambda: defaultdict(list)
+    )
 
     # loop visual patches
     for i, (cls_id, file_id) in enumerate(zip(cls_id_list, file_id_list)):
@@ -2325,7 +2427,8 @@ def store_visuals(
         patch_file_path = (
             output_dir
             / inv_rel_visual_classes[cls_id]
-            / f'{inv_rel_visual_classes[cls_id]}_{file_id_name_mapping[file_id].stem}_{i_dict[cls_id]}.png'
+            / f'{inv_rel_visual_classes[cls_id]}_'
+            f'{file_id_name_mapping[file_id].stem}_{i_dict[cls_id]}.png'
         )
         i_dict[cls_id] += 1
 
@@ -2335,7 +2438,7 @@ def store_visuals(
         # store
         try:
             img_patch.save(patch_file_path)
-        except:
+        except:  # noqa: E722
             print('x_min, y_min, x_max, y_max : ', x_min, y_min, x_max, y_max)
             print('tensors.size() : ', tensors.size())
 

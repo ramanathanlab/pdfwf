@@ -25,7 +25,7 @@ class OreoParserConfig(BaseParserConfig):
     """Configuration for the Oreo parser."""
 
     # The name of the parser.
-    name: Literal['oreo'] = 'oreo'
+    name: Literal['oreo'] = 'oreo'  # type: ignore[assignment]
     # Weights to layout detection model.
     detection_weights_path: Path
     # Model weights for (meta) text classifier.
@@ -98,8 +98,6 @@ class OreoParser(BaseParser):
         from pylatexenc.latex2text import LatexNodes2Text
         from texify.model.model import load_model
         from texify.model.processor import load_processor
-        from transformers import AutoModelForSequenceClassification
-        from transformers import AutoTokenizer
 
         from pdfwf.parsers.oreo.tensor_utils import get_relevant_text_classes
         from pdfwf.parsers.oreo.tensor_utils import get_relevant_visual_classes
@@ -117,14 +115,14 @@ class OreoParser(BaseParser):
 
         # TODO: Determine if subsequent text classification is even useful.
         # - (2.) text classifier for meta data
-        #txt_cls_model = AutoModelForSequenceClassification.from_pretrained(
+        # txt_cls_model = AutoModelForSequenceClassification.from_pretrained(
         #    config.text_cls_weights_path
-        #).to(device)
+        # ).to(device)
 
-        #tokenizer = AutoTokenizer.from_pretrained(
+        # tokenizer = AutoTokenizer.from_pretrained(
         #    'distilbert-base-uncased', device=device
-        #)
-        #txt_cls_model.eval()
+        # )
+        # txt_cls_model.eval()
 
         # - (3.) load ViT (i.e. pseudo-OCR) model
         ocr_model = load_model()
@@ -170,8 +168,8 @@ class OreoParser(BaseParser):
         self.config = config
         self.device = device
         self.detect_model = detect_model
-        #self.txt_cls_model = txt_cls_model
-        #self.tokenizer = tokenizer
+        # self.txt_cls_model = txt_cls_model
+        # self.tokenizer = tokenizer
         self.ocr_model = ocr_model
         self.ocr_processor = ocr_processor
         self.rel_meta_txt_classes = rel_meta_txt_classes
@@ -190,7 +188,7 @@ class OreoParser(BaseParser):
         pdf_path : str
             Path to the PDF file to convert.
 
-        Returns:
+        Returns
         -------
         list[dict[str, Any]]
             The extracted documents.
@@ -231,16 +229,15 @@ class OreoParser(BaseParser):
         doc_file_paths: dict[int, Path] = {}
 
         # init visual extraction variables
+        vis_path_dict: dict[int, dict[int, list[str]]] = {}
         if self.rel_visual_classes:
             raise NotImplementedError(
                 'Visual extraction is not yet implemented.'
             )
             # i_tab, i_fig, prev_file_id = 0, 0, -1
-        else:
-            vis_path_dict = {}
 
         # Iterate through the DataLoader
-        for j,batch in enumerate(data_loader):
+        for batch in data_loader:
             tensors, file_ids, file_paths = batch
             tensors = tensors.to(self.device)
 
@@ -273,7 +270,7 @@ class OreoParser(BaseParser):
             )
 
             # skip empty document batches
-            if(pack_patch_tensor is None):
+            if pack_patch_tensor is None:
                 continue
 
             # TODO: Implement this such that the I/O is decoupled from the
@@ -290,28 +287,24 @@ class OreoParser(BaseParser):
             #     output_dir=args.output_dir,
             #     i_tab=i_tab,
             #     i_fig=i_fig,
-            #     prev_file_id=prev_file_id,
             # )
 
             # no use for page images pass this point
             tensors = None
 
             # ViT: pseudo-OCR inference
-            if(pack_patch_tensor is not None):
-                text_results = accelerated_batch_inference(
-                    tensors=pack_patch_tensor,
-                    model=self.ocr_model,
-                    processor=self.ocr_processor,
-                    batch_size=self.config.batch_vit,
-                )
-            else:
-                text_results = []
-
+            text_results = accelerated_batch_inference(
+                tensors=pack_patch_tensor,
+                model=self.ocr_model,
+                processor=self.ocr_processor,
+                batch_size=self.config.batch_vit,
+            )
 
             # TODO: *Retool* this. Use (text) Transformer to get text patch
             #       embedding
-            #       Regardless, no use for this method anyway as subsequent text
-            #       classification does not appear to be favorable for accuracy
+            #       Regardless, no use for this method anyway as subsequent
+            #       text classification does not appear to be favorable for
+            #       accuracy
             # re-assess meta text categories
             # index_quadruplet = assign_text_inferred_meta_classes(
             #     txt_cls_model=self.txt_cls_model,
@@ -333,17 +326,11 @@ class OreoParser(BaseParser):
             # Store the file path for each file_id in the batch
             doc_file_paths.update(dict(zip(file_ids, file_paths)))
 
-            # DEBUG
-            print(doc_file_paths.keys())
-
         # Store the parsed documents
         documents = format_documents(
             doc_dict=doc_dict,
             doc_file_paths=doc_file_paths,
-            LaTex2Text=self.latex_to_text,
+            latex_to_text=self.latex_to_text,
         )
-
-        # DEBUG
-        print(len(documents))
 
         return documents
