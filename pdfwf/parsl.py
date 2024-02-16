@@ -16,6 +16,7 @@ from parsl.addresses import address_by_interface
 from parsl.config import Config
 from parsl.executors import HighThroughputExecutor
 from parsl.launchers import MpiExecLauncher
+from parsl.monitoring.monitoring import MonitoringHub
 from parsl.providers import LocalProvider
 from parsl.providers import PBSProProvider
 from parsl.utils import get_all_checkpoints
@@ -133,6 +134,8 @@ class PolarisSettings(BaseComputeSettings):
     """Number of GPU to use."""
     retries: int = 1
     """Number of retries upon failure."""
+    monitoring_settings: MonitoringSettings | None = None
+    """Optional monitoring settings, if not provided, skip monitoring."""
 
     def get_config(self, run_dir: PathLike) -> Config:
         """Create a parsl configuration for running on Polaris@ALCF.
@@ -146,6 +149,17 @@ class PolarisSettings(BaseComputeSettings):
         """
         run_dir = str(run_dir)
         checkpoints = get_all_checkpoints(run_dir)
+
+        monitoring = None
+        if self.monitoring_settings:
+            monitoring = MonitoringHub(
+                hub_address=address_by_interface('bond0'),
+                hub_port=self.monitoring_settings.hub_port,
+                monitoring_debug=self.monitoring_settings.monitoring_debug,
+                resource_monitoring_interval=self.monitoring_settings.resource_monitoring_interval,
+                logging_endpoint=self.monitoring_settings.logging_endpoint,
+                workflow_name=self.monitoring_settings.workflow_name,
+            )
 
         config = Config(
             executors=[
@@ -183,6 +197,7 @@ class PolarisSettings(BaseComputeSettings):
                     ),
                 ),
             ],
+            monitoring=monitoring,
             checkpoint_files=checkpoints,
             run_dir=run_dir,
             checkpoint_mode='task_exit',
@@ -191,6 +206,25 @@ class PolarisSettings(BaseComputeSettings):
         )
 
         return config
+
+
+class MonitoringSettings(BaseModel):
+    """Monitoring settings."""
+
+    # hub_address: str = 'bond0'
+    """TODO: parameterize hub_address so other configs can use it, currently
+    let Polaris config handle this."""
+    hub_port: int = 55055
+    """Database port for monitoring."""
+    monitoring_debug: bool = False
+    """Enable monitoring debug."""
+    resource_monitoring_interval: int = 10
+    """Interval for resource monitoring (in seconds)."""
+    logging_endpoint: str = 'sqlite:///monitoring.db'
+    """Logging endpoint, the database that contains the monitoring information.
+    Will be created if does not exist (*MUST BE ABSOLUTE PATH*)."""
+    workflow_name: str | None = None
+    """Name for workflow, used in web interface."""
 
 
 ComputeSettingsTypes = Union[
