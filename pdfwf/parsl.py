@@ -40,7 +40,7 @@ class BaseComputeSettings(BaseModel, ABC):
         run_dir : PathLike
             Path to store monitoring DB and parsl logs.
 
-        Returns:
+        Returns
         -------
         Config
             Parsl configuration.
@@ -129,7 +129,7 @@ class PolarisSettings(BaseComputeSettings):
     cpus_per_node: int = 32
     """Up to 64 with multithreading."""
     cores_per_worker: float = 8
-    """Number of cores per worker. Currently distributed between GPUs."""
+    """Number of cores per worker. Evenly distributed between GPUs."""
     available_accelerators: int = 4
     """Number of GPU to use."""
     retries: int = 1
@@ -146,8 +146,6 @@ class PolarisSettings(BaseComputeSettings):
         ----------
         run_dir: PathLike
             Directory in which to store Parsl run files.
-        logger: logging.Logger | None
-            Optional logger to use for parsl config information.
         """
         run_dir = str(run_dir)
         checkpoints = get_all_checkpoints(run_dir)

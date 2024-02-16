@@ -47,7 +47,7 @@ class BaseModel(_BaseModel):
         path : str
             The path to the JSON file.
 
-        Returns:
+        Returns
         -------
         T
             A specific BaseModel instance.
@@ -76,7 +76,7 @@ class BaseModel(_BaseModel):
         path : PathLike
             The path to the YAML file.
 
-        Returns:
+        Returns
         -------
         T
             A specific BaseModel instance.
@@ -112,7 +112,7 @@ def exception_handler(
 
 
 def setup_logging(logger_name: str, out_dir: Path) -> logging.Logger:
-    """Setup logging for the PDF conversion workflow."""
+    """Set up logging for the PDF workflow."""
     logger = logging.getLogger(logger_name)
     logger.setLevel(logging.INFO)
 

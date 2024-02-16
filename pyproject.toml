@@ -22,11 +22,15 @@ classifiers = [
 dependencies = [
     "parsl>=2024.2.5",
     "pydantic==2.6.1",
+    "typer>=0.7.0",
 ]
 
 [project.urls]
 homepage = "https://github.com/ramanathanlab/pdfwf"
 repository = "https://github.com/ramanathanlab/pdfwf"
+
+[project.scripts]
+pdfwf = "pdfwf.cli:main"
 
 [project.optional-dependencies]
 dev = [
@@ -39,6 +43,7 @@ dev = [
     "ruff",
     "tox",
     "virtualenv",
+    "typer-cli",
     "types-PyYAML",
 ]
 docs = [
@@ -149,7 +154,7 @@ required-imports = ["from __future__ import annotations"]
 "*/*_test.py" = ["D10"]
 
 [tool.ruff.pydocstyle]
-convention = "google"
+convention = "numpy"
 
 [tool.setuptools.packages.find]
 exclude = ["tests*", "testing*"]

@@ -1,0 +1,56 @@
+# The directory containing the pdfs to convert
+pdf_dir: /lus/eagle/projects/argonne_tpc/hippekp/small-pdf-set
+
+# The output directory of the workflow
+out_dir: runs/oreo_test
+
+# Only convert the first 100 pdfs for testing
+num_conversions: 100
+
+# The number of PDFs to parse in each parsl task
+chunk_size: 4
+
+# The settings for the pdf parser
+parser_settings:
+  # The name of the parser to use.
+  name: oreo
+  # Weights to layout detection model.
+  detection_weights_path: /lus/eagle/projects/argonne_tpc/siebenschuh/N-O-REO/yolov5/runs/train/best_SPv05_run/weights/best.pt
+  # Model weights for (meta) text classifier.
+  text_cls_weights_path: /lus/eagle/projects/argonne_tpc/siebenschuh/N-O-REO/text_classifier/meta_text_classifier
+  # Path to the SPV05 category file.
+  spv05_category_file_path: /lus/eagle/projects/argonne_tpc/siebenschuh/N-O-REO/meta/spv05_categories.yaml
+  # Only scan PDFs for meta statistics on its attributes.
+  detect_only: false
+  # Only parse PDFs for meta data.
+  meta_only: false
+  # Include equations into the text categories
+  equation: false
+  # Include table visualizations (will be stored).
+  table: false
+  # Include figure  (will be stored).
+  figure: false
+  # Include secondary meta data (footnote, headers).
+  secondary_meta: false
+  # If true, accelerate inference by packing non-meta text patches.
+  accelerate: false
+  # Main batch size for detection/# of images loaded per batch.
+  batch_yolo: 2
+  # Batch size of pre-processed patches for ViT pseudo-OCR inference.
+  batch_vit: 2
+  # Batch size K for subsequent text processing.
+  batch_cls: 2
+  # Number of pixels along which.
+  bbox_offset: 2
+
+# The compute settings for the workflow
+compute_settings:
+  name: polaris
+  num_nodes: 1
+  # Make sure to update the path to your conda environment and HF cache
+  worker_init: "module load conda/2023-10-04; conda activate pdfwf; export HF_HOME=/lus/eagle/projects/CVD-Mol-AI/braceal/cache/huggingface"
+  scheduler_options: "#PBS -l filesystems=home:eagle:grand"
+  # Make sure to change the account to the account you want to charge
+  account: FoundEpidem
+  queue: debug
+  walltime: 01:00:00

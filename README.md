@@ -86,13 +86,13 @@ pip install --upgrade pip setuptools wheel
 pip install -e .
 ```
 
-For development, you can install the devtools using:
+To install the dependencies for the Oreo parser
 ```
-pip install -e '.[dev]'
+pip install -r requirements/oreo_requirements.txt
 ```
 
 ## Usage
-Requires having the tool (e.g `marker`, `nougat` etc.) installed. See [Tool installation](#tool-installation) for more details.
+Requires having the tool (e.g `marker`, `oreo` etc.) installed. See [Tool installation](#tool-installation) for more details.
 
 The `pdfwf` workflow can be run using the CLI as follows:
 ```
@@ -114,6 +114,11 @@ pdf_dir: /lus/eagle/projects/argonne_tpc/hippekp/small-pdf-set
 # The directory to place the converted pdfs in
 out_dir: output-text
 
+# The settings for the pdf parser
+parser_settings:
+  # The name of the parser to use
+  name: marker
+
 # The compute settings for the workflow
 compute_settings:
   name: polaris
@@ -129,5 +134,119 @@ compute_settings:
 
 For example, the workflow can be run using the CLI as follows:
 ```
-python -m pdfwf.convert --config config.yaml
+nohup python -m pdfwf.convert --config config.yaml &> nohup.out &
+```
+
+### Running the OREO parser
+
+#### Installing on Polaris
+On a compute node, run:
+```console
+module load conda/2023-10-04
+conda create -n pdfwf python=3.10 -y
+conda activate pdfwf
+mamba install pytorch torchvision pytorch-cuda=11.8 -c pytorch -c nvidia -y
+pip install --upgrade pip setuptools wheel
+pip install -r requirements/oreo_requirements.txt
+pip install -e .
+```
+
+#### Running the OREO parser
+On the login node, run:
+```console
+nohup python -m pdfwf.convert --config examples/oreo/oreo_test.yaml &> nohup.out &
+```
+
+## CLI
+For running smaller jobs without using parsl, the CLI can be used. The CLI
+provides a number of commands for running the workflow. The CLI can be used
+to run the `marker` and `oreo` parsers. The CLI does not submit jobs to the
+scheduler, and is intended for use on small datasets which can be processed
+on a single interactive node or workstation.
+
+**Usage**:
+
+```console
+$ [OPTIONS] COMMAND [ARGS]...
+```
+
+**Options**:
+
+* `--install-completion`: Install completion for the current shell.
+* `--show-completion`: Show completion for the current shell, to copy it or customize the installation.
+* `--help`: Show this message and exit.
+
+**Commands**:
+
+* `marker`: Parse PDFs using the marker parser.
+* `oreo`: Parse PDFs using the oreo parser.
+
+## `marker`
+
+Parse PDFs using the marker parser.
+
+**Usage**:
+
+```console
+$ pdfwf marker [OPTIONS]
+```
+
+**Options**:
+
+* `-p, --pdf_path PATH`: The directory containing the PDF files to convert (recursive glob).  [required]
+* `-o, --output_dir PATH`: The directory to write the output JSON lines file to.  [required]
+* `--help`: Show this message and exit.
+
+## `oreo`
+
+Parse PDFs using the oreo parser.
+
+**Usage**:
+
+```console
+$ pdfwf oreo [OPTIONS]
+```
+
+**Options**:
+
+* `-p, --pdf_path PATH`: The directory containing the PDF files to convert (recursive glob).  [required]
+* `-o, --output_dir PATH`: The directory to write the output JSON lines file to.  [required]
+* `-d, --detection_weights_path PATH`: Weights to layout detection model.  [required]
+* `-t, --text_cls_weights_path PATH`: Model weights for (meta) text classifier.  [required]
+* `-s, --spv05_category_file_path PATH`: Path to the SPV05 category file.  [required]
+* `-d, --detect_only`: File type to be parsed (ignores other files in the input_dir)
+* `-m, --meta_only`: Only parse PDFs for meta data
+* `-e, --equation`: Include equations into the text categories
+* `-t, --table`: Include table visualizations (will be stored)
+* `-f, --figure`: Include figure  (will be stored)
+* `-s, --secondary_meta`: Include secondary meta data (footnote, headers)
+* `-a, --accelerate`: If true, accelerate inference by packing non-meta text patches
+* `-b, --batch_yolo INTEGER`: Main batch size for detection/# of images loaded per batch  [default: 128]
+* `-v, --batch_vit INTEGER`: Batch size of pre-processed patches for ViT pseudo-OCR inference  [default: 512]
+* `-c, --batch_cls INTEGER`: Batch size K for subsequent text processing  [default: 512]
+* `-o, --bbox_offset INTEGER`: Number of pixels along which  [default: 2]
+* `--help`: Show this message and exit.
+
+## Contributing
+
+For development, it is recommended to use a virtual environment. The following
+commands will create a virtual environment, install the package in editable
+mode, and install the pre-commit hooks.
+```bash
+python3.10 -m venv venv
+source venv/bin/activate
+pip install -U pip setuptools wheel
+pip install -e '.[dev,docs]'
+pre-commit install
+```
+
+To test the code, run the following command:
+```bash
+pre-commit run --all-files
+tox -e py310
+```
+
+To generate the CLI documentation, run:
+```
+typer pdfwf.cli utils docs --output CLI.md
 ```
