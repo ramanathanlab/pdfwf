@@ -3,7 +3,7 @@ Scalable PDF-to-text extraction workflow. This workflow is designed to run on
 HPC systems and uses [Parsl](https://parsl-project.org/) to submit jobs to the
 scheduler. The workflow supports multiple PDF parsers including
 [Marker](https://github.com/VikParuchuri/marker), [Nougat](https://github.com/facebookresearch/nougat),
-and `Oreo` (implemented here). Each parser converts PDFs to JSON lines files containing
+and **`Oreo`** (implemented here). Each parser converts PDFs to JSON lines files containing
 the extracted text and optional metadata. The instructions and examples below
 are for running the workflow on the [Polaris](https://www.alcf.anl.gov/polaris)
 supercomputer at Argonne National Laboratory, but the workflow can be adapted
