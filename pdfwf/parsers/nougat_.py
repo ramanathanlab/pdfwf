@@ -44,7 +44,7 @@ class NougatParserConfig(BaseParserConfig):
 
     @field_validator('mmd_out')
     @classmethod
-    def validate_mmd_out_is_dir(cls, value: Path) -> Path | None:
+    def validate_mmd_out_is_dir(cls, value: Path | None) -> Path | None:
         """Create the output directory if it does not exist."""
         if value is not None:
             value.mkdir(exist_ok=True, parents=True)
@@ -77,14 +77,23 @@ class NougatParser(BaseParser):
 
     def __init__(self, config: NougatParserConfig) -> None:
         """Initialize the marker parser."""
+        import torch
         from nougat import NougatModel
+        from nougat.utils.device import move_to_device
 
         self.config = config
         self.model = NougatModel.from_pretrained(config.checkpoint)
+        self.model.eval()
+        self.model = torch.compile(self.model, fullgraph=True)
+        self.model = move_to_device(
+            self.model,
+            bf16=not self.config.full_precision,
+            cuda=self.config.batchsize > 0,
+        )
         self.logger = setup_logging('pdfwf_nougat', config.nougat_logs_path)
 
         # Log the output data information
-        if self.config.mmd_out:
+        if self.config.mmd_out is not None:
             self.logger.info(
                 f'Writing markdown files to {self.config.mmd_out}'
             )
@@ -109,7 +118,6 @@ class NougatParser(BaseParser):
         """
         from nougat.postprocessing import markdown_compatible
         from nougat.utils.dataset import LazyDataset
-        from nougat.utils.device import move_to_device
         from pypdf.errors import PdfStreamError
         from torch.utils.data import ConcatDataset
         from torch.utils.data import DataLoader
@@ -117,21 +125,15 @@ class NougatParser(BaseParser):
 
         pdfs = [Path(pdf_file) for pdf_file in pdf_files]
 
-        model = move_to_device(
-            self.model,
-            bf16=not self.config.full_precision,
-            cuda=self.config.batchsize > 0,
-        )
-
         if self.config.batchsize <= 0:
             self.config.batchsize = 1
-        self.model.eval()
+
         datasets = []
         for pdf in pdfs:
             if not pdf.exists():
                 self.logger.warning(f'Could not find {pdf}. Skipping.')
                 continue
-            if self.config.mmd_out:
+            if self.config.mmd_out is not None:
                 out_path = self.config.mmd_out / pdf.with_suffix('.mmd').name
                 if out_path.exists() and not self.config.recompute:
                     self.logger.info(
@@ -142,7 +144,9 @@ class NougatParser(BaseParser):
             try:
                 dataset = LazyDataset(
                     pdf,
-                    partial(model.encoder.prepare_input, random_padding=False),
+                    partial(
+                        self.model.encoder.prepare_input, random_padding=False
+                    ),
                 )
 
             except PdfStreamError:
@@ -165,7 +169,7 @@ class NougatParser(BaseParser):
         file_index = 0
         page_num = 0
         for i, (sample, is_last_page) in enumerate(tqdm(dataloader)):
-            model_output = model.inference(
+            model_output = self.model.inference(
                 image_tensors=sample, early_stopping=self.config.skipping
             )
             # check if model output is faulty
@@ -218,7 +222,7 @@ class NougatParser(BaseParser):
                     document = {'path': str(pdf), 'text': out}
                     documents.append(document)
 
-                    if self.config.mmd_out:
+                    if self.config.mmd_out is not None:
                         # writing the outputs to the markdown files a separate
                         # directory.
                         out_path = (
