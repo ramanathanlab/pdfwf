@@ -68,6 +68,7 @@ compute_settings:
   num_nodes: 1
   # Make sure to update the path to your conda environment and HF cache
   worker_init: "module load conda/2023-10-04; conda activate marker-wf; export HF_HOME=<path-to-your-HF-cache-dir>"
+  # The scheduler options to use when submitting jobs
   scheduler_options: "#PBS -l filesystems=home:eagle:grand"
   # Make sure to change the account to the account you want to charge
   account: <your-account-name-to-charge>
@@ -184,7 +185,7 @@ If `Nougat` inference ran successfully, proceed to install the `pdfwf` workflow 
 
 ## `Oreo` Pipeline Installation
 On a compute node, run:
-```console
+```bash
 module load conda/2023-10-04
 conda create -n pdfwf python=3.10 -y
 conda activate pdfwf
