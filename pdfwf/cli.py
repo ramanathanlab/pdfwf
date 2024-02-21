@@ -36,7 +36,7 @@ def nougat(  # noqa: PLR0913
         help='Path to existing or new Nougat model checkpoint '
         ' (to be downloaded)',
     ),
-    mmd_out: Path | None = typer.Option(  # noqa: B008
+    mmd_out: Path = typer.Option(  # noqa: B008
         None,
         '--mmd_out',
         '-m',
@@ -57,7 +57,7 @@ def nougat(  # noqa: PLR0913
     markdown: bool = typer.Option(
         True,
         '--markdown',
-        '-m',
+        '-md',
         help='Output pdf content in markdown compatible format.',
     ),
     skipping: bool = typer.Option(
