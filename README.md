@@ -96,7 +96,7 @@ nohup python -m pdfwf.convert --config <your-config.yaml> &> nohup.out &
 ### Stopping the Workflow
 If you'd like to stop the workflow while it's running, you need to
 stop the Python process, the Parsl high-throughput executor process, and then `qdel` the job ID.
-The process IDs can be determined using the `ps` command. The job ID can be found using `qstat`
+The process IDs can be determined using the `ps` command. The job ID can be found using `qstat`.
 
 ## `Marker` Pipeline Installation
 
