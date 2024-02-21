@@ -116,6 +116,9 @@ def setup_logging(logger_name: str, out_dir: Path) -> logging.Logger:
     logger = logging.getLogger(logger_name)
     logger.setLevel(logging.INFO)
 
+    # Create the output directory if it does not exist
+    out_dir.mkdir(exist_ok=True, parents=True)
+
     # Set the format for the log messages
     formatter = logging.Formatter(
         '[%(asctime)s] [%(levelname)s] %(message)s',

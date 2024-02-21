@@ -6,7 +6,6 @@ from typing import Literal
 
 from pdfwf.parsers.base import BaseParser
 from pdfwf.parsers.base import BaseParserConfig
-from pdfwf.registry import register
 from pdfwf.utils import exception_handler
 
 __all__ = [
@@ -22,7 +21,6 @@ class MarkerParserConfig(BaseParserConfig):
     name: Literal['marker'] = 'marker'  # type: ignore[assignment]
 
 
-@register()  # type: ignore[arg-type]
 class MarkerParser(BaseParser):
     """Warmstart interface for the marker PDF parser.
 
