@@ -9,7 +9,7 @@ from typing import Any
 
 from parsl.concurrent import ParslPoolExecutor
 
-from pdfwf.parsers import ParserTypes
+from pdfwf.parsers import ParserConfigTypes
 from pdfwf.parsl import ComputeSettingsTypes
 from pdfwf.utils import BaseModel
 from pdfwf.utils import batch_data
@@ -39,7 +39,7 @@ def parse_pdfs(
     # them in a global registry unique to the current parsl worker process.
     # This ensures that the models are only loaded once per worker process
     # (i.e., we warmstart the models)
-    parser = get_parser(parser_kwargs)
+    parser = get_parser(parser_kwargs, register=True)
 
     # Process the PDF files in bulk
     documents = parser.parse(pdf_paths)
@@ -71,7 +71,7 @@ class WorkflowConfig(BaseModel):
     chunk_size: int = 1
     """Number of pdfs to convert in a single batch."""
 
-    parser_settings: ParserTypes
+    parser_settings: ParserConfigTypes
     """Parser settings (e.g., model paths, etc)."""
 
     compute_settings: ComputeSettingsTypes

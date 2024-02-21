@@ -8,20 +8,10 @@ from pathlib import Path
 from typing import Any
 from typing import Literal
 
-from nougat import NougatModel
-from nougat.postprocessing import markdown_compatible
-from nougat.utils.checkpoint import get_checkpoint
-from nougat.utils.dataset import LazyDataset
-from nougat.utils.device import move_to_device
 from pydantic import field_validator
-from pypdf.errors import PdfStreamError
-from torch.utils.data import ConcatDataset
-from torch.utils.data import DataLoader
-from tqdm import tqdm
 
 from pdfwf.parsers.base import BaseParser
 from pdfwf.parsers.base import BaseParserConfig
-from pdfwf.registry import register
 from pdfwf.utils import exception_handler
 from pdfwf.utils import setup_logging
 
@@ -55,13 +45,13 @@ class NougatParserConfig(BaseParserConfig):
     # The directory to write the logs to.
     nougat_logs_path: Path
 
-    # TODO: Look into auto-downloading the checkpoint so user doesn't
-    # have to deal with copying it.
     @field_validator('checkpoint')
     @classmethod
     def validate_ckpt_path_exists(cls, value: Path) -> Path:
         """Check if the directory exists."""
         if not value.exists():
+            from nougat.utils.checkpoint import get_checkpoint
+
             print(
                 'Checkpoint not found in the directory you specified. '
                 'Downloading base model from the internet instead.'
@@ -72,7 +62,6 @@ class NougatParserConfig(BaseParserConfig):
         return value
 
 
-@register()  # type: ignore[arg-type]
 class NougatParser(BaseParser):
     """Warmstart interface for the marker PDF parser.
 
@@ -83,10 +72,10 @@ class NougatParser(BaseParser):
 
     def __init__(self, config: NougatParserConfig) -> None:
         """Initialize the marker parser."""
-        self.config: NougatParserConfig = config
-        self.model: NougatModel = NougatModel.from_pretrained(
-            config.checkpoint
-        )
+        from nougat import NougatModel
+
+        self.config = config
+        self.model = NougatModel.from_pretrained(config.checkpoint)
         self.logger = setup_logging('pdfwf_nougat', config.nougat_logs_path)
 
     @exception_handler(default_return=None)
@@ -103,6 +92,14 @@ class NougatParser(BaseParser):
         list[dict[str, Any]]
             The extracted documents.
         """
+        from nougat.postprocessing import markdown_compatible
+        from nougat.utils.dataset import LazyDataset
+        from nougat.utils.device import move_to_device
+        from pypdf.errors import PdfStreamError
+        from torch.utils.data import ConcatDataset
+        from torch.utils.data import DataLoader
+        from tqdm import tqdm
+
         pdfs = [Path(pdf_file) for pdf_file in pdf_files]
 
         if self.config.mmd_out:
