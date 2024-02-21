@@ -6,8 +6,8 @@ build-backend = "setuptools.build_meta"
 name = "pdfwf"
 version = "0.1.0"
 authors = [
-    {name = "Kyle Hippe"},
-    {email = "khippe@anl.gov"},
+    {name = "Kyle Hippe", email = "khippe@anl.gov"},
+    {name = "Alexander Brace", email = "abrace@anl.gov"},
 ]
 description = "Workflow for running pdf to text conversions at scale"
 readme = "README.md"
@@ -20,12 +20,17 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
 ]
 dependencies = [
-    "parsl>=2023.12.18",
+    "parsl>=2024.2.5",
+    "pydantic==2.6.1",
+    "typer[all]>=0.7.0",
 ]
 
 [project.urls]
 homepage = "https://github.com/ramanathanlab/pdfwf"
 repository = "https://github.com/ramanathanlab/pdfwf"
+
+[project.scripts]
+pdfwf = "pdfwf.cli:main"
 
 [project.optional-dependencies]
 dev = [
@@ -38,6 +43,8 @@ dev = [
     "ruff",
     "tox",
     "virtualenv",
+    "typer-cli",
+    "types-PyYAML",
 ]
 docs = [
     "black",
@@ -123,13 +130,14 @@ select = [
 line-length = 79
 extend-ignore = []
 target-version = "py38"
+ignore = ["COM812", "ISC001"] # silence warning
 
 [tool.ruff.flake8-pytest-style]
 parametrize-values-type = "tuple"
 
 [tool.ruff.flake8-quotes]
 inline-quotes = "single"
-multiline-quotes = "single"
+multiline-quotes = "double" # silence warning
 
 [tool.ruff.format]
 indent-style = "space"
@@ -146,7 +154,7 @@ required-imports = ["from __future__ import annotations"]
 "*/*_test.py" = ["D10"]
 
 [tool.ruff.pydocstyle]
-convention = "google"
+convention = "numpy"
 
 [tool.setuptools.packages.find]
 exclude = ["tests*", "testing*"]

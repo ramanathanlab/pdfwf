@@ -1,0 +1,37 @@
+{
+    "editor.rulers": [
+        80
+    ],
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false,
+    "editor.tabSize": 4,
+    "files.insertFinalNewline": true,
+    "files.trimTrailingWhitespace": true,
+    "editor.accessibilitySupport": "off",
+    "editor.acceptSuggestionOnEnter": "smart",
+    "editor.minimap.enabled": false,
+    "black-formatter.args": [],
+    "[python]": {
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.fixAll": "explicit",
+            "source.organizeImports": "never"
+        },
+        "editor.defaultFormatter": "charliermarsh.ruff"
+    },
+    "ruff.lint.args": [
+        "--config=pyproject.toml"
+    ],
+    "ruff.format.args": [
+        "--config=pyproject.toml"
+    ],
+    "notebook.formatOnSave.enabled": true,
+    "notebook.codeActionsOnSave": {
+        "notebook.source.fixAll": true,
+        "notebook.source.organizeImports": false
+    },
+    "notebook.cellToolbarLocation": {
+        "default": "right",
+        "jupyter-notebook": "left"
+    }
+}

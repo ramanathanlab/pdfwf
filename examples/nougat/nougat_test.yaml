@@ -1,0 +1,42 @@
+# The directory containing the pdfs to convert
+pdf_dir: /lus/eagle/projects/argonne_tpc/hippekp/small-pdf-set
+
+# The output directory of the workflow
+out_dir: runs/nougat_test
+
+# Only convert the first 100 pdfs for testing
+num_conversions: 100
+
+# The number of PDFs to parse in each parsl task
+chunk_size: 4
+
+parser_settings:
+  name: "nougat"
+  # Recommended batch size of pages (not pdfs) is 10, maximum that fits into A100 40GB.
+  batchsize: 10
+  # Path to download the checkpoint to. if already exists, will use existing.
+  checkpoint: "/home/ogokdemir/nougat_wf/nougat_ckpts/base"
+  # Set mmd_out to null if you don't want to write mmd files as a byproduct.
+  mmd_out: "/home/ogokdemir/nougat_wf/nougat_out"
+  # If set to false, a will skip the pdfs that already have a parsed mmd file in mmd_out
+  recompute: false
+  # Set to true if you want to use fp32 instead of bfloat16 (false is recommended)
+  full_precision: false
+  # If set to true, output text will be formatted as a markdown file.
+  markdown: true
+  # Preempt processing a paper if mode collapse causes repetitions (true is recommended)
+  skipping: true
+  # Path for the nougat-specific logs for the run.
+  nougat_logs_path: "/home/ogokdemir/nougat_wf/nougat_logs/"
+
+# The compute settings for the workflow
+compute_settings:
+  name: polaris
+  num_nodes: 1
+  # Make sure to update the path to your conda environment and HF cache
+  worker_init: "module load conda/2023-10-04; conda activate nougat-wf
+  scheduler_options: "#PBS -l filesystems=home:eagle:grand"
+  # Make sure to change the account to the account you want to charge
+  account: candle_aesp
+  queue: debug
+  walltime: 01:00:00
