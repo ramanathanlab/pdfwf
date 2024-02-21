@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import re
-import sys
 from functools import partial
 from pathlib import Path
 from typing import Any
@@ -45,6 +44,14 @@ class NougatParserConfig(BaseParserConfig):
     # The directory to write the logs to.
     nougat_logs_path: Path
 
+    @field_validator('mmd_out')
+    @classmethod
+    def validate_mmd_out_is_dir(cls, value: Path) -> Path | None:
+        """Create the output directory if it does not exist."""
+        if value is not None:
+            value.mkdir(exist_ok=True, parents=True)
+        return value
+
     @field_validator('checkpoint')
     @classmethod
     def validate_ckpt_path_exists(cls, value: Path) -> Path:
@@ -78,6 +85,16 @@ class NougatParser(BaseParser):
         self.model = NougatModel.from_pretrained(config.checkpoint)
         self.logger = setup_logging('pdfwf_nougat', config.nougat_logs_path)
 
+        # Log the output data information
+        if self.config.mmd_out:
+            self.logger.info(
+                f'Writing markdown files to {self.config.mmd_out}'
+            )
+        else:
+            self.logger.info(
+                '`mmd_out` not specified, will not write markdown files.'
+            )
+
     @exception_handler(default_return=None)
     def parse(self, pdf_files: list[str]) -> list[dict[str, Any]] | None:  # noqa: PLR0912, PLR0915
         """Parse a PDF file and extract markdown.
@@ -101,29 +118,6 @@ class NougatParser(BaseParser):
         from tqdm import tqdm
 
         pdfs = [Path(pdf_file) for pdf_file in pdf_files]
-
-        if self.config.mmd_out:
-            self.logger.info(
-                f'Writing markdown files to {self.config.mmd_out}'
-            )
-
-            if not self.config.mmd_out.is_dir():
-                self.logger.warning(
-                    'Markdown output path cannot be a file. '
-                    'Please specify a directory.'
-                )
-                sys.exit(1)
-            elif not self.config.mmd_out.exists():
-                self.logger.info(
-                    f'Markdown output directory {self.config.mmd_out} '
-                    'does not exist. Creating it now.'
-                )
-                self.config.mmd_out.mkdir(parents=True)
-        else:
-            self.logger.info(
-                'No markdown output path specified. '
-                'Will not write markdown files.'
-            )
 
         model = move_to_device(
             self.model,
