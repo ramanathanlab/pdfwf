@@ -9,7 +9,7 @@ app = typer.Typer()
 
 
 @app.command()
-def nougat(
+def nougat(  # noqa: PLR0913
     pdf_dir: Path = typer.Option(  # noqa: B008
         ...,
         '--pdf_path',
@@ -23,21 +23,21 @@ def nougat(
         '-o',
         help='The directory to write the output JSON lines file to.',
     ),
-    batchsize: int = typer.Option(   # noqa: B008
+    batchsize: int = typer.Option(
         10,
         '--batchsize',
         '-bs',
-        help="Number of pages per patch. Maximum 10 for A100 40GB."
+        help='Number of pages per patch. Maximum 10 for A100 40GB.',
     ),
     checkpoint: Path = typer.Option(  # noqa: B008
-        "nougat_ckpts/base",
+        'nougat_ckpts/base',
         '--checkpoint',
         '-c',
-        help='Pth to existing or new Nougat model checkpoint (to be downloaded)',
+        help='Path to existing or new Nougat model checkpoint '
+        ' (to be downloaded)',
     ),
-    model: str = typer.Option(  # noqa: B008
-        "0.1.0-base"
-        '--model',
+    model: str = typer.Option(
+        '0.1.0-base' '--model',
         '-m',
         help='The Nougat model version to use.',
     ),
@@ -47,35 +47,35 @@ def nougat(
         '-m',
         help='The directory to write optional mmd outputs along with jsonls.',
     ),
-    recompute: bool = typer.Option(  # noqa: B008
+    recompute: bool = typer.Option(
         False,
         '--recompute',
         '-r',
         help='Override pre-existing parsed outputs.',
     ),
-    full_precision: bool = typer.Option( # noqa: B008
+    full_precision: bool = typer.Option(
         False,
         '--full_precision',
         '-f',
         help='Use float32 instead of bfloat32.',
     ),
-    markdown: bool = typer.Option( # noqa: B008
+    markdown: bool = typer.Option(
         True,
         '--markdown',
         '-m',
         help='Output pdf content in markdown compatible format.',
     ),
-    skipping: bool = typer.Option( # noqa: B008
+    skipping: bool = typer.Option(
         True,
         '--skipping',
         '-s',
         help='Skip if the model falls in repetition.',
     ),
     nougat_logs_path: Path = typer.Option(  # noqa: B008
-        "pdfwf_nougat_logs",
+        'pdfwf_nougat_logs',
         '--nougat_logs_path',
         '-n',
-        help='The path to the Nougat-specific logs.', # noqa: B008
+        help='The path to the Nougat-specific logs.',
     ),
 ) -> None:
     """Parse PDFs using the nougat parser."""

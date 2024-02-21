@@ -116,7 +116,7 @@ def setup_logging(logger_name: str, out_dir: Path) -> logging.Logger:
     logger = logging.getLogger(logger_name)
     logger.setLevel(logging.INFO)
 
-    #A suggestion:
+    # A suggestion:
     if not out_dir.exists():
         out_dir.mkdir(parents=True)
 

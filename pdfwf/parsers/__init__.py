@@ -5,8 +5,8 @@ from typing import Any
 
 from pdfwf.parsers.base import BaseParser
 from pdfwf.parsers.marker import MarkerParserConfig
-from pdfwf.parsers.oreo import OreoParserConfig
 from pdfwf.parsers.nougat_ import NougatParserConfig
+from pdfwf.parsers.oreo import OreoParserConfig
 
 ParserTypes = MarkerParserConfig | OreoParserConfig | NougatParserConfig
 
