@@ -29,8 +29,6 @@ class NougatParserConfig(BaseParserConfig):
     batchsize: int = 10
     # The path to the Nougat model checkpoint.
     checkpoint: Path
-    # The version of the Nougat model to use.
-    model: str = '0.1.0-base'
     # The directory to write optional mmd outputs along with jsonls.
     mmd_out: Path | None = None
     # Override pre-existing parsed outputs.

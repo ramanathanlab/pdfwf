@@ -36,11 +36,6 @@ def nougat(  # noqa: PLR0913
         help='Path to existing or new Nougat model checkpoint '
         ' (to be downloaded)',
     ),
-    model: str = typer.Option(
-        '0.1.0-base' '--model',
-        '-m',
-        help='The Nougat model version to use.',
-    ),
     mmd_out: Path = typer.Option(  # noqa: B008
         None,
         '--mmd_out',
@@ -99,7 +94,6 @@ def nougat(  # noqa: PLR0913
         'name': 'nougat',
         'batchsize': batchsize,
         'checkpoint': checkpoint,
-        'model': model,
         'mmd_out': mmd_out,
         'recompute': recompute,
         'full_precision': full_precision,

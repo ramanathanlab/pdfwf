@@ -269,7 +269,6 @@ $ pdfwf nougat [OPTIONS]
 * `-o, --output_dir PATH`: The directory to write the output JSON lines file to.  [required]
 * `-bs, --batchsize INTEGER`: Number of pages per patch. Maximum 10 for A100 40GB.  [default: 10]
 * `-c, --checkpoint PATH`: Path to existing or new Nougat model checkpoint  (to be downloaded)  [default: nougat_ckpts/base]
-* `-m TEXT`: The Nougat model version to use.  [default: 0.1.0-base--model]
 * `-m, --mmd_out PATH`: The directory to write optional mmd outputs along with jsonls.
 * `-r, --recompute`: Override pre-existing parsed outputs.
 * `-f, --full_precision`: Use float32 instead of bfloat32.

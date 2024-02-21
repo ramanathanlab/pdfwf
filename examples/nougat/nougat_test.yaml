@@ -12,23 +12,21 @@ chunk_size: 4
 
 parser_settings:
   name: "nougat"
-  #recommended batch size of pages (not pdfs) is 10, maximum that fits into A100 40GB.
+  # Recommended batch size of pages (not pdfs) is 10, maximum that fits into A100 40GB.
   batchsize: 10
-  #path to download the checkpoint to. if already exists, will use existing.
+  # Path to download the checkpoint to. if already exists, will use existing.
   checkpoint: "/home/ogokdemir/nougat_wf/nougat_ckpts/base"
-  #recommended model type, other alternative is smaller and less performant.
-  model: "0.1.0-base"
-  #set mmd_out to null if you don't want to write mmd files as a byproduct.
+  # Set mmd_out to null if you don't want to write mmd files as a byproduct.
   mmd_out: "/home/ogokdemir/nougat_wf/nougat_out"
-  #if set to false, a will skip the pdfs that already have a parsed mmd file in mmd_out
+  # If set to false, a will skip the pdfs that already have a parsed mmd file in mmd_out
   recompute: false
-  #set to true if you want to use fp32 instead of bfloat16 (false is recommended)
+  # Set to true if you want to use fp32 instead of bfloat16 (false is recommended)
   full_precision: false
-  #if set to true, output text will be formatted as a markdown file.
+  # If set to true, output text will be formatted as a markdown file.
   markdown: true
-  #preempt processing a paper if mode collapse causes repetitions (true is recommended)
+  # Preempt processing a paper if mode collapse causes repetitions (true is recommended)
   skipping: true
-  #path for the nougat-specific logs for the run.
+  # Path for the nougat-specific logs for the run.
   nougat_logs_path: "/home/ogokdemir/nougat_wf/nougat_logs/"
 
 # The compute settings for the workflow
