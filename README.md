@@ -16,10 +16,10 @@ pip install -e .
 ```
 
 ## Usage
-Requires having the tool (e.g., `marker`, `nougat`, `oreo`, etc.) installed. See [Installation](#installation) for more details.
+Running the workflow requires having at least one of these tools installed (e.g., `marker`, `nougat`, `oreo`, etc.). See [Installation](#installation) for details.
 
-The `pdfwf` workflow can be run using the CLI as follows:
-```
+The `pdfwf` workflow can be run at scale using Parsl via the CLI as follows:
+```console
 > python -m pdfwf.convert --help
 usage: convert.py [-h] --config CONFIG
 
@@ -30,13 +30,19 @@ optional arguments:
   --config CONFIG  Path to workflow configuration file
 ```
 
-An example YAML file for the `pdfwf` workflow is provided below. This file can be used to run the workflow using the CLI after replacing the values in the file with the appropriate values for your system.
+### Workflow Configuration
+The computing platform, virtual environment, parser settings, and other settings are specified via a YAML configuration file.
+
+An example YAML file for the `pdfwf` workflow is provided below. This file can be used to run the workflow using the CLI after updating the values to be appropriate for your system.
 ```yaml
 # The directory containing the pdfs to convert
 pdf_dir: /lus/eagle/projects/argonne_tpc/hippekp/small-pdf-set
 
 # The directory to place the converted pdfs in
-out_dir: output-text
+out_dir: runs/output-text
+
+# The number of PDFs to parse in each parsl task
+chunk_size: 5
 
 # The settings for the pdf parser
 parser_settings:
@@ -45,36 +51,46 @@ parser_settings:
 
 # The compute settings for the workflow
 compute_settings:
+  # The name of the compute platform to use
   name: polaris
-  num_nodes: 20
+  # The number of compute nodes to use
+  num_nodes: 1
   # Make sure to update the path to your conda environment and HF cache
   worker_init: "module load conda/2023-10-04; conda activate marker-wf; export HF_HOME=<path-to-your-HF-cache-dir>"
   scheduler_options: "#PBS -l filesystems=home:eagle:grand"
   # Make sure to change the account to the account you want to charge
   account: <your-account-name-to-charge>
-  queue: prod
-  walltime: 03:00:00
+  # The HPC queue to submit to
+  queue: debug
+  # The amount of time to request for your job
+  walltime: 01:00:00
 ```
 
-For example, the workflow can be run using the CLI as follows:
+We provide example configurations for each parser in these files:
+- **marker**: [examples/marker/marker_test.yaml](examples/marker/marker_test.yaml)
+- **nougat**: [examples/nougat/nougat_test.yaml](examples/nougat/nougat_test.yaml)
+- **oreo**: [examples/oreo/oreo_test.yaml](examples/oreo/oreo_test.yaml)
+
+### Running the Workflow
+Once you've updated the YAML file with your environment, project information, and file paths
+the workflow can be run directly from a login node using the CLI as follows:
 ```
-nohup python -m pdfwf.convert --config config.yaml &> nohup.out &
+nohup python -m pdfwf.convert --config <your-config.yaml> &> nohup.out &
 ```
 
-### Running the OREO parser
-On the login node, run:
-```console
-nohup python -m pdfwf.convert --config examples/oreo/oreo_test.yaml &> nohup.out &
-```
+### Stopping the Workflow
+If you'd like to stop the workflow while it's running, you need to 
+stop the Python process, the Parsl high-throughput executor process, and then `qdel` the job ID.
+The process IDs can be determined using the `ps` command. The job ID can be found using `qstat`
 
 ## `Marker` Pipeline Installation
 
-This setup will install both the `Marker` tool and the `pdfwf` workflow from a new environment.
+This setup will install the `Marker` tool in a new environment.
 
-One a compute node of polaris, follow the following instructions:
+On a compute node of Polaris, follow the following instructions:
 
 _Note setting up the local.env assumes conda, see [Non-Conda Env](#non-conda-env)_
-```
+```bash
 mkdir wf-validation
 cd wf-validation/
 
@@ -104,23 +120,11 @@ echo "INFERENCE_RAM=40" >> local.env
 bash $path_to_pdfwf_root/utils/setup_marker.sh local.env
 
 #### END Setup local.env ####
-
-# Test the installation on a PDF
-python convert_single.py /lus/eagle/projects/argonne_tpc/TextCollections/OSTI/RawData/Journal_Article/1333379.pdf ../1333379.md
 ```
 
-Once you verify that marker works on the example given, exit the compute node and from a login node execute the following:
-
-_Note the line where you must change a file to match your conda environment_
-```
-
-# Run the workflow on a small set of 10 pdfs
-python -m pdfwf.convert --pdf-dir /lus/eagle/projects/argonne_tpc/hippekp/small-pdf-set --out-dir ../small-pdf-text --run-dir ../parsl --num-nodes 2 --queue debug --walltime 01:00:00 --account [ACCOUNT]
-```
-
-#### Non-Conda Env
+### Non-Conda Env
 If you are not using conda, these instructions will establish the local.env file
-```
+```bash
 # Replace the path below with the path to your environment/where you install tesseract
 find /home/hippekp/CVD-Mol_AI/hippekp/conda/envs/marker-wf/ -name tessdata
 # replace the path in this command with the output of the above command
@@ -130,12 +134,9 @@ echo "INFERENCE_RAM=40" >> marker/local.env
 ```
 
 ## `Nougat` Pipeline Installation
-
-**On a Polaris login node:**
-
-```
+On a compute node, run:
+```bash
 # Create a conda environment with python3.10
-
 module load conda/2023-10-04
 conda create -n nougat-wf python=3.10
 conda activate nougat-wf
@@ -151,7 +152,6 @@ python3 -m pip install --upgrade pip setuptools wheel chardet
 python3 -m pip install -e .
 
 # Note: If your system has CUDA 12.1, Nougat environment installation should now be complete. At the time of writing, Polaris uses CUDA 11.8. So, install the right torch binary using the command below.
-
 conda install pytorch torchvision pytorch-cuda=11.8 -c pytorch -c nvidia
 ```
 
@@ -166,7 +166,7 @@ nougat /path/to/your_file.pdf -o /path/to/output_dir -m 0.1.0-base -b 10
 
 # This command should write a your_file.mmd file into your output directory which will be automatically created if it doesn't exist.
 ```
-If `Nougat` inference ran successfully, proceed to install the pdfwf workflow using the instructions in [Installation](#installation).
+If `Nougat` inference ran successfully, proceed to install the `pdfwf` workflow using the instructions in [Installation](#installation).
 
 ## `Oreo` Pipeline Installation
 On a compute node, run:
