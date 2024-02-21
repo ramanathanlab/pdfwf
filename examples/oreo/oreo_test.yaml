@@ -51,6 +51,7 @@ compute_settings:
   num_nodes: 1
   # Make sure to update the path to your conda environment and HF cache
   worker_init: "module load conda/2023-10-04; conda activate pdfwf; export HF_HOME=/lus/eagle/projects/CVD-Mol-AI/braceal/cache/huggingface"
+  # The scheduler options to use when submitting jobs
   scheduler_options: "#PBS -l filesystems=home:eagle:grand"
   # Make sure to change the account to the account you want to charge
   account: FoundEpidem
