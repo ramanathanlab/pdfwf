@@ -1,11 +1,21 @@
 # PDFWF
-Scalable PDF-to-text extraction workflow.
+Scalable PDF-to-text extraction workflow. This workflow is designed to run on
+HPC systems and uses [Parsl](https://parsl-project.org/) to submit jobs to the
+scheduler. The workflow supports multiple PDF parsers including `marker`,
+`nougat`, and `oreo`. Each parser converts PDFs to JSON lines files containing
+the extracted text and optional metadata. The instructions and examples below
+are for running the workflow on the [Polaris](https://www.alcf.anl.gov/polaris)
+supercomputer at Argonne National Laboratory, but the workflow can be adapted
+to run on other HPC systems by adding an appropriate
+[Parsl configuration](https://parsl.readthedocs.io/en/stable/userguide/configuring.html).
 
 # Installation
 `pdfwf` supports several PDF parsers which have separate installation instructions below:
 - [Install Marker](#marker-pipeline-installation)
 - [Install Nougat](#nougat-pipeline-installation)
 - [Install Oreo](#oreo-pipeline-installation)
+
+**Note**: You may need different virtual environments for each parser.
 
 Once you've installed your desired PDF parser, you can install `pdfwf` into your virtual environment by running:
 ```bash
@@ -71,6 +81,9 @@ We provide example configurations for each parser in these files:
 - **nougat**: [examples/nougat/nougat_test.yaml](examples/nougat/nougat_test.yaml)
 - **oreo**: [examples/oreo/oreo_test.yaml](examples/oreo/oreo_test.yaml)
 
+**Note**: Please see the comments in the example YAML files for **documentation
+ on the settings**.
+
 ### Running the Workflow
 Once you've updated the YAML file with your environment, project information, and file paths
 the workflow can be run directly from a login node using the CLI as follows:
@@ -79,7 +92,7 @@ nohup python -m pdfwf.convert --config <your-config.yaml> &> nohup.out &
 ```
 
 ### Stopping the Workflow
-If you'd like to stop the workflow while it's running, you need to 
+If you'd like to stop the workflow while it's running, you need to
 stop the Python process, the Parsl high-throughput executor process, and then `qdel` the job ID.
 The process IDs can be determined using the `ps` command. The job ID can be found using `qstat`
 
