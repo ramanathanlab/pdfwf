@@ -215,9 +215,9 @@ nohup python -m pdfwf.convert --config examples/oreo/oreo_test.yaml &> nohup.out
 ## CLI
 For running smaller jobs without using parsl, the CLI can be used. The CLI
 provides a number of commands for running the workflow. The CLI can be used
-to run the `marker` and `oreo` parsers. The CLI does not submit jobs to the
-scheduler, and is intended for use on small datasets which can be processed
-on a single interactive node or workstation.
+to run the `marker`, `nougat`, and `oreo` parsers. The CLI does not submit jobs
+to the scheduler, and is intended for use on small datasets which can be
+processed on a single interactive node or workstation.
 
 **Usage**:
 
@@ -233,9 +233,9 @@ $ [OPTIONS] COMMAND [ARGS]...
 
 **Commands**:
 
-* `marker`: Parse PDFs using the Marker parser.
-* `oreo`: Parse PDFs using the Oreo parser.
-* `nougat`: Parse PDFs using the Nougat parser.
+* `marker`: Parse PDFs using the marker parser.
+* `nougat`: Parse PDFs using the nougat parser.
+* `oreo`: Parse PDFs using the oreo parser.
 
 ## `marker`
 
@@ -255,7 +255,7 @@ $ pdfwf marker [OPTIONS]
 
 ## `nougat`
 
-Parse PDFs using the Nougat parser.
+Parse PDFs using the nougat parser.
 
 **Usage**:
 
@@ -267,17 +267,16 @@ $ pdfwf nougat [OPTIONS]
 
 * `-p, --pdf_path PATH`: The directory containing the PDF files to convert (recursive glob).  [required]
 * `-o, --output_dir PATH`: The directory to write the output JSON lines file to.  [required]
+* `-bs, --batchsize INTEGER`: Number of pages per patch. Maximum 10 for A100 40GB.  [default: 10]
+* `-c, --checkpoint PATH`: Path to existing or new Nougat model checkpoint  (to be downloaded)  [default: nougat_ckpts/base]
+* `-m TEXT`: The Nougat model version to use.  [default: 0.1.0-base--model]
+* `-m, --mmd_out PATH`: The directory to write optional mmd outputs along with jsonls.
+* `-r, --recompute`: Override pre-existing parsed outputs.
+* `-f, --full_precision`: Use float32 instead of bfloat32.
+* `-m, --markdown`: Output pdf content in markdown compatible format.  [default: True]
+* `-s, --skipping`: Skip if the model falls in repetition.  [default: True]
+* `-n, --nougat_logs_path PATH`: The path to the Nougat-specific logs.  [default: pdfwf_nougat_logs]
 * `--help`: Show this message and exit.
-* `--batchsize INTEGER`: Number of pages to parse in a batch, maximum is 10 on Polaris.
-* `--checkpoint PATH`: Directory for model checkpoint download in the first use. [required]
-* `--model STRING`: Set 0.1.0-small for small, 0.1.0-base for base model. Base recommended.
-* `--mmd_out PATH`: If set, markdown files will be saved here along with jsonl output.
-* `--recompute`: Override previous extraction for pdfs, if any found.
-* `--full_precision`: Use float32 instead of bfloat16 (not recommended)
-* `--markdown`: Output the parsed text in markdown compatible format.
-* `--skipping`: Skip the rest of the paper if Nougat falls in repetition.
-* `'--nougat_logs_path PATH`: Directory to output Nougat-specific logs.
-
 
 ## `oreo`
 
@@ -308,6 +307,7 @@ $ pdfwf oreo [OPTIONS]
 * `-c, --batch_cls INTEGER`: Batch size K for subsequent text processing  [default: 512]
 * `-o, --bbox_offset INTEGER`: Number of pixels along which  [default: 2]
 * `--help`: Show this message and exit.
+
 
 ## Contributing
 
