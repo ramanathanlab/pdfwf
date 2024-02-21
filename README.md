@@ -179,8 +179,8 @@ pip install -r requirements/oreo_requirements.txt
 ```
 
 ## CLI
-For running smaller jobs without using the Parsl workflow, the CLI can be used. 
-The CLI provides different commands for running the various parsers. The CLI 
+For running smaller jobs without using the Parsl workflow, the CLI can be used.
+The CLI provides different commands for running the various parsers. The CLI
 can run the `marker`, `nougat`, and `oreo` parsers. The CLI does not submit jobs
 to the scheduler and is intended for use on small datasets that can be
 processed on a single interactive node or workstation.
@@ -238,7 +238,7 @@ $ pdfwf nougat [OPTIONS]
 * `-m, --mmd_out PATH`: The directory to write optional mmd outputs along with jsonls.
 * `-r, --recompute`: Override pre-existing parsed outputs.
 * `-f, --full_precision`: Use float32 instead of bfloat32.
-* `-m, --markdown`: Output pdf content in markdown compatible format.  [default: True]
+* `-md, --markdown`: Output pdf content in markdown compatible format.  [default: True]
 * `-s, --skipping`: Skip if the model falls in repetition.  [default: True]
 * `-n, --nougat_logs_path PATH`: The path to the Nougat-specific logs.  [default: pdfwf_nougat_logs]
 * `--help`: Show this message and exit.
