@@ -4,7 +4,7 @@ PDF-to-text extraction workflow.
 # Installation
 There are a number of ways to install this software. If you already have an environment with Marker installed, please see [`pdfwf` only installation](#pdfwf-only-installation). If you do not have Marker installed, please see [Marker Pipeline Installation](#marker-pipeline-installation) for instructions on how to install the whole pipeline with Marker.
 
-## Marker Pipeline Installation
+## `Marker` Pipeline Installation
 
 This setup will install both the `Marker` tool and the `pdfwf` workflow from a new environment.
 
@@ -75,6 +75,61 @@ echo "TORCH_DEVICE=cuda" >> marker/local.env
 echo "INFERENCE_RAM=40" >> marker/local.env
 
 ```
+
+## `Nougat` Pipeline Installation
+
+
+**On a Polaris login node:**
+
+```
+#Create a conda environment with python3.10
+
+module load conda/2023-10-04
+conda create -n nougat-wf python=3.10
+conda activate nougat-wf
+
+#Create a base directory to host Nougat and pdfwf code.
+mkdir nougat_wf
+cd nougat_wf
+
+#Install Nougat
+git clone https://github.com/facebookresearch/nougat.git
+cd nougat
+python3 -m pip install --upgrade pip setuptools wheel chardet
+python3 -m pip install -e .
+
+# Note: If your system has CUDA 12.1, Nougat environment installation should now be complete. At the time of writing, Polaris uses CUDA 11.8. So, install the right torch binary using the command below.
+
+conda install pytorch torchvision pytorch-cuda=11.8 -c pytorch -c nvidia
+```
+
+This should conclude the installation of Nougat. Now, get a Polaris *compute node* to confirm it runs successfully in your environment.
+
+```
+#Copy a sample pdf file to an arbitrary location.
+
+#Run Nougat inference on the pdfs with the command below.
+
+nougat /path/to/your_file.pdf -o /path/to/output_dir -m 0.1.0-base -b 10
+
+#This command should write a your_file.mmd file into your output directory which will be automatically created if it doesn't exist.
+```
+If `Nougat` inference ran successfully, proceed to installing the pdfwf workflow using the instructions below.
+
+**First switch to a Polaris login node.**
+
+```
+cd nougat_wf
+module load conda/2023-10-04
+conda activate nougat-wf
+git clone https://github.com/ramanathanlab/pdfwf.git
+cd pdfwf
+pip install -e .
+```
+
+This should conclude the `Nougat` and `pdfwf` installation. See Usage section below to scale `Nougat`.
+
+
 
 ## `pdfwf` _Only_ Installation
 
@@ -178,8 +233,9 @@ $ [OPTIONS] COMMAND [ARGS]...
 
 **Commands**:
 
-* `marker`: Parse PDFs using the marker parser.
-* `oreo`: Parse PDFs using the oreo parser.
+* `marker`: Parse PDFs using the Marker parser.
+* `oreo`: Parse PDFs using the Oreo parser.
+* `nougat`: Parse PDFs using the Nougat parser.
 
 ## `marker`
 
@@ -196,6 +252,32 @@ $ pdfwf marker [OPTIONS]
 * `-p, --pdf_path PATH`: The directory containing the PDF files to convert (recursive glob).  [required]
 * `-o, --output_dir PATH`: The directory to write the output JSON lines file to.  [required]
 * `--help`: Show this message and exit.
+
+## `nougat`
+
+Parse PDFs using the Nougat parser.
+
+**Usage**:
+
+```console
+$ pdfwf nougat [OPTIONS]
+```
+
+**Options**:
+
+* `-p, --pdf_path PATH`: The directory containing the PDF files to convert (recursive glob).  [required]
+* `-o, --output_dir PATH`: The directory to write the output JSON lines file to.  [required]
+* `--help`: Show this message and exit.
+* `--batchsize INTEGER`: Number of pages to parse in a batch, maximum is 10 on Polaris.
+* `--checkpoint PATH`: Directory for model checkpoint download in the first use. [required]
+* `--model STRING`: Set 0.1.0-small for small, 0.1.0-base for base model. Base recommended.
+* `--mmd_out PATH`: If set, markdown files will be saved here along with jsonl output.
+* `--recompute`: Override previous extraction for pdfs, if any found.
+* `--full_precision`: Use float32 instead of bfloat16 (not recommended)
+* `--markdown`: Output the parsed text in markdown compatible format.
+* `--skipping`: Skip the rest of the paper if Nougat falls in repetition.
+* `'--nougat_logs_path PATH`: Directory to output Nougat-specific logs.
+
 
 ## `oreo`
 
