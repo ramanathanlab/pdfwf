@@ -8,6 +8,8 @@ version = "0.1.0"
 authors = [
     {name = "Kyle Hippe", email = "khippe@anl.gov"},
     {name = "Alexander Brace", email = "abrace@anl.gov"},
+    {name = "Ozan Gokdemir", email = "ogokdemir@anl.gov"},
+    {name = "Carlo Siebenschuh", email = "siebenschuh@uchicago.edu"}
 ]
 description = "Workflow for running pdf to text conversions at scale"
 readme = "README.md"
