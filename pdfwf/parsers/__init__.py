@@ -18,61 +18,64 @@ ParserTypes = MarkerParser | OreoParser | NougatParser
 
 _ParserTypes = tuple[type[ParserConfigTypes], type[ParserTypes]]
 
-PARSER_STRATEGIES: dict[str, _ParserTypes] = {
+STRATEGIES: dict[str, _ParserTypes] = {
     'marker': (MarkerParserConfig, MarkerParser),
     'oreo': (OreoParserConfig, OreoParser),
     'nougat': (NougatParserConfig, NougatParser),
 }
 
 
+# This is a workaround to support optional registration.
+# Make a function to combine the config and instance initialization
+# since the registry only accepts functions with hashable arguments.
+def _factory_fn(**kwargs: dict[str, Any]) -> ParserTypes:
+    name = kwargs.get('name', '')
+    strategy = STRATEGIES.get(name)  # type: ignore[arg-type]
+    if not strategy:
+        raise ValueError(
+            f'Unknown parser name: {name}.'
+            f' Available: {set(STRATEGIES.keys())}',
+        )
+
+    # Get the config and classes
+    config_cls, cls = strategy
+
+    return cls(config_cls(**kwargs))
+
+
 def get_parser(
-    parser_kwargs: dict[str, Any],
+    kwargs: dict[str, Any],
     register: bool = False,
 ) -> ParserTypes:
-    """Get the parser instance based on the parser name and kwargs.
+    """Get the instance based on the kwargs.
 
-    Caches the parser instance based on the parser name and kwargs.
-    Currently supports the following parsers: marker, oreo, and nougat.
+    Currently supports the following strategies:
+    - marker
+    - oreo
+    - nougat
 
     Parameters
     ----------
-    parser_kwargs : dict[str, Any]
-        The parser configuration. Contains an extra `name` argument
-        to specify the parser to use.
+    kwargs : dict[str, Any]
+        The configuration. Contains a `name` argument
+        to specify the strategy to use.
     register : bool, optional
-        Register the parser instance for warmstart, by default False.
+        Register the instance for warmstart. Caches the
+        instance based on the kwargs, by default False.
 
     Returns
     -------
     ParserTypes
-        The parser instance.
+        The instance.
 
     Raises
     ------
     ValueError
-        If the embedder name is unknown.
+        If the `name` is unknown.
     """
-    name = parser_kwargs.get('name', '')
-    parser_strategy = PARSER_STRATEGIES.get(name)
-    if not parser_strategy:
-        raise ValueError(f'Unknown parser name: {name}')
-
-    # Unpack the parser strategy
-    config_cls, parser_cls = parser_strategy
-
-    # Make a function to combine the config and parser initialization
-    # since the registry only accepts functions with hashable arguments.
-    def parser_factory(**parser_kwargs: dict[str, Any]) -> ParserTypes:
-        # Create the parser config
-        config = config_cls(**parser_kwargs)
-        # Create the parser instance
-        return parser_cls(config)
-
-    # Register and create the parser instance
+    # Create and register the instance
     if register:
-        registry.register(parser_factory)
-        parser = registry.get(parser_factory, **parser_kwargs)
-    else:
-        parser = parser_factory(**parser_kwargs)
+        registry.register(_factory_fn)
+        return registry.get(_factory_fn, **kwargs)
 
-    return parser
+    return _factory_fn(**kwargs)
