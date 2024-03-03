@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pdfwf"
-version = "0.1.0"
+version = "0.1.1"
 authors = [
     {name = "Kyle Hippe", email = "khippe@anl.gov"},
     {name = "Alexander Brace", email = "abrace@anl.gov"},
