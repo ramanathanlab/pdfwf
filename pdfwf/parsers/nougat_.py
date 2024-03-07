@@ -61,9 +61,7 @@ class NougatParserConfig(BaseParserConfig):
                 'Checkpoint not found in the directory you specified. '
                 'Downloading base model from the internet instead.'
             )
-            value = get_checkpoint(
-                value, model_tag=cls.model_fields['model'].default
-            )
+            value = get_checkpoint(value, model_tag='0.1.0-base')
         return value
 
 
