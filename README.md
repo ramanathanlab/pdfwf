@@ -156,15 +156,9 @@ module load conda/2023-10-04
 conda create -n nougat-wf python=3.10
 conda activate nougat-wf
 
-# Create a base directory to host Nougat and pdfwf code.
-mkdir nougat_wf
-cd nougat_wf
-
 # Install Nougat
-git clone https://github.com/facebookresearch/nougat.git
-cd nougat
 python3 -m pip install --upgrade pip setuptools wheel chardet
-python3 -m pip install -e .
+pip install git+https://github.com/facebookresearch/nougat.git
 
 # Note: If your system has CUDA 12.1, Nougat environment installation should now be complete. At the time of writing, Polaris uses CUDA 11.8. So, install the right torch binary using the command below.
 conda install pytorch torchvision pytorch-cuda=11.8 -c pytorch -c nvidia
