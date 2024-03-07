@@ -239,6 +239,13 @@ def oreo(  # noqa: PLR0913
         '-o',
         help='Number of pixels along which',
     ),
+    num_conversions: int = typer.Option(
+        0,
+        '--num_conversions',
+        '-n',
+        help='Number of pdfs to convert (useful for debugging, by default '
+        'convert every document).',
+    ),
 ) -> None:
     """Parse PDFs using the oreo parser."""
     from pdfwf.convert import parse_pdfs
@@ -248,6 +255,14 @@ def oreo(  # noqa: PLR0913
 
     # Collect PDFs in batches for more efficient processing
     pdf_paths = [p.as_posix() for p in pdf_dir.glob('**/*.pdf')]
+
+    # Limit the number of conversions for debugging
+    if num_conversions and len(pdf_paths) >= num_conversions:
+        pdf_paths = pdf_paths[:num_conversions]
+        typer.echo(
+            f'len(pdf_paths) exceeds {num_conversions}. '
+            f'Only first {num_conversions} pdfs passed.'
+        )
 
     # Print the number of PDFs to be parsed
     typer.echo(f'Converting {len(pdf_paths)} PDFs with oreo...')
