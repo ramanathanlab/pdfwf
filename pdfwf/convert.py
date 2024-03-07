@@ -100,6 +100,9 @@ if __name__ == '__main__':
 
     logger.info(f'Loaded configuration: {config}')
 
+    # Save the configuration to the output directory
+    config.write_yaml(config.out_dir / 'config.yaml')
+
     # Collect PDFs in batches for more efficient processing
     pdf_paths = [p.as_posix() for p in config.pdf_dir.glob('**/*.pdf')]
 
