@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import logging
 import sys
+import traceback
 from pathlib import Path
 from typing import Any
 from typing import Callable
@@ -102,9 +103,9 @@ def exception_handler(
             except Exception as e:
                 print(
                     f'{func.__name__} raised an exception: {e} '
-                    f' with traceback {e.__traceback__}'
                     f'On input {args}, {kwargs}\nReturning {default_return}',
                 )
+                traceback.print_exc()
                 return default_return
 
         return wrapper
