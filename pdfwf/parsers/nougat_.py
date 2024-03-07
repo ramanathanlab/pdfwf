@@ -217,7 +217,7 @@ class NougatParser(BaseParser):
 
                     # TODO: Implement an LLM-based optional metadata extraction
                     # call to run on the first page for author and title.
-                    document = {'path': str(pdf), 'text': out}
+                    document = {'path': str(is_last_page[j]), 'text': out}
                     documents.append(document)
 
                     if self.config.mmd_out is not None:
