@@ -264,6 +264,7 @@ $ pdfwf marker [OPTIONS]
 
 * `-p, --pdf_path PATH`: The directory containing the PDF files to convert (recursive glob).  [required]
 * `-o, --output_dir PATH`: The directory to write the output JSON lines file to.  [required]
+  * `-nc, --num_conversions INTEGER`: Number of pdfs to convert (useful for debugging, by default convert every document) [default: 0].
 * `--help`: Show this message and exit.
 
 ## `nougat`
@@ -288,6 +289,7 @@ $ pdfwf nougat [OPTIONS]
 * `-md, --markdown`: Output pdf content in markdown compatible format.  [default: True]
 * `-s, --skipping`: Skip if the model falls in repetition.  [default: True]
 * `-n, --nougat_logs_path PATH`: The path to the Nougat-specific logs.  [default: pdfwf_nougat_logs]
+* `-nc, --num_conversions INTEGER`: Number of pdfs to convert (useful for debugging, by default convert every document) [default: 0].
 * `--help`: Show this message and exit.
 
 ## `oreo`
@@ -318,6 +320,7 @@ $ pdfwf oreo [OPTIONS]
 * `-v, --batch_vit INTEGER`: Batch size of pre-processed patches for ViT pseudo-OCR inference  [default: 512]
 * `-c, --batch_cls INTEGER`: Batch size K for subsequent text processing  [default: 512]
 * `-o, --bbox_offset INTEGER`: Number of pixels along which  [default: 2]
+* `-nc, --num_conversions INTEGER`: Number of pdfs to convert (useful for debugging, by default convert every document) [default: 0].
 * `--help`: Show this message and exit.
 
 

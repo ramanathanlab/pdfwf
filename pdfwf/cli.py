@@ -75,7 +75,7 @@ def nougat(  # noqa: PLR0913
     num_conversions: int = typer.Option(
         0,
         '--num_conversions',
-        '-n',
+        '-nc',
         help='Number of pdfs to convert (useful for debugging, by default '
         'convert every document).',
     ),
@@ -139,7 +139,7 @@ def marker(
     num_conversions: int = typer.Option(
         0,
         '--num_conversions',
-        '-n',
+        '-nc',
         help='Number of pdfs to convert (useful for debugging, by default '
         'convert every document).',
     ),
@@ -272,7 +272,7 @@ def oreo(  # noqa: PLR0913
     num_conversions: int = typer.Option(
         0,
         '--num_conversions',
-        '-n',
+        '-nc',
         help='Number of pdfs to convert (useful for debugging, by default '
         'convert every document).',
     ),
