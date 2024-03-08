@@ -6,6 +6,8 @@ from argparse import ArgumentParser
 from pathlib import Path
 from uuid import uuid4
 
+from tqdm import tqdm
+
 
 def markdown_to_jsonl(
     markdown_dir: Path, output_dir: Path, pdf_dir: Path, md_per_jsonl: int
@@ -23,12 +25,16 @@ def markdown_to_jsonl(
     md_per_jsonl : int
         Number of markdown files per JSONL file.
     """
+    # Create the output directory
+    output_dir.mkdir(exist_ok=False, parents=True)
+
     # Retrieve the markdown files
     markdown_files: list[Path] = list(markdown_dir.glob('*.md'))
 
+    # Create a list to store the parsed documents
     documents: list[dict[str, str]] = []
 
-    for idx, path in enumerate(markdown_files):
+    for idx, path in tqdm(enumerate(markdown_files)):
         # Read the markdown file
         text = path.read_text()
 
