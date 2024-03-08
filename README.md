@@ -93,6 +93,44 @@ the workflow can be run directly from a login node using the CLI as follows:
 nohup python -m pdfwf.convert --config <your-config.yaml> &> nohup.out &
 ```
 
+The output of the workflow will be written to the `out_dir` specified in the
+configuration file. The `<out_dir>/parsed_pdfs` directory will contain the
+parsed PDFs in JSON lines format. Each line of the JSONL file will contain
+(at least) a "text" field containing the parsed text for a given PDF and a
+"path" field containing the path to the PDF. See the example below:
+```json
+{"path": "/path/to/1.pdf", "text": "This is the text of the first PDF."}
+{"path": "/path/to/2.pdf", "text": "This is the text of the second PDF."}
+```
+
+See the [Monitoring the Workflow](#monitoring-the-workflow) section for
+description of the other log files that are generated during the workflow.
+
+### Monitoring the Workflow
+Once you've started the workflow, you can monitor the outputs by watching the
+output files in the `out_dir` specified in the configuration file. Below are
+some useful commands to monitor the workflow. First, `cd` to the `out_dir`.
+
+To see the number of PDFs that have been parsed:
+```console
+cat parsed_pdfs/* | grep '{"path":' | wc -l
+```
+
+To watch the stdout and stderr of the tasks:
+```console
+tail -f parsl/000/submit_scripts/*
+```
+
+To check the Parsl workflow log:
+```console
+tail -f parsl/000/parsl.log
+```
+
+To see the basic workflow log:
+```console
+cat pdfwf.log
+```
+
 ### Stopping the Workflow
 If you'd like to stop the workflow while it's running, you need to
 stop the Python process, the Parsl high-throughput executor process, and then `qdel` the job ID.
