@@ -211,9 +211,6 @@ class PolarisSettings(BaseComputeSettings):
 class MonitoringSettings(BaseModel):
     """Monitoring settings."""
 
-    # hub_address: str = 'bond0'
-    """TODO: parameterize hub_address so other configs can use it, currently
-    let Polaris config handle this."""
     hub_port: int = 55055
     """Database port for monitoring."""
     monitoring_debug: bool = False

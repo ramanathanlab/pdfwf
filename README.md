@@ -93,6 +93,44 @@ the workflow can be run directly from a login node using the CLI as follows:
 nohup python -m pdfwf.convert --config <your-config.yaml> &> nohup.out &
 ```
 
+The output of the workflow will be written to the `out_dir` specified in the
+configuration file. The `<out_dir>/parsed_pdfs` directory will contain the
+parsed PDFs in JSON lines format. Each line of the JSONL file will contain
+(at least) a "text" field containing the parsed text for a given PDF and a
+"path" field containing the path to the PDF. See the example below:
+```json
+{"path": "/path/to/1.pdf", "text": "This is the text of the first PDF."}
+{"path": "/path/to/2.pdf", "text": "This is the text of the second PDF."}
+```
+
+See the [Monitoring the Workflow](#monitoring-the-workflow) section for
+description of the other log files that are generated during the workflow.
+
+### Monitoring the Workflow
+Once you've started the workflow, you can monitor the outputs by watching the
+output files in the `out_dir` specified in the configuration file. Below are
+some useful commands to monitor the workflow. First, `cd` to the `out_dir`.
+
+To see the number of PDFs that have been parsed:
+```console
+cat parsed_pdfs/* | grep '{"path":' | wc -l
+```
+
+To watch the stdout and stderr of the tasks:
+```console
+tail -f parsl/000/submit_scripts/*
+```
+
+To check the Parsl workflow log:
+```console
+tail -f parsl/000/parsl.log
+```
+
+To see the basic workflow log:
+```console
+cat pdfwf.log
+```
+
 ### Stopping the Workflow
 If you'd like to stop the workflow while it's running, you need to
 stop the Python process, the Parsl high-throughput executor process, and then `qdel` the job ID.
@@ -156,15 +194,9 @@ module load conda/2023-10-04
 conda create -n nougat-wf python=3.10
 conda activate nougat-wf
 
-# Create a base directory to host Nougat and pdfwf code.
-mkdir nougat_wf
-cd nougat_wf
-
 # Install Nougat
-git clone https://github.com/facebookresearch/nougat.git
-cd nougat
 python3 -m pip install --upgrade pip setuptools wheel chardet
-python3 -m pip install -e .
+pip install git+https://github.com/facebookresearch/nougat.git
 
 # Note: If your system has CUDA 12.1, Nougat environment installation should now be complete. At the time of writing, Polaris uses CUDA 11.8. So, install the right torch binary using the command below.
 conda install pytorch torchvision pytorch-cuda=11.8 -c pytorch -c nvidia
@@ -232,6 +264,7 @@ $ pdfwf marker [OPTIONS]
 
 * `-p, --pdf_path PATH`: The directory containing the PDF files to convert (recursive glob).  [required]
 * `-o, --output_dir PATH`: The directory to write the output JSON lines file to.  [required]
+  * `-nc, --num_conversions INTEGER`: Number of pdfs to convert (useful for debugging, by default convert every document) [default: 0].
 * `--help`: Show this message and exit.
 
 ## `nougat`
@@ -256,6 +289,7 @@ $ pdfwf nougat [OPTIONS]
 * `-md, --markdown`: Output pdf content in markdown compatible format.  [default: True]
 * `-s, --skipping`: Skip if the model falls in repetition.  [default: True]
 * `-n, --nougat_logs_path PATH`: The path to the Nougat-specific logs.  [default: pdfwf_nougat_logs]
+* `-nc, --num_conversions INTEGER`: Number of pdfs to convert (useful for debugging, by default convert every document) [default: 0].
 * `--help`: Show this message and exit.
 
 ## `oreo`
@@ -286,6 +320,7 @@ $ pdfwf oreo [OPTIONS]
 * `-v, --batch_vit INTEGER`: Batch size of pre-processed patches for ViT pseudo-OCR inference  [default: 512]
 * `-c, --batch_cls INTEGER`: Batch size K for subsequent text processing  [default: 512]
 * `-o, --bbox_offset INTEGER`: Number of pixels along which  [default: 2]
+* `-nc, --num_conversions INTEGER`: Number of pdfs to convert (useful for debugging, by default convert every document) [default: 0].
 * `--help`: Show this message and exit.
 
 
