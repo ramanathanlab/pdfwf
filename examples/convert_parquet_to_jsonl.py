@@ -74,15 +74,20 @@ def parquet_to_jsonl(
     for idx, row in df.iterrows():
         # Make the row json serializable
         data = row.to_dict()
-        for key, val in data.items():
-            # Check if the value is a np.array
-            if isinstance(val, (pd.Series, pd.DataFrame)):
-                data[key] = val.to_list()
+
+        # Hardcoded parsing for the multi_label and authors_parsed columns
+        data['multi_label'] = ', '.join(
+            ''.join(d).strip() for d in data['multi_label']
+        )
+        data['authors_parsed'] = ', '.join(
+            ' '.join(d.tolist()).strip() for d in data['authors_parsed']
+        )
+
         # Append the parsed document to the list
-        documents.append(row.to_dict())
+        documents.append(data)
 
         # Write the parsed documents to disk
-        if idx % lines_per_jsonl == 0:
+        if idx + 1 % lines_per_jsonl == 0:
             _write_jsonl(output_dir, documents)
             # Clear the documents list
             documents = []
