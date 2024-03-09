@@ -72,6 +72,12 @@ def parquet_to_jsonl(
 
     # Loop through the parquet file
     for idx, row in df.iterrows():
+        # Make the row json serializable
+        data = row.to_dict()
+        for key, val in data.items():
+            # Check if the value is a np.array
+            if isinstance(val, (pd.Series, pd.DataFrame)):
+                data[key] = val.to_list()
         # Append the parsed document to the list
         documents.append(row.to_dict())
 
