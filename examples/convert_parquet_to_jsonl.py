@@ -8,6 +8,7 @@ from uuid import uuid4
 
 import pandas as pd
 import pyarrow.parquet as pq
+from tqdm import tqdm
 
 
 def _write_jsonl(output_dir: Path, documents: list[dict[str, str]]) -> None:
@@ -71,7 +72,7 @@ def parquet_to_jsonl(
         df = df.rename(columns={text_field: 'text'})
 
     # Loop through the parquet file
-    for idx, row in df.iterrows():
+    for idx, row in tqdm(df.iterrows()):
         # Make the row json serializable
         data = row.to_dict()
 
@@ -87,7 +88,7 @@ def parquet_to_jsonl(
         documents.append(data)
 
         # Write the parsed documents to disk
-        if idx + 1 % lines_per_jsonl == 0:
+        if idx and (idx % lines_per_jsonl == 0):
             _write_jsonl(output_dir, documents)
             # Clear the documents list
             documents = []
