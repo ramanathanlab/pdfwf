@@ -68,7 +68,7 @@ def parquet_to_jsonl(
             df = df.drop(columns=[colname])
 
     # Rename the text field if necessary
-    if text_field not in df.columns:
+    if text_field in df.columns:
         df = df.rename(columns={text_field: 'text'})
 
     # Loop through the parquet file
