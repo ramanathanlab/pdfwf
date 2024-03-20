@@ -19,7 +19,7 @@ from pdfwf.utils import setup_logging
 def parse_pdfs(
     pdf_paths: list[str], output_dir: Path, parser_kwargs: dict[str, Any]
 ) -> None:
-    """Process a single PDF with marker.
+    """Parse a batch of PDF files and write the output to a JSON lines file.
 
     Parameters
     ----------
@@ -46,6 +46,7 @@ def parse_pdfs(
 
     # If parsing failed, return early
     if documents is None:
+        print(f'Failed to parse {pdf_paths}')
         return
 
     # Merge parsed documents into a single string of JSON lines
@@ -56,6 +57,50 @@ def parse_pdfs(
         f.write(lines)
 
 
+def parse_zip(
+    zip_file: str, output_dir: Path, parser_kwargs: dict[str, Any]
+) -> None:
+    """Parse the PDF files stored within a zip file.
+
+    Parameters
+    ----------
+    zip_file : str
+        Path to the zip file containing the PDFs to parse.
+    output_dir : Path
+        Directory to write the output JSON lines file to.
+    parser_kwargs : dict[str, Any]
+        Keyword arguments to pass to the parser. Contains an extra `name`
+        argument to specify the parser to use.
+    """
+    import shutil
+    import subprocess
+    import uuid
+    from pathlib import Path
+
+    from pdfwf.convert import parse_pdfs
+
+    # Copy the zip file to local storage
+    local_storage = Path('/dev/shm')
+    local_zip_file = Path(shutil.copy(zip_file, local_storage))
+
+    # Make a temporary directory to unzip the file
+    temp_dir = local_storage / str(uuid.uuid4())
+    temp_dir.mkdir()
+
+    # Unzip the file
+    subprocess.run(['unzip', local_zip_file, '-d', temp_dir], check=False)
+
+    # Glob the PDFs
+    pdf_paths = [str(p) for p in temp_dir.glob('**/*.pdf')]
+
+    # Call the parse_pdfs function
+    parse_pdfs(pdf_paths, output_dir, parser_kwargs)
+
+    # Clean up the temporary directory
+    temp_dir.rmdir()
+    local_zip_file.unlink()
+
+
 class WorkflowConfig(BaseModel):
     """Configuration for the PDF parsing workflow."""
 
@@ -64,6 +109,9 @@ class WorkflowConfig(BaseModel):
 
     out_dir: Path
     """The output directory of the workflow."""
+
+    iszip: bool = False
+    """Whether the input files are zip files containing many PDFs."""
 
     num_conversions: int = sys.maxsize
     """Number of pdfs to convert (useful for debugging)."""
@@ -103,19 +151,26 @@ if __name__ == '__main__':
     # Save the configuration to the output directory
     config.write_yaml(config.out_dir / 'config.yaml')
 
-    # Collect PDFs in batches for more efficient processing
-    pdf_paths = [p.as_posix() for p in config.pdf_dir.glob('**/*.pdf')]
+    # File extension for the input files
+    file_ext = 'zip' if config.iszip else 'pdf'
+
+    # Collect files in batches for more efficient processing
+    files = [p.as_posix() for p in config.pdf_dir.glob(f'**/*.{file_ext}')]
 
     # Limit the number of conversions for debugging
-    if len(pdf_paths) >= config.num_conversions:
-        pdf_paths = pdf_paths[: config.num_conversions]
+    if len(files) >= config.num_conversions:
+        files = files[: config.num_conversions]
         logger.info(
-            f'len(pdf_paths) exceeds {config.num_conversions}. '
+            f'len(files) exceeds {config.num_conversions}. '
             f'Only first {config.num_conversions} pdfs passed.'
         )
 
     # Batch the input args
-    batched_pdf_paths = batch_data(pdf_paths, config.chunk_size)
+    # Zip files have many PDFs, so we process them in a single batch,
+    # while individual PDFs are batched in chunks to maintain higher throughput
+    batched_files = (
+        files if config.iszip else batch_data(files, config.chunk_size)
+    )
 
     # Create a subdirectory to write the output to
     pdf_output_dir = config.out_dir / 'parsed_pdfs'
@@ -124,11 +179,18 @@ if __name__ == '__main__':
     logger.info(f'Writing output to {pdf_output_dir}')
 
     # Setup the worker function with default arguments
-    worker_fn = functools.partial(
-        parse_pdfs,
-        output_dir=pdf_output_dir,
-        parser_kwargs=config.parser_settings.model_dump(),
-    )
+    if config.iszip:
+        worker_fn = functools.partial(
+            parse_zip,
+            output_dir=pdf_output_dir,
+            parser_kwargs=config.parser_settings.model_dump(),
+        )
+    else:
+        worker_fn = functools.partial(
+            parse_pdfs,
+            output_dir=pdf_output_dir,
+            parser_kwargs=config.parser_settings.model_dump(),
+        )
 
     # Setup parsl for distributed computing
     parsl_config = config.compute_settings.get_config(config.out_dir / 'parsl')
@@ -140,4 +202,4 @@ if __name__ == '__main__':
 
     # Distribute the input files across processes
     with ParslPoolExecutor(parsl_config) as pool:
-        pool.map(worker_fn, batched_pdf_paths)
+        pool.map(worker_fn, batched_files)
