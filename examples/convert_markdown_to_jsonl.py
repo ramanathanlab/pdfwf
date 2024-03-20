@@ -9,6 +9,24 @@ from uuid import uuid4
 from tqdm import tqdm
 
 
+def _write_jsonl(output_dir: Path, documents: list[dict[str, str]]) -> None:
+    """Write a list of documents to a JSONL file.
+
+    Parameters
+    ----------
+    output_dir : Path
+        The directory to write the output JSON lines file to.
+    documents : list[dict[str, str]]
+        The list of parsed documents.
+    """
+    # Merge parsed documents into a single string of JSON lines
+    lines = ''.join(f'{json.dumps(doc)}\n' for doc in documents)
+
+    # Write the JSON lines strings to disk
+    with open(output_dir / f'{uuid4()}.jsonl', 'w') as f:
+        f.write(lines)
+
+
 def markdown_to_jsonl(
     markdown_dir: Path, output_dir: Path, pdf_dir: Path, md_per_jsonl: int
 ) -> None:
@@ -51,15 +69,13 @@ def markdown_to_jsonl(
 
         # Write the parsed documents to disk
         if idx % md_per_jsonl == 0:
-            # Merge parsed documents into a single string of JSON lines
-            lines = ''.join(f'{json.dumps(doc)}\n' for doc in documents)
-
-            # Write the JSON lines strings to disk
-            with open(output_dir / f'{uuid4()}.jsonl', 'w') as f:
-                f.write(lines)
-
+            _write_jsonl(output_dir, documents)
             # Clear the documents list
             documents = []
+
+    # Write the remaining documents to disk
+    if documents:
+        _write_jsonl(output_dir, documents)
 
 
 if __name__ == '__main__':
