@@ -103,6 +103,9 @@ parsed PDFs in JSON lines format. Each line of the JSONL file will contain
 {"path": "/path/to/2.pdf", "text": "This is the text of the second PDF."}
 ```
 
+**Note**: If the parser fails to parse a PDF, the JSONL file will not contain
+an entry for that PDF.
+
 See the [Monitoring the Workflow](#monitoring-the-workflow) section for
 description of the other log files that are generated during the workflow.
 
