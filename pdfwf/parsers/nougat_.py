@@ -147,7 +147,7 @@ class NougatParser(BaseParser):
                     ),
                 )
 
-            except PdfStreamError:
+            except (PdfStreamError, ValueError):
                 self.logger.info(f'Could not load file {pdf!s}.')
                 continue
             datasets.append(dataset)
