@@ -72,6 +72,7 @@ def parse_zip(
         Keyword arguments to pass to the parser. Contains an extra `name`
         argument to specify the parser to use.
     """
+    import shutil
     import subprocess
     from pathlib import Path
 
@@ -91,7 +92,7 @@ def parse_zip(
     parse_pdfs(pdf_paths, output_dir, parser_kwargs)
 
     # Clean up the temporary directory
-    temp_dir.rmdir()
+    shutil.rmtree(temp_dir)
 
 
 class WorkflowConfig(BaseModel):
