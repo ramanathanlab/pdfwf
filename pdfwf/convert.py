@@ -1,4 +1,4 @@
-"""PDF conversion workflow with marker."""
+"""PDF conversion workflow."""
 from __future__ import annotations
 
 import functools
