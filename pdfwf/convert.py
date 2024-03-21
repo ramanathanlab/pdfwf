@@ -172,7 +172,9 @@ if __name__ == '__main__':
     pdf_output_dir = config.out_dir / 'parsed_pdfs'
     pdf_output_dir.mkdir(exist_ok=True)
 
+    # Log the output directory and number of batches
     logger.info(f'Writing output to {pdf_output_dir}')
+    logger.info(f'Processing {len(batched_files)} batches')  # type: ignore[arg-type]
 
     # Setup the worker function with default arguments
     if config.iszip:
