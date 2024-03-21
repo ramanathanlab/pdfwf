@@ -73,17 +73,12 @@ def parse_zip(
         argument to specify the parser to use.
     """
     import subprocess
-    import uuid
     from pathlib import Path
 
     from pdfwf.convert import parse_pdfs
 
-    # Copy the zip file to local storage
-    local_storage = Path('/dev/shm')
-    # local_zip_file = Path(shutil.copy(zip_file, local_storage))
-
-    # Make a temporary directory to unzip the file
-    temp_dir = local_storage / str(uuid.uuid4())
+    # Make a temporary directory on RAM drive to unzip the file
+    temp_dir = Path('/dev/shm') / Path(zip_file).stem
     temp_dir.mkdir()
 
     # Unzip the file
@@ -97,7 +92,6 @@ def parse_zip(
 
     # Clean up the temporary directory
     temp_dir.rmdir()
-    # local_zip_file.unlink()
 
 
 class WorkflowConfig(BaseModel):
