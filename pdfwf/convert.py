@@ -72,7 +72,6 @@ def parse_zip(
         Keyword arguments to pass to the parser. Contains an extra `name`
         argument to specify the parser to use.
     """
-    import shutil
     import subprocess
     import uuid
     from pathlib import Path
@@ -81,14 +80,14 @@ def parse_zip(
 
     # Copy the zip file to local storage
     local_storage = Path('/dev/shm')
-    local_zip_file = Path(shutil.copy(zip_file, local_storage))
+    # local_zip_file = Path(shutil.copy(zip_file, local_storage))
 
     # Make a temporary directory to unzip the file
     temp_dir = local_storage / str(uuid.uuid4())
     temp_dir.mkdir()
 
     # Unzip the file
-    subprocess.run(['unzip', local_zip_file, '-d', temp_dir], check=False)
+    subprocess.run(['unzip', zip_file, '-d', temp_dir], check=False)
 
     # Glob the PDFs
     pdf_paths = [str(p) for p in temp_dir.glob('**/*.pdf')]
@@ -98,7 +97,7 @@ def parse_zip(
 
     # Clean up the temporary directory
     temp_dir.rmdir()
-    local_zip_file.unlink()
+    # local_zip_file.unlink()
 
 
 class WorkflowConfig(BaseModel):
@@ -164,6 +163,9 @@ if __name__ == '__main__':
             f'len(files) exceeds {config.num_conversions}. '
             f'Only first {config.num_conversions} pdfs passed.'
         )
+
+    # Log the input files
+    logger.info(f'Found {len(files)} {file_ext} files to parse')
 
     # Batch the input args
     # Zip files have many PDFs, so we process them in a single batch,
