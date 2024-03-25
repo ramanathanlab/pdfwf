@@ -47,8 +47,9 @@ class MarkerParser(BaseParser):
 
         Returns
         -------
-        list[dict[str, Any]]
-            The extracted documents.
+        tuple[str, dict[str, str]] | None
+            A tuple containing the full text of the PDF and the metadata
+            extracted from the PDF. If parsing fails, return None.
         """
         from marker.convert import convert_single_pdf
 
