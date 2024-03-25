@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+import time
 from functools import partial
 from pathlib import Path
 from typing import Any
@@ -27,6 +28,11 @@ class NougatParserConfig(BaseParserConfig):
     name: Literal['nougat'] = 'nougat'  # type: ignore[assignment]
     # The batch size for the parser (10 is the max that fits in an A100).
     batchsize: int = 10
+    # The number of workers to use for dataloading.
+    num_workers: int = 4
+    # The Number of batches loaded in advance by each worker. 2 means there
+    # will be a total of 2 * num_workers batches prefetched across all workers.
+    prefetch_factor: int = 2
     # The path to the Nougat model checkpoint.
     checkpoint: Path
     # The directory to write optional mmd outputs along with jsonls.
@@ -159,6 +165,9 @@ class NougatParser(BaseParser):
         dataloader = DataLoader(
             ConcatDataset(datasets),
             batch_size=self.config.batchsize,
+            pin_memory=True,
+            num_workers=self.config.num_workers,
+            prefetch_factor=self.config.prefetch_factor,
             shuffle=False,
             collate_fn=LazyDataset.ignore_none_collate,
         )
@@ -166,10 +175,25 @@ class NougatParser(BaseParser):
         predictions = []
         file_index = 0
         page_num = 0
-        for i, (sample, is_last_page) in enumerate(tqdm(dataloader)):
+        model_outputs = []
+
+        start = time.time()
+
+        # First pass to get the model outputs
+        for sample, is_last_page in tqdm(dataloader):
             model_output = self.model.inference(
                 image_tensors=sample, early_stopping=self.config.skipping
             )
+            model_outputs.append((model_output, is_last_page))
+
+        self.logger.info(
+            f'First pass took {time.time()-start:.2f} seconds. '
+            'Processing the model outputs.'
+        )
+        start = time.time()
+
+        # Second pass to process the model outputs
+        for i, (model_output, is_last_page) in enumerate(model_outputs):
             # check if model output is faulty
             for j, output in enumerate(model_output['predictions']):
                 if page_num == 0:
@@ -233,6 +257,11 @@ class NougatParser(BaseParser):
                     predictions = []
                     page_num = 0
                     file_index += 1
+
+        self.logger.info(
+            f'Second pass took {time.time()-start:.2f} seconds. '
+            'Finished processing the model outputs.'
+        )
 
         # workflow return
         return documents
