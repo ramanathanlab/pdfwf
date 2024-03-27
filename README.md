@@ -309,9 +309,9 @@ $ pdfwf oreo [OPTIONS]
 
 * `-p, --pdf_path PATH`: The directory containing the PDF files to convert (recursive glob).  [required]
 * `-o, --output_dir PATH`: The directory to write the output JSON lines file to.  [required]
-* `-d, --detection_weights_path PATH`: Weights to layout detection model.  [required]
-* `-t, --text_cls_weights_path PATH`: Model weights for (meta) text classifier.  [required]
-* `-s, --spv05_category_file_path PATH`: Path to the SPV05 category file.  [required]
+* `-d, --detection_weights_path PATH`: Weights to layout detection model.
+* `-t, --text_cls_weights_path PATH`: Model weights for (meta) text classifier.
+* `-s, --spv05_category_file_path PATH`: Path to the SPV05 category file.
 * `-d, --detect_only`: File type to be parsed (ignores other files in the input_dir)
 * `-m, --meta_only`: Only parse PDFs for meta data
 * `-e, --equation`: Include equations into the text categories
