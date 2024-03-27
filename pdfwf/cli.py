@@ -266,7 +266,7 @@ def oreo(  # noqa: PLR0913
     bbox_offset: int = typer.Option(
         2,
         '--bbox_offset',
-        '-o',
+        '-x',
         help='Number of pixels along which',
     ),
     num_conversions: int = typer.Option(

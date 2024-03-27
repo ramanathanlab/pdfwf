@@ -322,7 +322,7 @@ $ pdfwf oreo [OPTIONS]
 * `-b, --batch_yolo INTEGER`: Main batch size for detection/# of images loaded per batch  [default: 128]
 * `-v, --batch_vit INTEGER`: Batch size of pre-processed patches for ViT pseudo-OCR inference  [default: 512]
 * `-c, --batch_cls INTEGER`: Batch size K for subsequent text processing  [default: 512]
-* `-o, --bbox_offset INTEGER`: Number of pixels along which  [default: 2]
+* `-x, --bbox_offset INTEGER`: Number of pixels along which  [default: 2]
 * `-nc, --num_conversions INTEGER`: Number of pdfs to convert (useful for debugging, by default convert every document) [default: 0].
 * `--help`: Show this message and exit.
 
