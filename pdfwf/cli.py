@@ -97,6 +97,10 @@ def nougat(  # noqa: PLR0913
             f'Only first {num_conversions} pdfs passed.'
         )
 
+    # Raise an error if no PDFs are found
+    if not pdf_paths:
+        raise ValueError(f'No PDFs found in the input directory {pdf_dir}.')
+
     # Print the number of PDFs to be parsed
     typer.echo(f'Converting {len(pdf_paths)} PDFs with nougat...')
     typer.echo(f'Parsed PDFs written to output directory: {output_dir}')
@@ -160,6 +164,10 @@ def marker(
             f'len(pdf_paths) exceeds {num_conversions}. '
             f'Only first {num_conversions} pdfs passed.'
         )
+
+    # Raise an error if no PDFs are found
+    if not pdf_paths:
+        raise ValueError(f'No PDFs found in the input directory {pdf_dir}.')
 
     # Print the number of PDFs to be parsed
     typer.echo(f'Converting {len(pdf_paths)} PDFs with marker...')
@@ -296,6 +304,10 @@ def oreo(  # noqa: PLR0913
             f'len(pdf_paths) exceeds {num_conversions}. '
             f'Only first {num_conversions} pdfs passed.'
         )
+
+    # Raise an error if no PDFs are found
+    if not pdf_paths:
+        raise ValueError(f'No PDFs found in the input directory {pdf_dir}.')
 
     # Print the number of PDFs to be parsed
     typer.echo(f'Converting {len(pdf_paths)} PDFs with oreo...')
