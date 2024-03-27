@@ -210,7 +210,6 @@ class OreoParser(BaseParser):
             pdf_paths=pdf_files, meta_only=self.config.meta_only
         )
 
-        # TODO: Experiment with num_workers and pin_memory
         # Create a DataLoader for batching and shuffling
         data_loader = DataLoader(
             dataset=dataset,
