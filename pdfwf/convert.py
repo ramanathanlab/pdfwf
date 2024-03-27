@@ -94,8 +94,8 @@ def parse_zip(
     temp_dir = Path('/dev/shm') / Path(zip_file).stem
     temp_dir.mkdir()
 
-    # Unzip the file
-    subprocess.run(['unzip', zip_file, '-d', temp_dir], check=False)
+    # Unzip the file (quietly--no verbose output)
+    subprocess.run(['unzip', '-q', zip_file, '-d', temp_dir], check=False)
 
     # Glob the PDFs
     pdf_paths = [str(p) for p in temp_dir.glob('**/*.pdf')]
