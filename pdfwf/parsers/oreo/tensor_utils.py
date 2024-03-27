@@ -17,6 +17,7 @@ from pylatexenc.latex2text import LatexNodes2Text
 from texify.output import postprocess
 from torch.utils.data import Dataset
 from torchvision import transforms
+from tqdm import tqdm
 from transformers import AutoModelForSequenceClassification
 from transformers import AutoTokenizer
 from transformers import DonutProcessor
@@ -139,7 +140,7 @@ class PDFDataset(Dataset):
         doc_lengths = []
 
         # loop pdf paths
-        for doc_path in self.doc_file_paths:
+        for doc_path in tqdm(self.doc_file_paths):
             # skip exceptions of any kind
             try:
                 doc = fitz.open(doc_path)
