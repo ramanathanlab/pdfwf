@@ -169,6 +169,9 @@ def marker(
     parse_pdfs(pdf_paths, output_dir, {'name': 'marker'})
 
 
+# TODO: For now the Oreo paths have hard-coded defaults,
+#       in future release we will provide a way to download
+#       the models and provide the paths as arguments.
 @app.command()
 def oreo(  # noqa: PLR0913
     pdf_dir: Path = typer.Option(  # noqa: B008
