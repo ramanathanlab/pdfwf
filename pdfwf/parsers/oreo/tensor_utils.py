@@ -23,6 +23,9 @@ from transformers import DonutProcessor
 from transformers import VisionEncoderDecoderModel
 from yolov5.utils.general import non_max_suppression
 
+# Set a debug environment variable to enable debugging
+DEBUG = os.environ.get('OREO_DEBUG', False)
+
 
 def accelerated_batch_inference(  # noqa: PLR0913
     tensors: torch.Tensor,
@@ -2247,7 +2250,8 @@ def extract_file_specific_doc_dict(
                         proc_text = latex_to_text.latex_to_text(extracted_text)
                         file_dict[key] = re.sub(pattern, '\n', proc_text)
                     except:  # noqa: E722
-                        print(extracted_text)
+                        if DEBUG:
+                            print(extracted_text)
     return file_dict
 
 
@@ -2445,8 +2449,11 @@ def store_visuals(  # noqa: PLR0913
         try:
             img_patch.save(patch_file_path)
         except:  # noqa: E722
-            print('x_min, y_min, x_max, y_max : ', x_min, y_min, x_max, y_max)
-            print('tensors.size() : ', tensors.size())
+            if DEBUG:
+                print(
+                    'x_min, y_min, x_max, y_max : ', x_min, y_min, x_max, y_max
+                )
+                print('tensors.size() : ', tensors.size())
 
     last_file_id = file_id
 
