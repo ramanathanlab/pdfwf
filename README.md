@@ -299,6 +299,9 @@ $ pdfwf nougat [OPTIONS]
 
 Parse PDFs using the oreo parser.
 
+**Installation**
+Creation of directory `./static` was
+
 **Usage**:
 
 ```console

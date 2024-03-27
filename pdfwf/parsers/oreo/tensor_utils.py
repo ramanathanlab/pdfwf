@@ -1340,17 +1340,16 @@ def grouped_patch_list(
     return patch_sublists, subset_indices
 
 
-def get_packed_patch_list(  # noqa: PLR0913, PLR0912, PLR0915
+def get_packed_patch_list(  # noqa: PLR0913, PLR0912, PLR0915, PLR0913
     patch_list: list[torch.Tensor],
     sep_tensor: torch.Tensor,
-    return_indices: bool = True,
     sep_flag: bool = False,
     sep_symbol_flag: bool = False,
     btm_pad: int = 6,
     max_width: int = 420,
     max_height: int = 420,
     alpha: float = 0.5,
-) -> list[torch.Tensor]:
+) -> tuple[list[torch.Tensor], list[list[int]]]:
     """Merge patches into packed patches.
 
     Merges the patches (CxHxW patches) as tightly as possible into a list
@@ -1363,9 +1362,6 @@ def get_packed_patch_list(  # noqa: PLR0913, PLR0912, PLR0915
     sep_tensor : torch.Tensor
         Separator image stores as a tensor to be inserted into the patch at the
         end or each row (if sep_flag=True)
-    return_indices : bool, optional
-        Flag indicating if the indices of the respective patches are to be
-        returned (for debgging), by default True
     sep_flag : bool, optional
         Flag indicating if a separation line is to be included in between
         lines, by default False
@@ -1417,8 +1413,9 @@ def get_packed_patch_list(  # noqa: PLR0913, PLR0912, PLR0915
         if current_row_width + w < max_width:
             # append row
             current_row.append(patch)
-            if return_indices:
-                current_row_indices.append(j)
+            # indices
+            current_row_indices.append(j)
+
             # update row dimensions
             current_row_width += w
             max_row_height = max(h, max_row_height)
@@ -1447,13 +1444,11 @@ def get_packed_patch_list(  # noqa: PLR0913, PLR0912, PLR0915
                 # store previous patch
                 if len(list_of_rows) > 0:
                     out_patches.append(merge_rows_into_patch(list_of_rows))
-                if return_indices:
-                    out_indices.append(list_of_rows_indices)
+                out_indices.append(list_of_rows_indices)
 
                 # init new patch/row
                 list_of_rows = []
-                if return_indices:
-                    list_of_rows_indices = []
+                list_of_rows_indices = []
                 current_patch_heigth = h
             else:
                 # same patch, new row
@@ -1462,8 +1457,9 @@ def get_packed_patch_list(  # noqa: PLR0913, PLR0912, PLR0915
                 current_row_width = w
             # new row w/ or w/o new patch
             current_row = [patch]
-            if return_indices:
-                current_row_indices = [j]
+            # update indices
+            current_row_indices = [j]
+
             # separator symbol
             if sep_symbol_flag:
                 current_row.append(sep_tensor)
@@ -1483,8 +1479,7 @@ def get_packed_patch_list(  # noqa: PLR0913, PLR0912, PLR0915
                 )
             )
             # log patch index
-            if return_indices:
-                list_of_rows_indices += current_row_indices
+            list_of_rows_indices += current_row_indices
         else:
             list_of_rows = [
                 merge_patches_into_row(
@@ -1504,7 +1499,8 @@ def get_packed_patch_list(  # noqa: PLR0913, PLR0912, PLR0915
             out_patches = [merge_rows_into_patch(list_of_rows)]
             out_indices = [list_of_rows_indices]
 
-    return out_patches
+    # Hands off this piece of code please
+    return out_patches, out_indices
 
 
 def lexsort(keys: torch.Tensor, dim: int = -1) -> torch.Tensor:
@@ -1618,7 +1614,7 @@ def restate_global_patch_indices(
     Parameters
     ----------
     packed_indices : list[list[list[int]]]
-        List of list of list. 1st list (groups of patches that can be merged
+        List of list of lists. 1st list (groups of patches that can be merged
         theoretically), 2nd list (actual packed patches)
 
     Returns
@@ -1651,7 +1647,7 @@ def restate_global_patch_indices(
 
     assert len(packed_indices) == len(
         new_packed_indices
-    ), 'Length should coicide'
+    ), 'Length should coincide'
     assert len(packed_indices[0]) == len(
         new_packed_indices[0]
     ), 'Inner list lengths do not coincide.'
@@ -1934,7 +1930,6 @@ def get_packed_patch_tensor(  # noqa: PLR0913
                 groups,
                 sep_tensor=sep_symbol_tensor,
                 btm_pad=btm_pad,
-                return_indices=True,
                 sep_flag=sep_flag,
                 sep_symbol_flag=sep_symbol_flag,
             )
@@ -1943,6 +1938,7 @@ def get_packed_patch_tensor(  # noqa: PLR0913
 
         # single list of patches
         packed_patches = [pair[0] for pair in packed_patches_and_indices]
+
         packed_indices = restate_global_patch_indices(
             [pair[1] for pair in packed_patches_and_indices]
         )
@@ -1950,9 +1946,11 @@ def get_packed_patch_tensor(  # noqa: PLR0913
         # flatten patch & index lists
         flat_patches = [item for sublist in packed_patches for item in sublist]
         flat_indices = [idx for sublist in packed_indices for idx in sublist]
+
         # del. empty list elements
         flat_indices = [f for f in flat_indices if len(f) > 0]
 
+        # 2nd issue below
         index_quadruplet = y_subset[[f[0] for f in flat_indices], :][
             :, [file_idx_column, page_idx_column, order_idx_column, cls_column]
         ].to(torch.int)
