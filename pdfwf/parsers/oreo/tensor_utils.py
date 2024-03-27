@@ -134,7 +134,7 @@ class PDFDataset(Dataset):
 
         # page image count & check pdf validity
         doc_lengths = []
-        
+
         # loop pdf paths
         for doc_path in self.doc_file_paths:
             # skip exceptions of any kind
@@ -142,7 +142,7 @@ class PDFDataset(Dataset):
                 doc = fitz.open(doc_path)
                 doc_lengths.append(len(doc))
                 doc.close()
-            except Exception as e:
+            except Exception:
                 doc = fitz.open()
                 doc_lengths.append(len(doc))
                 doc.close()
