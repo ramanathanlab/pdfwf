@@ -135,9 +135,13 @@ class PDFDataset(Dataset):
         # image count
         doc_lengths = []
         for doc_path in self.doc_file_paths:
-            doc = fitz.open(doc_path)
-            doc_lengths.append(len(doc))
-            doc.close()
+            # skip exceptions of any kind
+            try:
+                doc = fitz.open(doc_path)
+                doc_lengths.append(len(doc))
+                doc.close()
+            except Exception as e:
+                print(f'Skip. Exception {e} when reading {doc_path}.')
 
         # Cumulative page count across documents
         self.doc_csum = np.cumsum(doc_lengths).astype(int)
