@@ -29,10 +29,10 @@ class NougatParserConfig(BaseParserConfig):
     # The batch size for the parser (10 is the max that fits in an A100).
     batchsize: int = 10
     # The number of workers to use for dataloading.
-    num_workers: int = 8
+    num_workers: int = 1
     # The Number of batches loaded in advance by each worker. 2 means there
     # will be a total of 2 * num_workers batches prefetched across all workers.
-    prefetch_factor: int = 8
+    prefetch_factor: int = 4
     # The path to the Nougat model checkpoint.
     checkpoint: Path
     # The directory to write optional mmd outputs along with jsonls.
