@@ -122,7 +122,6 @@ class NougatParser(BaseParser):
         """
         from nougat.postprocessing import markdown_compatible
         from nougat.utils.dataset import LazyDataset
-        from pypdf.errors import PdfStreamError
         from torch.utils.data import ConcatDataset
         from torch.utils.data import DataLoader
 
@@ -152,7 +151,9 @@ class NougatParser(BaseParser):
                     ),
                 )
 
-            except (PdfStreamError, ValueError):
+            # PdfStreamError, ValueError, KeyError, pypdf.errors.PdfReadError,
+            # and potentially other exceptions can be raised here.
+            except Exception:
                 self.logger.info(f'Could not load file {pdf!s}.')
                 continue
             datasets.append(dataset)
