@@ -90,7 +90,7 @@ def parse_zip(
 
     from pdfwf.convert import parse_pdfs
 
-    # Make a temporary directory on RAM drive to unzip the file
+    # Make a temporary directory to unzip the file
     temp_dir = Path('/local/scratch') / Path(zip_file).stem
     temp_dir.mkdir()
 
