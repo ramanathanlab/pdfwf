@@ -208,15 +208,15 @@ class OreoParser(BaseParser):
             pdf_paths=pdf_files, meta_only=self.config.meta_only
         )
 
-        # TODO: Experiment with num_workers and pin_memory
         # Create a DataLoader for batching and shuffling
         data_loader = DataLoader(
             dataset=dataset,
             batch_size=self.config.batch_yolo,
             shuffle=False,
             collate_fn=custom_collate,
-            # num_workers=1,
-            # pin_memory=True
+            num_workers=4,
+            pin_memory=True,
+            prefetch_factor=2,
         )
 
         # Maps the keys [Text, Title, Keywords, Tables, Figures, Equations
@@ -293,12 +293,16 @@ class OreoParser(BaseParser):
             tensors = None
 
             # ViT: pseudo-OCR inference
-            text_results = accelerated_batch_inference(
-                tensors=pack_patch_tensor,
-                model=self.ocr_model,
-                processor=self.ocr_processor,
-                batch_size=self.config.batch_vit,
-            )
+            try:
+                text_results = accelerated_batch_inference(
+                    tensors=pack_patch_tensor,
+                    model=self.ocr_model,
+                    processor=self.ocr_processor,
+                    batch_size=self.config.batch_vit,
+                )
+            except torch.cuda.OutOfMemoryError:
+                print('OOM error. Skipping batch.')
+                continue
 
             # TODO: *Retool* this. Use (text) Transformer to get text patch
             #       embedding

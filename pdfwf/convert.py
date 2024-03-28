@@ -32,8 +32,12 @@ def parse_pdfs(
         argument to specify the parser to use.
     """
     import json
+    import time
 
     from pdfwf.parsers import get_parser
+
+    # Start the application timer
+    start = time.time()
 
     # Initialize the parser. This loads the models into memory and registers
     # them in a global registry unique to the current parsl worker process.
@@ -43,6 +47,10 @@ def parse_pdfs(
 
     # Process the PDF files in bulk
     documents = parser.parse(pdf_paths)
+
+    # Print the parsing time
+    end = time.time()
+    print(f'Parsed {len(pdf_paths)} PDFs in {end - start:.2f} seconds')
 
     # If parsing failed, return early
     if documents is None:
@@ -55,6 +63,10 @@ def parse_pdfs(
     # Store the JSON lines strings to a disk using a single write operation
     with open(output_dir / f'{parser.unique_id}.jsonl', 'a+') as f:
         f.write(lines)
+
+    # Log the time taken to process the batch
+    end = time.time()
+    print(f'Processed {len(pdf_paths)} PDFs in {end - start:.2f} seconds')
 
 
 def parse_zip(
@@ -78,12 +90,12 @@ def parse_zip(
 
     from pdfwf.convert import parse_pdfs
 
-    # Make a temporary directory on RAM drive to unzip the file
-    temp_dir = Path('/dev/shm') / Path(zip_file).stem
+    # Make a temporary directory to unzip the file
+    temp_dir = Path('/local/scratch') / Path(zip_file).stem
     temp_dir.mkdir()
 
-    # Unzip the file
-    subprocess.run(['unzip', zip_file, '-d', temp_dir], check=False)
+    # Unzip the file (quietly--no verbose output)
+    subprocess.run(['unzip', '-q', zip_file, '-d', temp_dir], check=False)
 
     # Glob the PDFs
     pdf_paths = [str(p) for p in temp_dir.glob('**/*.pdf')]

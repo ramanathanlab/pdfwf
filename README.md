@@ -299,6 +299,9 @@ $ pdfwf nougat [OPTIONS]
 
 Parse PDFs using the oreo parser.
 
+**Installation**
+Creation of directory `./static` was
+
 **Usage**:
 
 ```console
@@ -309,9 +312,9 @@ $ pdfwf oreo [OPTIONS]
 
 * `-p, --pdf_path PATH`: The directory containing the PDF files to convert (recursive glob).  [required]
 * `-o, --output_dir PATH`: The directory to write the output JSON lines file to.  [required]
-* `-d, --detection_weights_path PATH`: Weights to layout detection model.  [required]
-* `-t, --text_cls_weights_path PATH`: Model weights for (meta) text classifier.  [required]
-* `-s, --spv05_category_file_path PATH`: Path to the SPV05 category file.  [required]
+* `-d, --detection_weights_path PATH`: Weights to layout detection model.
+* `-t, --text_cls_weights_path PATH`: Model weights for (meta) text classifier.
+* `-s, --spv05_category_file_path PATH`: Path to the SPV05 category file.
 * `-d, --detect_only`: File type to be parsed (ignores other files in the input_dir)
 * `-m, --meta_only`: Only parse PDFs for meta data
 * `-e, --equation`: Include equations into the text categories
@@ -322,7 +325,7 @@ $ pdfwf oreo [OPTIONS]
 * `-b, --batch_yolo INTEGER`: Main batch size for detection/# of images loaded per batch  [default: 128]
 * `-v, --batch_vit INTEGER`: Batch size of pre-processed patches for ViT pseudo-OCR inference  [default: 512]
 * `-c, --batch_cls INTEGER`: Batch size K for subsequent text processing  [default: 512]
-* `-o, --bbox_offset INTEGER`: Number of pixels along which  [default: 2]
+* `-x, --bbox_offset INTEGER`: Number of pixels along which  [default: 2]
 * `-nc, --num_conversions INTEGER`: Number of pdfs to convert (useful for debugging, by default convert every document) [default: 0].
 * `--help`: Show this message and exit.
 

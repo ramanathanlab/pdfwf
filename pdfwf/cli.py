@@ -97,6 +97,10 @@ def nougat(  # noqa: PLR0913
             f'Only first {num_conversions} pdfs passed.'
         )
 
+    # Raise an error if no PDFs are found
+    if not pdf_paths:
+        raise ValueError(f'No PDFs found in the input directory {pdf_dir}.')
+
     # Print the number of PDFs to be parsed
     typer.echo(f'Converting {len(pdf_paths)} PDFs with nougat...')
     typer.echo(f'Parsed PDFs written to output directory: {output_dir}')
@@ -161,6 +165,10 @@ def marker(
             f'Only first {num_conversions} pdfs passed.'
         )
 
+    # Raise an error if no PDFs are found
+    if not pdf_paths:
+        raise ValueError(f'No PDFs found in the input directory {pdf_dir}.')
+
     # Print the number of PDFs to be parsed
     typer.echo(f'Converting {len(pdf_paths)} PDFs with marker...')
     typer.echo(f'Parsed PDFs written to output directory: {output_dir}')
@@ -169,6 +177,9 @@ def marker(
     parse_pdfs(pdf_paths, output_dir, {'name': 'marker'})
 
 
+# TODO: For now the Oreo paths have hard-coded defaults,
+#       in future release we will provide a way to download
+#       the models and provide the paths as arguments.
 @app.command()
 def oreo(  # noqa: PLR0913
     pdf_dir: Path = typer.Option(  # noqa: B008
@@ -185,19 +196,19 @@ def oreo(  # noqa: PLR0913
         help='The directory to write the output JSON lines file to.',
     ),
     detection_weights_path: Path = typer.Option(  # noqa: B008
-        ...,
+        '/lus/eagle/projects/argonne_tpc/siebenschuh/N-O-REO/model_weights/yolov5_detection_weights.pt',
         '--detection_weights_path',
         '-d',
         help='Weights to layout detection model.',
     ),
     text_cls_weights_path: Path = typer.Option(  # noqa: B008
-        ...,
+        '/lus/eagle/projects/argonne_tpc/siebenschuh/N-O-REO/text_classifier/meta_text_classifier',
         '--text_cls_weights_path',
         '-t',
         help='Model weights for (meta) text classifier.',
     ),
     spv05_category_file_path: Path = typer.Option(  # noqa: B008
-        ...,
+        '/lus/eagle/projects/argonne_tpc/siebenschuh/N-O-REO/meta/spv05_categories.yaml',
         '--spv05_category_file_path',
         '-s',
         help='Path to the SPV05 category file.',
@@ -266,7 +277,7 @@ def oreo(  # noqa: PLR0913
     bbox_offset: int = typer.Option(
         2,
         '--bbox_offset',
-        '-o',
+        '-x',
         help='Number of pixels along which',
     ),
     num_conversions: int = typer.Option(
@@ -293,6 +304,10 @@ def oreo(  # noqa: PLR0913
             f'len(pdf_paths) exceeds {num_conversions}. '
             f'Only first {num_conversions} pdfs passed.'
         )
+
+    # Raise an error if no PDFs are found
+    if not pdf_paths:
+        raise ValueError(f'No PDFs found in the input directory {pdf_dir}.')
 
     # Print the number of PDFs to be parsed
     typer.echo(f'Converting {len(pdf_paths)} PDFs with oreo...')

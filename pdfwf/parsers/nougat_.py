@@ -29,10 +29,10 @@ class NougatParserConfig(BaseParserConfig):
     # The batch size for the parser (10 is the max that fits in an A100).
     batchsize: int = 10
     # The number of workers to use for dataloading.
-    num_workers: int = 4
+    num_workers: int = 1
     # The Number of batches loaded in advance by each worker. 2 means there
     # will be a total of 2 * num_workers batches prefetched across all workers.
-    prefetch_factor: int = 2
+    prefetch_factor: int = 4
     # The path to the Nougat model checkpoint.
     checkpoint: Path
     # The directory to write optional mmd outputs along with jsonls.
@@ -122,10 +122,8 @@ class NougatParser(BaseParser):
         """
         from nougat.postprocessing import markdown_compatible
         from nougat.utils.dataset import LazyDataset
-        from pypdf.errors import PdfStreamError
         from torch.utils.data import ConcatDataset
         from torch.utils.data import DataLoader
-        from tqdm import tqdm
 
         pdfs = [Path(pdf_file) for pdf_file in pdf_files]
 
@@ -146,6 +144,15 @@ class NougatParser(BaseParser):
                     )
                     continue
             try:
+                # TODO: Using self.model.encoder.prepare_input causes the data
+                # loader processes to use GPU memory, since prepare_input is
+                # a function tied to an nn.Module instance. This is a bug in
+                # the Nougat library, but we can work around it by creating
+                # a standalone prepare_input function. We leave this
+                # to future work since the prepare_input functions calls other
+                # class methods and uses some class attributes. See here for
+                # more details:
+                # https://discuss.pytorch.org/t/distributeddataparallel-causes-dataloader-workers-to-utilize-gpu-memory/88731/5
                 dataset = LazyDataset(
                     pdf,
                     partial(
@@ -153,7 +160,9 @@ class NougatParser(BaseParser):
                     ),
                 )
 
-            except (PdfStreamError, ValueError):
+            # PdfStreamError, ValueError, KeyError, pypdf.errors.PdfReadError,
+            # and potentially other exceptions can be raised here.
+            except Exception:
                 self.logger.info(f'Could not load file {pdf!s}.')
                 continue
             datasets.append(dataset)
@@ -180,7 +189,7 @@ class NougatParser(BaseParser):
         start = time.time()
 
         # First pass to get the model outputs
-        for sample, is_last_page in tqdm(dataloader):
+        for sample, is_last_page in dataloader:
             model_output = self.model.inference(
                 image_tensors=sample, early_stopping=self.config.skipping
             )
