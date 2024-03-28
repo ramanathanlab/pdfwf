@@ -293,12 +293,16 @@ class OreoParser(BaseParser):
             tensors = None
 
             # ViT: pseudo-OCR inference
-            text_results = accelerated_batch_inference(
-                tensors=pack_patch_tensor,
-                model=self.ocr_model,
-                processor=self.ocr_processor,
-                batch_size=self.config.batch_vit,
-            )
+            try:
+                text_results = accelerated_batch_inference(
+                    tensors=pack_patch_tensor,
+                    model=self.ocr_model,
+                    processor=self.ocr_processor,
+                    batch_size=self.config.batch_vit,
+                )
+            except torch.cuda.OutOfMemoryError:
+                print('OOM error. Skipping batch.')
+                continue
 
             # TODO: *Retool* this. Use (text) Transformer to get text patch
             #       embedding
