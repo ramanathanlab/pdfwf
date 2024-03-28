@@ -144,6 +144,15 @@ class NougatParser(BaseParser):
                     )
                     continue
             try:
+                # TODO: Using self.model.encoder.prepare_input causes the data
+                # loader processes to use GPU memory, since prepare_input is
+                # a function tied to an nn.Module instance. This is a bug in
+                # the Nougat library, but we can work around it by creating
+                # a standalone prepare_input function. We leave this
+                # to future work since the prepare_input functions calls other
+                # class methods and uses some class attributes. See here for
+                # more details:
+                # https://discuss.pytorch.org/t/distributeddataparallel-causes-dataloader-workers-to-utilize-gpu-memory/88731/5
                 dataset = LazyDataset(
                     pdf,
                     partial(
