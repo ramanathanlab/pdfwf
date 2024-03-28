@@ -5,7 +5,7 @@
 pdf_dir: /lus/grand/projects/SuperBERT/foster/imports
 
 # The output directory of the workflow
-out_dir: /lus/eagle/projects/FoundEpidem/braceal/projects/metric-rag/data/parsed_pdfs/imports.oreo.test.v4
+out_dir: /lus/eagle/projects/FoundEpidem/braceal/projects/metric-rag/data/parsed_pdfs/imports.oreo.test.v5
 
 # Search for zip files in the pdf_dir
 iszip: true
