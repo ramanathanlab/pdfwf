@@ -125,7 +125,6 @@ class NougatParser(BaseParser):
         from pypdf.errors import PdfStreamError
         from torch.utils.data import ConcatDataset
         from torch.utils.data import DataLoader
-        from tqdm import tqdm
 
         pdfs = [Path(pdf_file) for pdf_file in pdf_files]
 
@@ -180,7 +179,7 @@ class NougatParser(BaseParser):
         start = time.time()
 
         # First pass to get the model outputs
-        for sample, is_last_page in tqdm(dataloader):
+        for sample, is_last_page in dataloader:
             model_output = self.model.inference(
                 image_tensors=sample, early_stopping=self.config.skipping
             )

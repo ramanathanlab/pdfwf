@@ -7,8 +7,6 @@ from pathlib import Path
 from typing import Any
 from typing import Literal
 
-from tqdm import tqdm
-
 if sys.version_info >= (3, 11):
     from typing import Self
 else:
@@ -239,7 +237,7 @@ class OreoParser(BaseParser):
             # i_tab, i_fig, prev_file_id = 0, 0, -1
 
         # Iterate through the DataLoader
-        for batch in tqdm(data_loader):
+        for batch in data_loader:
             tensors, file_ids, file_paths = batch
             tensors = tensors.to(self.device)
 
