@@ -214,9 +214,9 @@ class OreoParser(BaseParser):
             batch_size=self.config.batch_yolo,
             shuffle=False,
             collate_fn=custom_collate,
-            num_workers=8,
+            num_workers=4,
             pin_memory=True,
-            prefetch_factor=8,
+            prefetch_factor=2,
         )
 
         # Maps the keys [Text, Title, Keywords, Tables, Figures, Equations
