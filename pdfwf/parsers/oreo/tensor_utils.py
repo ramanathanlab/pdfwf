@@ -282,23 +282,34 @@ class PDFDataset(Dataset):
         """
         self.doc_file_paths = [Path(f) for f in pdf_paths]
         self.target_heigth = target_heigth
-        self.doc_file_ids = list(range(len(self.doc_file_paths)))
         self.meta_only = meta_only
 
         # page image count & check pdf validity
         doc_lengths = []
 
         # loop pdf paths
+        readable_pdfs = []
         for doc_path in self.doc_file_paths:
             # skip exceptions of any kind
             try:
                 doc = fitz.open(doc_path)
                 doc_lengths.append(len(doc))
                 doc.close()
+                readable_pdfs.append(doc_path)
             except Exception:
-                doc = fitz.open()
-                doc_lengths.append(len(doc))
-                doc.close()
+                continue
+            # This was causing a bug:
+            #    pixmap_data = pixmap_data.reshape((h, w, len(pixmap_data)
+            #       // (w * h)))
+            #    ZeroDivisionError: integer division or modulo by zero
+
+            #    doc = fitz.open()
+            #    doc_lengths.append(len(doc))
+            #    doc.close()
+
+        # Make sure this is done after we filter any bad PDFs
+        self.doc_file_paths = readable_pdfs
+        self.doc_file_ids = list(range(len(self.doc_file_paths)))
 
         # Cumulative page count across documents
         self.doc_csum = np.cumsum(doc_lengths).astype(int)
