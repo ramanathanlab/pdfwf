@@ -106,6 +106,9 @@ def parse_zip(
     # Clean up the temporary directory
     shutil.rmtree(temp_dir)
 
+    # Log the zip file that was processed
+    print(f'Finished processing {zip_file}')
+
 
 class WorkflowConfig(BaseModel):
     """Configuration for the PDF parsing workflow."""
