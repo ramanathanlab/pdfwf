@@ -35,6 +35,10 @@ def parse_pdfs(
     import time
 
     from pdfwf.parsers import get_parser
+    from pdfwf.utils import setup_logging
+
+    # Setup logging
+    logger = setup_logging('pdfwf')
 
     # Start the application timer
     start = time.time()
@@ -50,11 +54,11 @@ def parse_pdfs(
 
     # Print the parsing time
     end = time.time()
-    print(f'Parsed {len(pdf_paths)} PDFs in {end - start:.2f} seconds')
+    logger.info(f'Parsed {len(pdf_paths)} PDFs in {end - start:.2f} seconds')
 
     # If parsing failed, return early
     if documents is None:
-        print(f'Failed to parse {pdf_paths}')
+        logger.info(f'Failed to parse {pdf_paths}')
         return
 
     # Merge parsed documents into a single string of JSON lines
@@ -66,7 +70,9 @@ def parse_pdfs(
 
     # Log the time taken to process the batch
     end = time.time()
-    print(f'Processed {len(pdf_paths)} PDFs in {end - start:.2f} seconds')
+    logger.info(
+        f'Processed {len(pdf_paths)} PDFs in {end - start:.2f} seconds'
+    )
 
 
 def parse_zip(
