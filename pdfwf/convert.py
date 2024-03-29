@@ -92,12 +92,14 @@ def parse_zip(
     """
     import shutil
     import subprocess
+    import uuid
     from pathlib import Path
 
     from pdfwf.convert import parse_pdfs
 
-    # Make a temporary directory to unzip the file
-    temp_dir = Path('/local/scratch') / Path(zip_file).stem
+    # Make a temporary directory to unzip the file (use a UUID
+    # to avoid name collisions)
+    temp_dir = Path('/local/scratch') / str(uuid.uuid4()) / Path(zip_file).stem
     temp_dir.mkdir()
 
     # Unzip the file (quietly--no verbose output)
