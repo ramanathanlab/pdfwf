@@ -99,8 +99,9 @@ def parse_zip(
 
     # Make a temporary directory to unzip the file (use a UUID
     # to avoid name collisions)
-    temp_dir = Path('/local/scratch') / str(uuid.uuid4()) / Path(zip_file).stem
-    temp_dir.mkdir()
+    local_dir = Path('/local/scratch') / str(uuid.uuid4())
+    temp_dir = local_dir / Path(zip_file).stem
+    temp_dir.mkdir(parents=True)
 
     # Unzip the file (quietly--no verbose output)
     subprocess.run(['unzip', '-q', zip_file, '-d', temp_dir], check=False)
@@ -112,7 +113,7 @@ def parse_zip(
     parse_pdfs(pdf_paths, output_dir, parser_kwargs)
 
     # Clean up the temporary directory
-    shutil.rmtree(temp_dir)
+    shutil.rmtree(local_dir)
 
     # Log the zip file that was processed
     print(f'Finished processing {zip_file}')
