@@ -172,7 +172,7 @@ class PolarisSettings(BaseComputeSettings):
                     # for max_workers
                     available_accelerators=self.available_accelerators,
                     cores_per_worker=self.cores_per_worker,
-                    address=address_by_interface('bond0'),
+                    #address=address_by_interface('bond0'),
                     cpu_affinity='block-reverse',
                     prefetch_capacity=0,
                     provider=PBSProProvider(

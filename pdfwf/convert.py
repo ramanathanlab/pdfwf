@@ -222,4 +222,4 @@ if __name__ == '__main__':
 
     # Distribute the input files across processes
     with ParslPoolExecutor(parsl_config) as pool:
-        pool.map(worker_fn, batched_files)
+        list(pool.map(worker_fn, batched_files))
