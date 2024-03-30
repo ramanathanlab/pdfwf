@@ -12,6 +12,8 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import Self
 
+import traceback
+
 import torch
 from pydantic import field_validator
 from pydantic import model_validator
@@ -189,7 +191,7 @@ class OreoParser(BaseParser):
 
     @torch.no_grad()
     @exception_handler(default_return=None)
-    def parse(self, pdf_files: list[str]) -> list[dict[str, Any]] | None:  # noqa: PLR0912
+    def parse(self, pdf_files: list[str]) -> list[dict[str, Any]] | None:  # noqa: PLR0912, PLR0915
         """Parse a PDF file and extract markdown.
 
         Parameters
@@ -254,6 +256,7 @@ class OreoParser(BaseParser):
                 # Yolov5 inference (object detection)
                 results = self.detect_model(tensors)
             except Exception:
+                traceback.print_exc()
                 print('Error in Yolov5 inference. Skipping batch.')
                 continue
 
@@ -266,6 +269,7 @@ class OreoParser(BaseParser):
                     iou_thres=0.001,
                 )
             except Exception:
+                traceback.print_exc()
                 print('Error in pre_processing. Skipping batch.')
                 continue
 
@@ -287,6 +291,7 @@ class OreoParser(BaseParser):
                     sep_symbol_tensor=None,
                 )
             except Exception:
+                traceback.print_exc()
                 print('Error in get_packed_patch_tensor. Skipping batch.')
                 continue
 
