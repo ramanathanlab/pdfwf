@@ -108,7 +108,10 @@ class OreoParser(BaseParser):
         # load models
         # - (1.) detection: Yolov5
         detect_model = torch.hub.load(
-            'ultralytics/yolov5', 'custom', path=config.detection_weights_path
+            'ultralytics/yolov5',
+            'custom',
+            path=config.detection_weights_path,
+            skip_validation=False,
         )
         detect_model.to(device)
         detect_model.eval()

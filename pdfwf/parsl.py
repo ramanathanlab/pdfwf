@@ -132,7 +132,7 @@ class PolarisSettings(BaseComputeSettings):
     """Number of cores per worker. Evenly distributed between GPUs."""
     available_accelerators: int = 4
     """Number of GPU to use."""
-    retries: int = 1
+    retries: int = 0
     """Number of retries upon failure."""
     monitoring_settings: MonitoringSettings | None = None
     """Optional monitoring settings, if not provided, skip monitoring."""
@@ -172,7 +172,7 @@ class PolarisSettings(BaseComputeSettings):
                     # for max_workers
                     available_accelerators=self.available_accelerators,
                     cores_per_worker=self.cores_per_worker,
-                    #address=address_by_interface('bond0'),
+                    # address=address_by_interface('bond0'),
                     cpu_affinity='block-reverse',
                     prefetch_capacity=0,
                     provider=PBSProProvider(
