@@ -370,11 +370,10 @@ class PDFDataset(Dataset):
 
         assert self.current_doc_doc is not None
 
-        # requested page of current document
-        page = self.current_doc_doc[rel_page_idx]
-
         # output tensor representing a page
         try:
+            # requested page of current document
+            page = self.current_doc_doc[rel_page_idx]
             # output shape: (C, H, W)
             output = docpage_to_tensor(page, self.target_heigth, fill_value=1)
         except Exception:
