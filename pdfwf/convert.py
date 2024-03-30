@@ -97,26 +97,33 @@ def parse_zip(
 
     from pdfwf.convert import parse_pdfs
 
-    # Make a temporary directory to unzip the file (use a UUID
-    # to avoid name collisions)
-    local_dir = Path('/local/scratch') / str(uuid.uuid4())
-    temp_dir = local_dir / Path(zip_file).stem
-    temp_dir.mkdir(parents=True)
+    try:
+        # Make a temporary directory to unzip the file (use a UUID
+        # to avoid name collisions)
+        local_dir = Path('/local/scratch') / str(uuid.uuid4())
+        temp_dir = local_dir / Path(zip_file).stem
+        temp_dir.mkdir(parents=True)
 
-    # Unzip the file (quietly--no verbose output)
-    subprocess.run(['unzip', '-q', zip_file, '-d', temp_dir], check=False)
+        # Unzip the file (quietly--no verbose output)
+        subprocess.run(['unzip', '-q', zip_file, '-d', temp_dir], check=False)
 
-    # Glob the PDFs
-    pdf_paths = [str(p) for p in temp_dir.glob('**/*.pdf')]
+        # Glob the PDFs
+        pdf_paths = [str(p) for p in temp_dir.glob('**/*.pdf')]
 
-    # Call the parse_pdfs function
-    parse_pdfs(pdf_paths, output_dir, parser_kwargs)
+        # Call the parse_pdfs function
+        parse_pdfs(pdf_paths, output_dir, parser_kwargs)
 
-    # Clean up the temporary directory
-    shutil.rmtree(local_dir)
+        # Clean up the temporary directory
+        shutil.rmtree(local_dir)
 
-    # Log the zip file that was processed
-    print(f'Finished processing {zip_file}')
+        # Log the zip file that was processed
+        print(f'Finished processing {zip_file}')
+
+    # Catch any exceptions possible. Note that we need to convert the exception
+    # to a string to avoid issues with pickling the exception object
+    except BaseException as e:
+        print(f'Failed to process {zip_file}: {e}')
+        raise Exception(str(e))  # noqa: B904
 
 
 class WorkflowConfig(BaseModel):
