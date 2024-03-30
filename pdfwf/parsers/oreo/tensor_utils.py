@@ -378,7 +378,7 @@ class PDFDataset(Dataset):
             output = docpage_to_tensor(page, self.target_heigth, fill_value=1)
         except Exception:
             # Create a blank float tensor if the page cannot be processed
-            output = torch.zeros((3, 1280, 960)).float()
+            output = torch.ones((3, 1280, 960)).float()
 
         assert self.current_doc_file_path is not None
         return (output, self.current_doc_file_id, self.current_doc_file_path)
