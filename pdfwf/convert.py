@@ -92,6 +92,7 @@ def parse_zip(
     """
     import shutil
     import subprocess
+    import traceback
     import uuid
     from pathlib import Path
 
@@ -125,6 +126,7 @@ def parse_zip(
         if local_dir.exists():
             shutil.rmtree(local_dir)
 
+        traceback.print_exc()
         print(f'Failed to process {zip_file}: {e}')
         # raise Exception(str(e))
         return None
