@@ -111,7 +111,7 @@ class OreoParser(BaseParser):
             'ultralytics/yolov5',
             'custom',
             path=config.detection_weights_path,
-            skip_validation=False,
+            skip_validation=True,
         )
         detect_model.to(device)
         detect_model.eval()
