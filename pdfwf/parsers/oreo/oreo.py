@@ -32,6 +32,8 @@ class OreoParserConfig(BaseParserConfig):
     text_cls_weights_path: Path
     # Path to the SPV05 category file.
     spv05_category_file_path: Path
+    # Path to a local copy of the ultralytics/yolov5 repository.
+    yolov5_path: Path | None = None
     # Only scan PDFs for meta statistics on its attributes.
     detect_only: bool = False
     # Only parse PDFs for meta data.
@@ -107,9 +109,13 @@ class OreoParser(BaseParser):
 
         # load models
         # - (1.) detection: Yolov5
+        yolo_path = (
+            config.yolov5_path if config.yolov5_path else 'ultralytics/yolov5'
+        )
         detect_model = torch.hub.load(
-            'ultralytics/yolov5',
+            yolo_path,
             'custom',
+            source='local' if config.yolov5_path else 'github',
             path=config.detection_weights_path,
             skip_validation=True,
         )
