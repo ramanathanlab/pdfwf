@@ -122,8 +122,12 @@ def parse_zip(
     # Catch any exceptions possible. Note that we need to convert the exception
     # to a string to avoid issues with pickling the exception object
     except BaseException as e:
+        if local_dir.exists():
+            shutil.rmtree(local_dir)
+
         print(f'Failed to process {zip_file}: {e}')
-        raise Exception(str(e))  # noqa: B904
+        # raise Exception(str(e))
+        return None
 
 
 class WorkflowConfig(BaseModel):
