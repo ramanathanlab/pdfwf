@@ -134,6 +134,8 @@ class PolarisSettings(BaseComputeSettings):
     """Number of GPU to use."""
     retries: int = 0
     """Number of retries upon failure."""
+    worker_debug: bool = False
+    """Enable worker debug."""
     monitoring_settings: MonitoringSettings | None = None
     """Optional monitoring settings, if not provided, skip monitoring."""
 
@@ -167,7 +169,7 @@ class PolarisSettings(BaseComputeSettings):
                     label=self.label,
                     heartbeat_period=15,
                     heartbeat_threshold=120,
-                    worker_debug=True,
+                    worker_debug=self.worker_debug,
                     # available_accelerators will override settings
                     # for max_workers
                     available_accelerators=self.available_accelerators,
