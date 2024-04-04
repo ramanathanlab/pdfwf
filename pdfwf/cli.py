@@ -359,8 +359,25 @@ def balance_jsonl(
     """Rewrite JSONL files to balance the number of lines per file."""
     from pdfwf.balance import balance_jsonl_files
 
+    # Collect JSONL files
     jsonl_files = list(input_dir.glob('*.jsonl'))
 
+    # If no JSONL files are found, raise an error
+    if not jsonl_files:
+        raise ValueError(
+            f'No JSONL files found in the input directory {input_dir}.'
+        )
+
+    # Print the output directory
+    typer.echo(f'Balanced JSONL files written to: {output_dir}')
+
+    # Print the number of JSONL files to be balanced
+    typer.echo(
+        f'Balancing {len(jsonl_files)} JSONL files using'
+        f' {lines_per_file} lines per file...'
+    )
+
+    # Balance the JSONL files
     balance_jsonl_files(
         jsonl_files=jsonl_files,
         output_dir=output_dir,
