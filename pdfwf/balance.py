@@ -56,6 +56,10 @@ def balance_jsonl_files(
 
         # Write the balanced JSONL files
         for i in range(0, len(documents), lines_per_file):
+            # Skip if we don't have enough documents
+            if i + lines_per_file > len(documents):
+                break
+
             _write_jsonl(
                 output_dir, ''.join(documents[i : i + lines_per_file])
             )
