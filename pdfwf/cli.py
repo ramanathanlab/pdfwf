@@ -336,6 +336,38 @@ def oreo(  # noqa: PLR0913
     parse_pdfs(pdf_paths, output_dir, parser_kwargs)
 
 
+def balance_jsonl(
+    input_dir: Path = typer.Option(  # noqa: B008
+        ...,
+        '--input_dir',
+        '-i',
+        help='The directory containing the JSONL files to balance.',
+    ),
+    output_dir: Path = typer.Option(  # noqa: B008
+        ...,
+        '--output_dir',
+        '-o',
+        help='The directory to write the balanced JSONL files to.',
+    ),
+    lines_per_file: int = typer.Option(
+        1000,
+        '--lines_per_file',
+        '-l',
+        help='Number of lines per balanced JSONL file.',
+    ),
+) -> None:
+    """Rewrite JSONL files to balance the number of lines per file."""
+    from pdfwf.balance import balance_jsonl_files
+
+    jsonl_files = list(input_dir.glob('*.jsonl'))
+
+    balance_jsonl_files(
+        jsonl_files=jsonl_files,
+        output_dir=output_dir,
+        lines_per_file=lines_per_file,
+    )
+
+
 def main() -> None:
     """Entry point for CLI."""
     app()
