@@ -4,6 +4,8 @@ from __future__ import annotations
 from pathlib import Path
 from uuid import uuid4
 
+from tqdm import tqdm
+
 
 def _write_jsonl(output_dir: Path, lines: str) -> None:
     """Write a list of documents to a JSONL file.
@@ -40,7 +42,7 @@ def balance_jsonl_files(
     # Create a list to store the parsed documents
     documents: list[str] = []
 
-    for path in jsonl_files:
+    for path in tqdm(jsonl_files, desc='JSONL files'):
         # Read the JSONL file
         with open(path) as f:
             lines = f.readlines()
