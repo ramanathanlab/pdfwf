@@ -336,6 +336,7 @@ def oreo(  # noqa: PLR0913
     parse_pdfs(pdf_paths, output_dir, parser_kwargs)
 
 
+@app.command()
 def balance_jsonl(
     input_dir: Path = typer.Option(  # noqa: B008
         ...,
