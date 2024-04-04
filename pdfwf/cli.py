@@ -356,6 +356,12 @@ def balance_jsonl(
         '-l',
         help='Number of lines per balanced JSONL file.',
     ),
+    num_workers: int = typer.Option(
+        1,
+        '--num_workers',
+        '-n',
+        help='Number of worker processes to use for balancing JSONL files.',
+    ),
 ) -> None:
     """Rewrite JSONL files to balance the number of lines per file."""
     from pdfwf.balance import balance_jsonl_files
@@ -383,6 +389,7 @@ def balance_jsonl(
         jsonl_files=jsonl_files,
         output_dir=output_dir,
         lines_per_file=lines_per_file,
+        num_workers=num_workers,
     )
 
 
