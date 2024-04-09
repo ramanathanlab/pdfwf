@@ -107,8 +107,12 @@ class OreoParser(BaseParser):
         from pdfwf.parsers.oreo.tensor_utils import get_relevant_visual_classes
 
         # Set device
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
+        if hasattr(torch, 'cuda'):
+            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        elif hasattr(torch, 'xpu'):
+            device = torch.device('xpu' if torch.xpu.is_available() else 'cpu')
+        else:
+            device = torch.device('cpu')
         # load models
         # - (1.) detection: Yolov5
         yolo_path = (
