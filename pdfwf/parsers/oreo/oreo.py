@@ -105,6 +105,11 @@ class OreoParser(BaseParser):
         from pdfwf.parsers.oreo.tensor_utils import get_relevant_text_classes
         from pdfwf.parsers.oreo.tensor_utils import get_relevant_visual_classes
 
+        try:
+            import intel_extension_for_pytorch as ipex
+        except ModuleNotFoundError:
+            ipex = None
+
         # Set device
         if hasattr(torch, 'cuda'):
             device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
