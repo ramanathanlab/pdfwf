@@ -117,6 +117,8 @@ class OreoParser(BaseParser):
             device = torch.device('xpu' if torch.xpu.is_available() else 'cpu')
         else:
             device = torch.device('cpu')
+
+        print("[device] Using device: ", device)
         # load models
         # - (1.) detection: Yolov5
         yolo_path = (
