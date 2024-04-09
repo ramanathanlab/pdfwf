@@ -311,7 +311,6 @@ def oreo(  # noqa: PLR0913
     parser_kwargs = {
         'name': 'oreo',
         'detection_weights_path': detection_weights_path,
-        'text_cls_weights_path': text_cls_weights_path,
         'spv05_category_file_path': spv05_category_file_path,
         'detect_only': detect_only,
         'meta_only': meta_only,
