@@ -28,8 +28,9 @@ class OreoParserConfig(BaseParserConfig):
     name: Literal['oreo'] = 'oreo'  # type: ignore[assignment]
     # Weights to layout detection model.
     detection_weights_path: Path
-    # Model weights for (meta) text classifier.
-    text_cls_weights_path: Path
+    # Model weights for (meta) text classifier. Optional on sunspot but not in
+    # the original implementation.
+    text_cls_weights_path: Optional[Path]
     # Path to the SPV05 category file.
     spv05_category_file_path: Path
     # Path to a local copy of the ultralytics/yolov5 repository.
@@ -57,7 +58,7 @@ class OreoParserConfig(BaseParserConfig):
     # Number of pixels along which.
     bbox_offset: int = 2
 
-    @field_validator('detection_weights_path', 'text_cls_weights_path')
+    @field_validator('detection_weights_path')
     @classmethod
     def validate_path_existence(cls, value: Path) -> Path:
         """Check if the directory exists."""
