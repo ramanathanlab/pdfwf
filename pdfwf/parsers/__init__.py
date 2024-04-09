@@ -1,7 +1,7 @@
 """The parsers module storing different PDF parsers."""
 
 
-from typing import Any
+from typing import Any, Union, Tuple, Dict
 
 from pdfwf.parsers.base import BaseParser
 from pdfwf.parsers.base import BaseParserConfig
@@ -13,12 +13,12 @@ from pdfwf.parsers.oreo import OreoParser
 from pdfwf.parsers.oreo import OreoParserConfig
 from pdfwf.registry import registry
 
-ParserConfigTypes = MarkerParserConfig | OreoParserConfig | NougatParserConfig
-ParserTypes = MarkerParser | OreoParser | NougatParser
+ParserConfigTypes = Union[MarkerParserConfig, OreoParserConfig, NougatParserConfig]
+ParserTypes = Union[MarkerParser, OreoParser, NougatParser]
 
-_ParserTypes = tuple[type[ParserConfigTypes], type[ParserTypes]]
+_ParserTypes = Tuple[type[ParserConfigTypes], type[ParserTypes]]
 
-STRATEGIES: dict[str, _ParserTypes] = {
+STRATEGIES: Dict[str, _ParserTypes] = {
     'marker': (MarkerParserConfig, MarkerParser),
     'oreo': (OreoParserConfig, OreoParser),
     'nougat': (NougatParserConfig, NougatParser),
@@ -28,7 +28,7 @@ STRATEGIES: dict[str, _ParserTypes] = {
 # This is a workaround to support optional registration.
 # Make a function to combine the config and instance initialization
 # since the registry only accepts functions with hashable arguments.
-def _factory_fn(**kwargs: dict[str, Any]) -> ParserTypes:
+def _factory_fn(**kwargs: Dict[str, Any]) -> ParserTypes:
     name = kwargs.get('name', '')
     strategy = STRATEGIES.get(name)  # type: ignore[arg-type]
     if not strategy:
@@ -44,7 +44,7 @@ def _factory_fn(**kwargs: dict[str, Any]) -> ParserTypes:
 
 
 def get_parser(
-    kwargs: dict[str, Any],
+    kwargs: Dict[str, Any],
     register: bool = False,
 ) -> ParserTypes:
     """Get the instance based on the kwargs.
@@ -56,7 +56,7 @@ def get_parser(
 
     Parameters
     ----------
-    kwargs : dict[str, Any]
+    kwargs : Dict[str, Any]
         The configuration. Contains a `name` argument
         to specify the strategy to use.
     register : bool, optional
