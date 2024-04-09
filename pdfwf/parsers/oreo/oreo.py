@@ -1,11 +1,9 @@
 """The Oreo parser for extracting text and visual content from PDFs."""
-from __future__ import annotations
-
 import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
-from typing import Literal
+from typing import Literal, Union, Optional, List, Dict
 
 if sys.version_info >= (3, 11):
     from typing import Self
@@ -35,7 +33,7 @@ class OreoParserConfig(BaseParserConfig):
     # Path to the SPV05 category file.
     spv05_category_file_path: Path
     # Path to a local copy of the ultralytics/yolov5 repository.
-    yolov5_path: Path | None = None
+    yolov5_path: Optional[Path] = None
     # Only scan PDFs for meta statistics on its attributes.
     detect_only: bool = False
     # Only parse PDFs for meta data.
@@ -195,7 +193,7 @@ class OreoParser(BaseParser):
 
     @torch.no_grad()
     @exception_handler(default_return=None)
-    def parse(self, pdf_files: list[str]) -> list[dict[str, Any]] | None:  # noqa: PLR0912, PLR0915
+    def parse(self, pdf_files: list[str]) -> Optional[List[dict[str, Any]]]:  # noqa: PLR0912, PLR0915
         """Parse a PDF file and extract markdown.
 
         Parameters
