@@ -231,6 +231,7 @@ def accelerated_batch_inference(  # noqa: PLR0913
         # non-empty tensor
         if j * batch_size < min((j + 1) * batch_size, ppt_len):
             # IDs (comp. bottleneck)
+            print("[tensor type]: ", tensors.dtype)
             generated_ids = model.generate(
                 pixel_values=tensors[
                     j * batch_size : min((j + 1) * batch_size, ppt_len),
