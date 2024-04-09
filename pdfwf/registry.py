@@ -3,7 +3,7 @@
 See: https://github.com/braceal/parsl_object_registry/tree/main
 """
 
-from __future__ import annotations
+
 
 import functools
 import inspect
@@ -14,6 +14,7 @@ from typing import Callable
 from typing import cast
 from typing import Generic
 from typing import TypeVar
+from typing import Optional
 
 if sys.version_info >= (3, 10):
     from typing import ParamSpec
@@ -28,8 +29,8 @@ P = ParamSpec('P')
 class RegistryInstance(Generic[T]):
     """Store an instance of an object and a shutdown hook."""
 
-    shutdown_callback: Callable[[T], Any] | None = None
-    obj: T | None = None
+    shutdown_callback: Optional[Callable[[T], Any]] = None
+    obj: Optional[T] = None
     arg_hash: int = 0
 
     def shutdown(self) -> None:
@@ -56,8 +57,8 @@ class RegistrySingleton:
     >>> my_object = registry.get(MyExpensiveTorchClass, *args, **kwargs)
     """
 
-    _registry: dict[Callable[..., Any], RegistryInstance[Any]]
-    _active: Callable[..., Any] | None
+    _registry: Dict[Callable[..., Any], RegistryInstance[Any]]
+    _active: Optional[Callable[..., Any]]
 
     def __new__(cls) -> RegistrySingleton:
         """Create a singleton instance of the registry."""
@@ -81,7 +82,7 @@ class RegistrySingleton:
     def register(
         self,
         cls_fn: Callable[P, T],
-        shutdown_callback: Callable[[T], Any] | None = None,
+        shutdown_callback: Optional[Callable[[T], Any]] = None,
     ) -> None:
         """Register an object type with the registry."""
         if cls_fn not in self._registry:
@@ -161,7 +162,7 @@ def _register_cls_decorator(cls: Callable[P, T]) -> Callable[P, T]:
 
 
 def register(
-    shutdown_callback: Callable[[T], Any] | None = None,
+    shutdown_callback: Optional[Callable[[T], Any]] = None,
 ) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """Register a function or class with the registry.
 

@@ -3,7 +3,7 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
-from typing import Literal, Union, Optional, List, Dict
+from typing import Literal, Optional, Union, Optional, List, Dict
 
 if sys.version_info >= (3, 11):
     from typing import Self

@@ -1,12 +1,12 @@
 """Base parser class for all parsers to inherit from."""
 
-from __future__ import annotations
+
 
 import uuid
 from abc import ABC
 from abc import abstractmethod
 from typing import Any
-from typing import Literal
+from typing import Literal, Optional
 
 from pdfwf.utils import BaseModel
 
@@ -24,7 +24,7 @@ class BaseParser(ABC):
         return self._unique_id
 
     @abstractmethod
-    def parse(self, pdf_files: list[str]) -> list[dict[str, Any]] | None:
+    def parse(self, pdf_files: list[str]) -> Optional[list[dict[str, Any]]]:
         """Parse a list of pdf files and return the parsed data."""
         pass
 

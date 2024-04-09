@@ -1,10 +1,11 @@
 """Balance output jsonl files from a workflow run."""
-from __future__ import annotations
+
 
 import functools
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from uuid import uuid4
+from typing import List
 
 from tqdm import tqdm
 
@@ -27,10 +28,10 @@ def _write_jsonl(output_dir: Path, lines: str) -> None:
 
 
 def _balance_jsonl_files(
-    jsonl_files: list[Path], output_dir: Path, lines_per_file: int
+    jsonl_files: List[Path], output_dir: Path, lines_per_file: int
 ) -> None:
     # Create a list to store the parsed documents
-    documents: list[str] = []
+    documents: List[str] = []
 
     for path in tqdm(jsonl_files, desc='JSONL files'):
         # Read the JSONL file

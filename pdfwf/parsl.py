@@ -1,11 +1,11 @@
 """Utilities to build Parsl configurations."""
-from __future__ import annotations
+
 
 from abc import ABC
 from abc import abstractmethod
 
 try:
-    from typing import Literal
+    from typing import Literal, Optional, Tuple
 except ImportError:
     from typing_extensions import Literal  # type: ignore [assignment]
 
@@ -54,7 +54,7 @@ class LocalSettings(BaseComputeSettings):
     name: Literal['local'] = 'local'  # type: ignore[assignment]
     max_workers: int = 1
     cores_per_worker: float = 0.0001
-    worker_port_range: tuple[int, int] = (10000, 20000)
+    worker_port_range: Tuple[int, int] = (10000, 20000)
     label: str = 'htex'
 
     def get_config(self, run_dir: PathLike) -> Config:
@@ -82,7 +82,7 @@ class WorkstationSettings(BaseComputeSettings):
     """Name of the platform."""
     available_accelerators: Union[int, Sequence[str]] = 8  # noqa: UP007
     """Number of GPU accelerators to use."""
-    worker_port_range: tuple[int, int] = (10000, 20000)
+    worker_port_range: Tuple[int, int] = (10000, 20000)
     """Port range."""
     retries: int = 1
     label: str = 'htex'

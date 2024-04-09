@@ -1,11 +1,11 @@
 """PDF conversion workflow."""
-from __future__ import annotations
+
 
 import functools
 import sys
 from argparse import ArgumentParser
 from pathlib import Path
-from typing import Any
+from typing import Any, List, Dict
 
 from parsl.concurrent import ParslPoolExecutor
 
@@ -17,7 +17,7 @@ from pdfwf.utils import setup_logging
 
 
 def parse_pdfs(
-    pdf_paths: list[str], output_dir: Path, parser_kwargs: dict[str, Any]
+    pdf_paths: List[str], output_dir: Path, parser_kwargs: Dict[str, Any]
 ) -> None:
     """Parse a batch of PDF files and write the output to a JSON lines file.
 
@@ -27,7 +27,7 @@ def parse_pdfs(
         Paths to a batch of PDF file to convert.
     output_dir: Path
         Directory to write the output JSON lines file to.
-    parser_kwargs : dict[str, Any]
+    parser_kwargs : Dict[str, Any]
         Keyword arguments to pass to the parser. Contains an extra `name`
         argument to specify the parser to use.
     """
@@ -76,7 +76,7 @@ def parse_pdfs(
 
 
 def parse_zip(
-    zip_file: str, output_dir: Path, parser_kwargs: dict[str, Any]
+    zip_file: str, output_dir: Path, parser_kwargs: Dict[str, Any]
 ) -> None:
     """Parse the PDF files stored within a zip file.
 
@@ -86,7 +86,7 @@ def parse_zip(
         Path to the zip file containing the PDFs to parse.
     output_dir : Path
         Directory to write the output JSON lines file to.
-    parser_kwargs : dict[str, Any]
+    parser_kwargs : Dict[str, Any]
         Keyword arguments to pass to the parser. Contains an extra `name`
         argument to specify the parser to use.
     """

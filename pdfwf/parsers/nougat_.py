@@ -1,12 +1,12 @@
 """The Nougat PDF parser."""
-from __future__ import annotations
+
 
 import re
 import time
 from functools import partial
 from pathlib import Path
 from typing import Any
-from typing import Literal
+from typing import Literal, Optional, List, Dict
 
 from pydantic import field_validator
 
@@ -36,7 +36,7 @@ class NougatParserConfig(BaseParserConfig):
     # The path to the Nougat model checkpoint.
     checkpoint: Path
     # The directory to write optional mmd outputs along with jsonls.
-    mmd_out: Path | None = None
+    mmd_out: Optional[Path] = None
     # Override pre-existing parsed outputs.
     recompute: bool = False
     # Use float32 instead of bfloat32.
@@ -50,7 +50,7 @@ class NougatParserConfig(BaseParserConfig):
 
     @field_validator('mmd_out')
     @classmethod
-    def validate_mmd_out_is_dir(cls, value: Path | None) -> Path | None:
+    def validate_mmd_out_is_dir(cls, value: Optional[Path]) -> Optional[Path]:
         """Create the output directory if it does not exist."""
         if value is not None:
             value.mkdir(exist_ok=True, parents=True)
@@ -107,7 +107,7 @@ class NougatParser(BaseParser):
             )
 
     @exception_handler(default_return=None)
-    def parse(self, pdf_files: list[str]) -> list[dict[str, Any]] | None:  # noqa: PLR0912, PLR0915
+    def parse(self, pdf_files: list[str]) -> Optional[List[Dict[str, Any]]]:  # noqa: PLR0912, PLR0915
         """Parse a PDF file and extract markdown.
 
         Parameters

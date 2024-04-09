@@ -1,8 +1,8 @@
 """The marker PDF parser."""
-from __future__ import annotations
+
 
 from typing import Any
-from typing import Literal
+from typing import Literal, Optional, Tuple, List, Dict
 
 from pdfwf.parsers.base import BaseParser
 from pdfwf.parsers.base import BaseParserConfig
@@ -37,7 +37,7 @@ class MarkerParser(BaseParser):
         self.model_lst = load_all_models()
 
     @exception_handler(default_return=None)
-    def parse_pdf(self, pdf_path: str) -> tuple[str, dict[str, str]] | None:
+    def parse_pdf(self, pdf_path: str) -> Optional[Tuple[str, dict[str, str]]]:
         """Parse a PDF file and extract markdown.
 
         Parameters
@@ -58,7 +58,7 @@ class MarkerParser(BaseParser):
         return full_text, out_meta
 
     @exception_handler(default_return=None)
-    def parse(self, pdf_files: list[str]) -> list[dict[str, Any]] | None:
+    def parse(self, pdf_files: list[str]) -> Optional[List[Dict[str, Any]]]:
         """Parse a list of pdf files and return the parsed data."""
         documents = []
         # Process each PDF

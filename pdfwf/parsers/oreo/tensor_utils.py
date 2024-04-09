@@ -1,12 +1,11 @@
 """Tensor-based utilities for Oreo."""
-from __future__ import annotations
-
 import gc
 import os
 import re
 import time
 from collections import defaultdict
 from pathlib import Path
+from typing import List, Dict, Tuple, Optional, Union
 
 import fitz
 import numpy as np
@@ -44,7 +43,7 @@ def non_max_suppression(  # type: ignore  # noqa
     labels=(),
     max_det=300,
     nm=0,  # number of masks
-) -> list[torch.Tensor]:
+) -> List[torch.Tensor]:
     """Adapted from YOLOv5's non_max_suppression.
 
     Non-Maximum Suppression (NMS) on inference results to reject overlapping
@@ -184,7 +183,7 @@ def accelerated_batch_inference(  # noqa: PLR0913
     batch_size: int,
     temperature: float = 0.0,
     max_tokens: int = 384,
-) -> list[str]:
+) -> List[str]:
     """Accelerated batched inference for texify.
 
     Runs inference directly on `encodings[`pixekl_values`]` rather than
@@ -208,7 +207,7 @@ def accelerated_batch_inference(  # noqa: PLR0913
 
     Returns
     -------
-    list[str]
+    List[str]
         List of decoded text patches.
     """
     # check input
@@ -265,7 +264,7 @@ class PDFDataset(Dataset):
 
     def __init__(
         self,
-        pdf_paths: list[str],
+        pdf_paths: List[str],
         meta_only: bool = False,
         target_heigth: int = 1280,
     ) -> None:
@@ -273,7 +272,7 @@ class PDFDataset(Dataset):
 
         Parameters
         ----------
-        pdf_paths : list[str]
+        pdf_paths : List[str]
             List of paths to the PDF files to process.
         meta_only : bool, optional
             Only extract the metadata from the PDFs, by default False.
@@ -320,7 +319,7 @@ class PDFDataset(Dataset):
         else:
             self.len = sum(doc_lengths)
 
-        self.current_doc_file_path: Path | None = None
+        self.current_doc_file_path: Optional[Path] = None
         self.current_doc_doc = None
         self.current_doc_idx = 0
 
@@ -333,7 +332,7 @@ class PDFDataset(Dataset):
         """
         return self.len
 
-    def __getitem__(self, idx: int) -> tuple[torch.Tensor, int, Path]:
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int, Path]:
         """Get a page from the dataset.
 
         A single page (i.e. image) rather than the document is the dataset
@@ -385,8 +384,8 @@ class PDFDataset(Dataset):
 
 
 def custom_collate(
-    batch: list[tuple[torch.Tensor, int, Path]],
-) -> tuple[torch.Tensor, list[int], list[Path]]:
+    batch: List[Tuple[torch.Tensor, int, Path]],
+) -> Tuple[torch.Tensor, List[int], List[Path]]:
     """Collate the output of the DocDataset."""
     # Transpose the batch (unzip)
     tensors, file_ids, file_paths = zip(*batch)
@@ -400,8 +399,8 @@ def custom_collate(
 
 def pre_processing(  # noqa: PLR0913
     results: torch.Tensor,
-    file_ids: list[int],
-    rel_class_ids: list[int],
+    file_ids: List[int],
+    rel_class_ids: List[int],
     iou_thres: float = 0.0001,
     conf_thres: float = 0.6,
     x_delta: int = 200,
@@ -419,9 +418,9 @@ def pre_processing(  # noqa: PLR0913
     results : torch.Tensor
         BxNxD-dimensional tensor inferred by Yolov5 (B:b.size, N: # bboxes,
         D:dim. = #classes + 5 {4 coords+score})
-    file_ids : list[int]
+    file_ids : List[int]
         List of IDs from the respective dataset.
-    rel_class_ids : list[int]
+    rel_class_ids : List[int]
         List of class label IDs used to infer modes (usually 0: Text,
         potentially 16: List_element etc.)
     iou_thres : float, optional
@@ -469,8 +468,8 @@ def pre_processing(  # noqa: PLR0913
 #       more readable
 def get_y_indexed(  # noqa: PLR0913, PLR0915
     y: torch.Tensor,
-    file_ids: list[int],
-    rel_class_ids: list[int],
+    file_ids: List[int],
+    rel_class_ids: List[int],
     x_delta: int = 200,
     freq_thresh: float = 0.15,
     y_freq_thresh: float = 0.0,
@@ -487,7 +486,7 @@ def get_y_indexed(  # noqa: PLR0913, PLR0915
     y : torch.Tensor
         2D tensor where each row is a patch/bbox and the columns are (x_min,
         y_min, x_max, y_max, conf, cls label, page idx)
-    rel_class_ids : list[int]
+    rel_class_ids : List[int]
         List of relevant class label IDs used for robust mode estimation
     x_delta : int, optional
         Coarsity by which X_midpoints are rounded, by default 200
@@ -687,7 +686,7 @@ def get_y_indexed(  # noqa: PLR0913, PLR0915
 
 
 def subset_y_by_class(
-    y_batch: torch.Tensor, rel_class_ids: list[int]
+    y_batch: torch.Tensor, rel_class_ids: List[int]
 ) -> torch.Tensor:
     """Subset y by class.
 
@@ -701,7 +700,7 @@ def subset_y_by_class(
     y_batch : torch.Tensor
         2D tensor of stacked results (n,7) with page index added, 7 columns:
         x_min, y_min, x_max, y_max, conf, cls_label, page_idx.
-    rel_class_ids : list[int]
+    rel_class_ids : List[int]
         List of integers representing the relevant predicted classes per
         bounding box (0: Text, 1: Title etc.) which are to be selected
 
@@ -1039,8 +1038,8 @@ def resize_patch(
 
 def normalize_pad(
     t: torch.Tensor,
-    mean: list[float] | None = None,
-    std: list[float] | None = None,
+    mean: Optional[List[float]]= None,
+    std: Optional[List[float]] = None,
 ) -> torch.Tensor:
     """Normalize z_i = (x_i - mu_i) / sigma_i along each channel i in {0,1,2}.
 
@@ -1049,10 +1048,10 @@ def normalize_pad(
     t : torch.Tensor
         Tensor of size BxCxHxW with unnormalized (i.e. native) float pixel
         values scaled to [0.0, 1.0]
-    mean : list[float], optional
+    mean : List[float], optional
         Vector of length 3 (one value per channel) by which every pixel is
         shifted, by default [0.485, 0.456, 0.406]
-    std : list[float], optional
+    std : List[float], optional
         Vector of length 3 (one value per channel) by by which every shifted
         pixel is divided, by default [0.229, 0.224, 0.225]
 
@@ -1197,7 +1196,7 @@ def get_patch_batch(
 
 def get_patch_list(
     tensors: torch.Tensor, y: torch.Tensor, offset: int = 0
-) -> list[torch.Tensor]:
+) -> List[torch.Tensor]:
     """Get a list of patches from a batch of images.
 
     Given a batch of images (BxCxHxW) and a tensor of meta information on
@@ -1218,7 +1217,7 @@ def get_patch_list(
 
     Returns
     -------
-    list[torch.Tensor]
+    List[torch.Tensor]
         List of variable sized patches as extracted from the tensor images
     """
     # Note: the order idx column is index 13
@@ -1252,7 +1251,7 @@ def get_patch_list(
 
 
 def patch_list_to_tensor(
-    grouped_patch_list: list[torch.Tensor],
+    grouped_patch_list: List[torch.Tensor],
     dtype: torch.dtype,
     max_width: int = 420,
     max_height: int = 420,
@@ -1264,7 +1263,7 @@ def patch_list_to_tensor(
 
     Parameters
     ----------
-    grouped_patch_list : list[torch.Tensor]
+    grouped_patch_list : List[torch.Tensor]
         List of sublists where each sublist refers to patches that can be
         packed into one joint patch
     dtype : torch.dtype
@@ -1313,7 +1312,7 @@ def patch_list_to_tensor(
 
 
 def merge_patches_into_row(
-    row_patch_list: list[torch.Tensor],
+    row_patch_list: List[torch.Tensor],
     btm_pad: int,
     sep_flag: bool = False,
     alpha: float = 0.5,
@@ -1326,7 +1325,7 @@ def merge_patches_into_row(
 
     Parameters
     ----------
-    row_patch_list : list[torch.Tensor]
+    row_patch_list : List[torch.Tensor]
         List of patches that is to be arranged in the same row (i.e. next to
         one another)
     btm_pad : int
@@ -1369,7 +1368,7 @@ def merge_patches_into_row(
 
 
 def merge_rows_into_patch(
-    list_of_row_tensors: list[torch.Tensor],
+    list_of_row_tensors: List[torch.Tensor],
 ) -> torch.Tensor:
     """Merge rows into patch tensor.
 
@@ -1378,7 +1377,7 @@ def merge_rows_into_patch(
 
     Parameters
     ----------
-    list_of_row_tensors : list[torch.Tensor]
+    list_of_row_tensors : List[torch.Tensor]
         List of patches that is to be arranged in the same row (i.e. next to
         one another)
 
@@ -1405,11 +1404,11 @@ def merge_rows_into_patch(
 
 
 def grouped_patch_list(
-    patch_list: list[torch.Tensor],
+    patch_list: List[torch.Tensor],
     y: torch.Tensor,
-    unpackable_class_ids: list[int],
-    by: list[str] | None = None,
-) -> tuple[list[list[torch.Tensor]], list[list[int]]]:
+    unpackable_class_ids: List[int],
+    by: Optional[List[str]] = None,
+) -> Tuple[List[List[torch.Tensor]], List[List[int]]]:
     """Group patches by file_id and class label.
 
     Given a list of variably-sized patches, groups them by paper and cls type.
@@ -1417,20 +1416,20 @@ def grouped_patch_list(
 
     Parameters
     ----------
-    patch_list: list[torch.Tensor]
+    patch_list: List[torch.Tensor]
         List of (variably-sized) patches
     y: torch.Tensor
         2D torch tensor storing the meta data
-    unpackable_class_ids: list[int]
+    unpackable_class_ids: List[int]
         List of class IDs for which respective patches are not grouped but
         rather decoded individually
-    by: list[str]
+    by: List[str]
         List of strings indicating by which criteria grouping is applied
         (e.g. class_label, file id etc.) Corresponds to `inner merge`.
 
     Returns
     -------
-    tuple[list[list[torch.Tensor]], list[list[int]]]
+    Tuple[List[List[torch.Tensor]], List[List[int]]]
         Tuple of two lists: 1) list of sublists of patches and 2) list of
         sublists of indices of the patches in the original list of patches.
     """
@@ -1515,7 +1514,7 @@ def grouped_patch_list(
 
 
 def get_packed_patch_list(  # noqa: PLR0913, PLR0912, PLR0915, PLR0913
-    patch_list: list[torch.Tensor],
+    patch_list: List[torch.Tensor],
     sep_tensor: torch.Tensor,
     sep_flag: bool = False,
     sep_symbol_flag: bool = False,
@@ -1523,7 +1522,7 @@ def get_packed_patch_list(  # noqa: PLR0913, PLR0912, PLR0915, PLR0913
     max_width: int = 420,
     max_height: int = 420,
     alpha: float = 0.5,
-) -> tuple[list[torch.Tensor], list[list[int]]]:
+) -> Tuple[List[torch.Tensor], List[List[int]]]:
     """Merge patches into packed patches.
 
     Merges the patches (CxHxW patches) as tightly as possible into a list
@@ -1531,7 +1530,7 @@ def get_packed_patch_list(  # noqa: PLR0913, PLR0912, PLR0915, PLR0913
 
     Parameters
     ----------
-    patch_list : list[torch.Tensor]
+    patch_list : List[torch.Tensor]
         List of variably-sized patch images each being a 3xH_{i}xW_{i} image
     sep_tensor : torch.Tensor
         Separator image stores as a tensor to be inserted into the patch at the
@@ -1555,7 +1554,7 @@ def get_packed_patch_list(  # noqa: PLR0913, PLR0912, PLR0915, PLR0913
 
     Returns
     -------
-    list[torch.Tensor]
+    List[torch.Tensor]
         Tensor of packed patches N_eff x B x 420 x 420 where N_eff is the
         number of packed patches from N (unpacked), variably-sized patches.
     """
@@ -1712,7 +1711,7 @@ def lexsort(keys: torch.Tensor, dim: int = -1) -> torch.Tensor:
     return idx
 
 
-def torch_lexsort(tensor: torch.Tensor, keys: list[int]) -> torch.Tensor:
+def torch_lexsort(tensor: torch.Tensor, keys: List[int]) -> torch.Tensor:
     """Lexicographical sort of keys along the specified dimension.
 
     Wraps the torch emulation of np.lexsort allowing to sort a tensor for
@@ -1723,7 +1722,7 @@ def torch_lexsort(tensor: torch.Tensor, keys: list[int]) -> torch.Tensor:
     T : torch.Tensor
         Torch tensor to be sorted. Keys in reverse order of importance, i.e.
         primary key in keys[-1], least significant key in keys[0]
-    keys : list[int]
+    keys : List[int]
         List of integers representing the column index. Keys in reverse order
         of importance, i.e. primary key in keys[-1], least significant key in
         keys[0]
@@ -1776,8 +1775,8 @@ def get_separator_tensor(img_path: Path) -> torch.Tensor:
 
 
 def restate_global_patch_indices(
-    packed_indices: list[list[list[int]]],
-) -> list[list[list[int]]]:
+    packed_indices: List[List[List[int]]],
+) -> List[List[List[int]]]:
     """Re-state global patch indices.
 
     Consumes the list of patch indices and re-instates a global batch index
@@ -1787,13 +1786,13 @@ def restate_global_patch_indices(
 
     Parameters
     ----------
-    packed_indices : list[list[list[int]]]
+    packed_indices : List[List[List[int]]]
         List of list of lists. 1st list (groups of patches that can be merged
         theoretically), 2nd list (actual packed patches)
 
     Returns
     -------
-    list[list[list[int]]]
+    List[List[List[int]]]
         Same structure as input, indices just shifted.
 
     Raises
@@ -1831,7 +1830,7 @@ def restate_global_patch_indices(
 
 def load_spv05_categories(
     spv05_category_file_path: Path,
-) -> tuple[dict[str, int], dict[str, list[str]]]:
+) -> Tuple[Dict[str, int], Dict[str, List[str]]]:
     """Load  SPv05 category file.
 
     Load SPv05 category file that includes two dictionaries `categories` and
@@ -1842,8 +1841,8 @@ def load_spv05_categories(
 
     Returns
     -------
-    tuple[dict[str, int], dict[str, list[str]]]
-        Categories (class name : class ID) and groups (group name : list of
+    Tuple[Dict[str, int], Dict[str, List[str]]]
+        Categories (class name : class ID) and groups (group name : List of
         class names)
 
     Raises
@@ -1881,7 +1880,7 @@ def get_relevant_text_classes(  # noqa: PLR0913
     table_flag: bool = False,
     fig_flag: bool = False,
     secondary_meta: bool = False,
-) -> dict[str, int]:
+) -> Dict[str, int]:
     """Return class IDs for the SPv05 dataset that are relevant for the input.
 
     Parameters
@@ -1905,7 +1904,7 @@ def get_relevant_text_classes(  # noqa: PLR0913
 
     Returns
     -------
-    dict[str, int]
+    Dict[str, int]
         Dictionary of relevant classes.
 
     Raises
@@ -1947,7 +1946,7 @@ def get_relevant_visual_classes(
     file_type: str = 'pdf',
     table_flag: bool = False,
     fig_flag: bool = False,
-) -> dict[str, int]:
+) -> Dict[str, int]:
     """Return class IDs for the SPv05 dataset that are relevant for the input.
 
     Parameters
@@ -1964,7 +1963,7 @@ def get_relevant_visual_classes(
 
     Returns
     -------
-    dict[str, int]
+    Dict[str, int]
         Dictionary of relevant classes.
 
     Raises
@@ -1998,15 +1997,15 @@ def get_relevant_visual_classes(
 def get_packed_patch_tensor(  # noqa: PLR0913
     tensors: torch.Tensor,
     y: torch.Tensor,
-    rel_class_ids: list[int],
-    unpackable_class_ids: list[int] | None = None,
-    by: list[str] | None = None,
+    rel_class_ids: List[int],
+    unpackable_class_ids: Optional[List[int]]= None,
+    by: Optional[List[str]] = None,
     offset: int = 2,
     btm_pad: int = 6,
     sep_flag: bool = False,
     sep_symbol_flag: bool = False,
-    sep_symbol_tensor: torch.Tensor | None = None,
-) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor] | tuple[None, None, None]:
+    sep_symbol_tensor: Optional[torch.Tensor] = None,
+) -> Union[Tuple[torch.Tensor, torch.Tensor, torch.Tensor], Tuple[None, None, None]]:
     """Packs patches into a tensor.
 
     Given a list of variably-sized patches and meta data 2D torch tensor,
@@ -2018,12 +2017,12 @@ def get_packed_patch_tensor(  # noqa: PLR0913
         Tensor of page images usually of dimension (Bx3x1280x960)
     y : torch.Tensor
         2D torch tensor that stores meta data for each patch (row)
-    rel_class_ids : list[int]
+    rel_class_ids : List[int]
         List of class IDs that are to be packed
-    unpackable_class_ids : list[int], optional
+    unpackable_class_ids : List[int], optional
         Class IDs that are not to be packed but decoded individually for
         increased accuracy, by default None
-    by : list[str], optional
+    by : List[str], optional
         Columns by which patches are *not* to be aggregated (file, page,
         class), by default None
     offset : int, optional
@@ -2044,7 +2043,7 @@ def get_packed_patch_tensor(  # noqa: PLR0913
 
     Returns
     -------
-    tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+    Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
         Packed patches tensor, index quadruplet, current file ids
         with similarly sized patches (3x420x420)
 
@@ -2156,13 +2155,13 @@ def clear_cuda_cache() -> None:
 
 
 def update_main_content_dict(  # noqa: PLR0913
-    doc_dict: dict[str, dict[int, list[str]]],
-    text_results: list[str],
+    doc_dict: Dict[str, Dict[int, List[str]]],
+    text_results: List[str],
     index_quadruplet: torch.Tensor,
     curr_file_ids: torch.Tensor,
-    vis_path_dict: dict[int, dict[int, list[str]]],
+    vis_path_dict: Dict[int, Dict[int, List[str]]],
     dset_name: str = 'SPv05',
-) -> dict[str, dict[int, list[str]]]:
+) -> Dict[str, Dict[int, List[str]]]:
     """Update main content dictionary.
 
     Given a list of text patch predictions `text_results`, assigns the text
@@ -2170,10 +2169,10 @@ def update_main_content_dict(  # noqa: PLR0913
 
     Parameters
     ----------
-    doc_dict : dict[str, dict[int, list[str]]]
+    doc_dict : Dict[str, Dict[int, List[str]]]
         Dictionary that stores the text elements for each document.
-        (key: doc file id, values: list of sorted decoded text patches)
-    text_results : list[str]
+        (key: doc file id, values: List of sorted decoded text patches)
+    text_results : List[str]
         List of sorted text segments, decoded from (sorted) list of packed
         patches.
     index_quadruplet : torch.Tensor
@@ -2182,15 +2181,15 @@ def update_main_content_dict(  # noqa: PLR0913
     curr_file_ids : torch.Tensor
         File ids that are currently present in batch (if a previous file id is
         not presented, it has been fully processed -> can be stored)
-    vis_path_dict : dict[int, dict[int, list[str]]]
+    vis_path_dict : Dict[int, Dict[int, List[str]]]
         Dictionary that stores the visual elements for each document.
-        (key: doc file id, values: list of sorted decoded visual elements)
+        (key: doc file id, values: List of sorted decoded visual elements)
     dset_name : str, optional
         Name of the dataset, by default 'SPv05'
 
     Returns
     -------
-    dict[str, dict[int, list[str]]]
+    Dict[str, Dict[int, List[str]]]
         Pre-existing files appended with current text patches
 
     Raises
@@ -2295,7 +2294,7 @@ def assign_text_inferred_meta_classes(  # noqa: PLR0913
     tokenizer: AutoTokenizer,
     batch_size: int,
     index_quadruplet: torch.Tensor,
-    text_results: list[str],
+    text_results: List[str],
     dset_name: str = 'SPv05',
 ) -> torch.Tensor:
     """Assign text-inferred meta classes.
@@ -2315,7 +2314,7 @@ def assign_text_inferred_meta_classes(  # noqa: PLR0913
     index_quadruplet : torch.Tensor
         2D tensor that tracks file_id, page_id, order_id, & (inferred) class
         label id for each patch (row)
-    text_results : list[str]
+    text_results : List[str]
         List of text segments inferred from the patches
     dset_name : str, optional
         Name of the dataset, by default 'SPv05'
@@ -2370,10 +2369,10 @@ def assign_text_inferred_meta_classes(  # noqa: PLR0913
 
 
 def extract_file_specific_doc_dict(
-    doc_dict: dict[str, dict[int, list[str]]],
+    doc_dict: Dict[str, Dict[int, List[str]]],
     file_id: int,
     latex_to_text: LatexNodes2Text,
-) -> dict[str, str]:
+) -> Dict[str, str]:
     """Extract file specific document dictionary.
 
     Extract doc-specific dict (each category is a key) and the file_id key is
@@ -2381,7 +2380,7 @@ def extract_file_specific_doc_dict(
 
     Parameters
     ----------
-    doc_dict : dict[str, dict[int, list[str]]]
+    doc_dict : Dict[str, Dict[int, List[str]]]
         Holds a batch of documents with primary keys `categories` (`Title`,
         `Text` etc.) and secondary key `file_id`.
     file_id : int
@@ -2391,13 +2390,13 @@ def extract_file_specific_doc_dict(
 
     Returns
     -------
-    file_dict : dict[str, str]
+    file_dict : Dict[str, str]
         Dictionary holding the document content for the specific file_id.
     """
     # pattern
     pattern = re.compile(r'(\n\s*)+')
 
-    file_dict: dict[str, str] = {}
+    file_dict: Dict[str, str] = {}
     for key in doc_dict.keys():
         if file_id in doc_dict[key]:
             # post-process
@@ -2419,10 +2418,10 @@ def extract_file_specific_doc_dict(
 
 
 def format_documents(
-    doc_dict: dict[str, dict[int, list[str]]],
-    doc_file_paths: dict[int, Path],
+    doc_dict: Dict[str, Dict[int, List[str]]],
+    doc_file_paths: Dict[int, Path],
     latex_to_text: LatexNodes2Text,
-) -> list[dict[str, str]]:
+) -> List[Dict[str, str]]:
     """Store completed documents.
 
     Given a dictionary of documents (key: file id, value: text list), stores
@@ -2431,10 +2430,10 @@ def format_documents(
 
     Parameters
     ----------
-    doc_dict : dict[str, dict[int, list[str]]]
-        Dictionary (key: doc file id, values: list of sorted decoded text
+    doc_dict : Dict[str, Dict[int, List[str]]]
+        Dictionary (key: doc file id, values: List of sorted decoded text
         patches)
-    doc_file_paths : dict[int, Path]
+    doc_file_paths : Dict[int, Path]
         List of source paths (sorted by file id) from which the document
         content was extracted
     latex_to_text : LatexNodes2Text
@@ -2478,13 +2477,13 @@ def format_documents(
 def store_visuals(  # noqa: PLR0913
     tensors: torch.Tensor,
     y: torch.Tensor,
-    rel_visual_classes: dict[str, int],
-    file_paths: list[Path],
-    file_ids: list[int],
+    rel_visual_classes: Dict[str, int],
+    file_paths: List[Path],
+    file_ids: List[int],
     output_dir: Path,
     i_tab: int,
     i_fig: int,
-) -> tuple[dict[int, dict[int, list[str]]], int, int, int]:
+) -> Tuple[Dict[int, Dict[int, List[str]]], int, int, int]:
     """Store visual elements.
 
     Extracts and stores visuals (e.g. figures and/or tables) into the
@@ -2498,13 +2497,13 @@ def store_visuals(  # noqa: PLR0913
     y : torch.Tensor
         2D tensor of patch meta data (location, inferred class label, score,
         file_id etc.)
-    rel_visual_classes : dict[str, int]
+    rel_visual_classes : Dict[str, int]
         Dictionary with relevant visual class ids/names (Table and or Figure)
         that are to be stored
-    file_paths : list[Path]
+    file_paths : List[Path]
         List of file paths of the particular batch relating to `tensors` and
         `y`
-    file_ids : list[int]
+    file_ids : List[int]
         List of file ids of the particular batch relating to `tensors` and `y`
     output_dir : Path
         Location where patches are to be stored (be default, in subdirectories
@@ -2519,8 +2518,8 @@ def store_visuals(  # noqa: PLR0913
 
     Returns
     -------
-    tuple[dict[int, dict[int, list[str]]], int, int, int]
-        Dictionary of visual elements (key: file_id, values: list of sorted
+    Tuple[Dict[int, Dict[int, List[str]]], int, int, int]
+        Dictionary of visual elements (key: file_id, values: List of sorted
         decoded visual elements), current patch index of table, current patch
         index of figure, last file id
     """
@@ -2581,7 +2580,7 @@ def store_visuals(  # noqa: PLR0913
     file_id_list = y_sub_visual[:, file_idx_column].tolist()
 
     # filepath list
-    vis_path_dict: dict[int, dict[int, list[str]]] = defaultdict(
+    vis_path_dict: Dict[int, Dict[int, List[str]]] = defaultdict(
         lambda: defaultdict(list)
     )
 

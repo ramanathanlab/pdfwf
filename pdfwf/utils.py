@@ -1,5 +1,5 @@
 """Utilities for the PDF workflow."""
-from __future__ import annotations
+
 
 import json
 import logging
@@ -10,6 +10,8 @@ from typing import Any
 from typing import Callable
 from typing import TypeVar
 from typing import Union
+from typing import Optional
+from typing import List
 
 import yaml
 from pydantic import BaseModel as _BaseModel
@@ -114,7 +116,7 @@ def exception_handler(
 
 
 def setup_logging(
-    logger_name: str, out_dir: Path | None = None
+    logger_name: str, out_dir: Optional[Path] = None
 ) -> logging.Logger:
     """Set up logging for the PDF workflow."""
     logger = logging.getLogger(logger_name)
@@ -131,7 +133,7 @@ def setup_logging(
     )
 
     # Add a console log
-    handlers: list[logging.Handler] = [logging.StreamHandler()]
+    handlers: List[logging.Handler] = [logging.StreamHandler()]
 
     # Add a file log if an output directory is provided
     if out_dir is not None:
@@ -146,7 +148,7 @@ def setup_logging(
     return logger
 
 
-def batch_data(data: list[T], chunk_size: int) -> list[list[T]]:
+def batch_data(data: List[T], chunk_size: int) -> List[List[T]]:
     """Batch data into chunks of size chunk_size."""
     batches = [
         data[i * chunk_size : (i + 1) * chunk_size]
