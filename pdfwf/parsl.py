@@ -48,6 +48,22 @@ class BaseComputeSettings(BaseModel, ABC):
         ...
 
 
+class MonitoringSettings(BaseModel):
+    """Monitoring settings."""
+
+    hub_port: int = 55055
+    """Database port for monitoring."""
+    monitoring_debug: bool = False
+    """Enable monitoring debug."""
+    resource_monitoring_interval: int = 10
+    """Interval for resource monitoring (in seconds)."""
+    logging_endpoint: str = 'sqlite:///monitoring.db'
+    """Logging endpoint, the database that contains the monitoring information.
+    Will be created if does not exist (*MUST BE ABSOLUTE PATH*)."""
+    workflow_name: Optional[str]= None
+    """Name for workflow, used in web interface."""
+
+
 class LocalSettings(BaseComputeSettings):
     """Settings for a local machine (mainly for testing purposes)."""
 
@@ -136,7 +152,7 @@ class PolarisSettings(BaseComputeSettings):
     """Number of retries upon failure."""
     worker_debug: bool = False
     """Enable worker debug."""
-    monitoring_settings: MonitoringSettings | None = None
+    monitoring_settings: Optional[MonitoringSettings] = None
     """Optional monitoring settings, if not provided, skip monitoring."""
 
     def get_config(self, run_dir: PathLike) -> Config:
@@ -208,22 +224,6 @@ class PolarisSettings(BaseComputeSettings):
         )
 
         return config
-
-
-class MonitoringSettings(BaseModel):
-    """Monitoring settings."""
-
-    hub_port: int = 55055
-    """Database port for monitoring."""
-    monitoring_debug: bool = False
-    """Enable monitoring debug."""
-    resource_monitoring_interval: int = 10
-    """Interval for resource monitoring (in seconds)."""
-    logging_endpoint: str = 'sqlite:///monitoring.db'
-    """Logging endpoint, the database that contains the monitoring information.
-    Will be created if does not exist (*MUST BE ABSOLUTE PATH*)."""
-    workflow_name: str | None = None
-    """Name for workflow, used in web interface."""
 
 
 ComputeSettingsTypes = Union[
