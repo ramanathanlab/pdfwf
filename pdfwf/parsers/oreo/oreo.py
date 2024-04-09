@@ -119,7 +119,6 @@ class OreoParser(BaseParser):
         else:
             device = torch.device('cpu')
 
-        print("[device] Using device: ", device)
         # load models
         # - (1.) detection: Yolov5
         yolo_path = (
