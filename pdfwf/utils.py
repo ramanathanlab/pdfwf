@@ -99,7 +99,7 @@ def exception_handler(
     """
 
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
-        def wrapper(*args: P.args, **kwargs: P.kwargs) -> T | Any:
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> Union[T, Any]:
             try:
                 return func(*args, **kwargs)
             except Exception as e:
