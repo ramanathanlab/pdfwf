@@ -27,7 +27,9 @@ def nougat(  # noqa: PLR0913
         10,
         '--batchsize',
         '-bs',
-        help='Number of pages per patch. Maximum 10 for A100 40GB.',
+        help=(
+            'Number of pages per patch. Maximum 10 for A100 40GB. '
+            'Maximum 14 for PVC, though this brings it right to the limit.'),
     ),
     checkpoint: Path = typer.Option(  # noqa: B008
         'nougat_ckpts/base',
