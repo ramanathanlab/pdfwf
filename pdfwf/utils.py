@@ -12,6 +12,7 @@ from typing import TypeVar
 from typing import Union
 from typing import Optional
 from typing import List
+from typing import Dict
 
 import yaml
 from pydantic import BaseModel as _BaseModel
