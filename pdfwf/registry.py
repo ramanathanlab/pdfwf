@@ -15,6 +15,7 @@ from typing import cast
 from typing import Generic
 from typing import TypeVar
 from typing import Optional
+from typing import Dict
 
 if sys.version_info >= (3, 10):
     from typing import ParamSpec
