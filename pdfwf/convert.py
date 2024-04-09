@@ -48,6 +48,7 @@ def parse_pdfs(
     # This ensures that the models are only loaded once per worker process
     # (i.e., we warmstart the models)
     parser = get_parser(parser_kwargs, register=True)
+    print("got a parser")
 
     # Process the PDF files in bulk
     documents = parser.parse(pdf_paths)
