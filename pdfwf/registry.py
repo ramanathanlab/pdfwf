@@ -61,7 +61,8 @@ class RegistrySingleton:
     _registry: Dict[Callable[..., Any], RegistryInstance[Any]]
     _active: Optional[Callable[..., Any]]
 
-    def __new__(cls) -> RegistrySingleton:
+    # TODO: without future annotations I am not sure how to do this
+    def __new__(cls):
         """Create a singleton instance of the registry."""
         if not hasattr(cls, '_instance'):
             cls._instance = super(RegistrySingleton, cls).__new__(cls)  # noqa: UP008
