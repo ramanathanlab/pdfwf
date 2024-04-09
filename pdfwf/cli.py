@@ -201,12 +201,6 @@ def oreo(  # noqa: PLR0913
         '-d',
         help='Weights to layout detection model.',
     ),
-    text_cls_weights_path: Path = typer.Option(  # noqa: B008
-        '/lus/eagle/projects/argonne_tpc/siebenschuh/N-O-REO/text_classifier/meta_text_classifier',
-        '--text_cls_weights_path',
-        '-t',
-        help='Model weights for (meta) text classifier.',
-    ),
     spv05_category_file_path: Path = typer.Option(  # noqa: B008
         '/lus/eagle/projects/argonne_tpc/siebenschuh/N-O-REO/meta/spv05_categories.yaml',
         '--spv05_category_file_path',
