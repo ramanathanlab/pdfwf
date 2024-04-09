@@ -111,7 +111,8 @@ class OreoParser(BaseParser):
             ipex = None
 
         # Set device
-        if hasattr(torch, 'cuda'):
+        # TODO: This could really mess up an nvidia system with IPEX installed...
+        if hasattr(torch, 'cuda') and ipex is None:
             device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         elif hasattr(torch, 'xpu'):
             device = torch.device('xpu' if torch.xpu.is_available() else 'cpu')
