@@ -335,7 +335,6 @@ $ pdfwf oreo [OPTIONS]
 Link to sunspot nougat fork: https://github.com/ramanathanlab/nougat
 
 _Make sure you are on the `sunspot-dev` branch of `pdfwf`_
-`git switch sunspot-dev`
 
 ```bash
 # To be run on a compute node
@@ -355,6 +354,7 @@ source pdfwf/bin/activate
 cd path/to/nougat/
 pip install -e .
 cd path/to/pdfwf/
+git switch sunspot-dev
 pip install -e .
 
 # Test run
