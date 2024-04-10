@@ -330,6 +330,39 @@ $ pdfwf oreo [OPTIONS]
 * `--help`: Show this message and exit.
 
 
+## Running on Sunspot
+
+Link to sunspot nougat fork: https://github.com/ramanathanlab/nougat
+
+
+```bash
+# To be run on a compute node
+export HTTP_PROXY=http://proxy.alcf.anl.gov:3128
+export HTTPS_PROXY=http://proxy.alcf.anl.gov:3128
+export http_proxy=http://proxy.alcf.anl.gov:3128
+export https_proxy=http://proxy.alcf.anl.gov:3128
+git config --global http.proxy http://proxy.alcf.anl.gov:3128
+module use /soft/modulefiles/
+module load frameworks/2023.12.15.001
+
+# Create and activate the new environment
+python3 -m venv --system-site-packages pdfwf
+source pdfwf/bin/activate
+
+# Make sure you have cloned this repo and the nougat fork
+cd path/to/nougat/
+pip install -e .
+cd path/to/pdfwf/
+pip install -e .
+
+# Test run
+mkdir pdfwf-testrun
+cd pdfwf-testrun/
+# pdfwf nougat --help shows wrapper command line options
+pdfwf nougat --pdf_path /lus/gila/projects/candle_aesp_CNDA/hippekp/aglimmer/data/pdfs/small-test --output_dir nougat-test-out --checkpoint /lus/gila/projects/candle_aesp_CNDA/hippekp/aglimmer/nougat-checkpoint  --batchsize 14
+```
+
+
 ## Contributing
 
 For development, it is recommended to use a virtual environment. The following
