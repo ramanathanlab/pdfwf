@@ -334,6 +334,7 @@ $ pdfwf oreo [OPTIONS]
 
 Link to sunspot nougat fork: https://github.com/ramanathanlab/nougat
 
+_Make sure you are on the `sunspot-dev` branch of `pdfwf`_
 
 ```bash
 # To be run on a compute node
