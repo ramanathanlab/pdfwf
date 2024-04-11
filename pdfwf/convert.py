@@ -32,51 +32,49 @@ def parse_pdfs(
         argument to specify the parser to use.
     """
     import json
-    import time
+    import uuid
 
     from pdfwf.parsers import get_parser
+    from pdfwf.timer import Timer
     from pdfwf.utils import setup_logging
 
     # Setup logging
     logger = setup_logging('pdfwf')
 
-    # Start the application timer
-    start = time.time()
+    # Unique ID for logging
+    unique_id = str(uuid.uuid4())
 
     # Initialize the parser. This loads the models into memory and registers
     # them in a global registry unique to the current parsl worker process.
     # This ensures that the models are only loaded once per worker process
     # (i.e., we warmstart the models)
-    parser = get_parser(parser_kwargs, register=True)
+    with Timer('initialize-parser', unique_id):
+        parser = get_parser(parser_kwargs, register=True)
 
     # Process the PDF files in bulk
-    documents = parser.parse(pdf_paths)
-
-    # Print the parsing time
-    end = time.time()
-    logger.info(f'Parsed {len(pdf_paths)} PDFs in {end - start:.2f} seconds')
+    with Timer('parser-parse', unique_id):
+        documents = parser.parse(pdf_paths)
 
     # If parsing failed, return early
     if documents is None:
         logger.info(f'Failed to parse {pdf_paths}')
         return
 
-    # Merge parsed documents into a single string of JSON lines
-    lines = ''.join(f'{json.dumps(doc)}\n' for doc in documents)
+    # Write the parsed documents to a JSON lines file
+    with Timer('write-jsonl', unique_id):
+        # Merge parsed documents into a single string of JSON lines
+        lines = ''.join(f'{json.dumps(doc)}\n' for doc in documents)
 
-    # Store the JSON lines strings to a disk using a single write operation
-    with open(output_dir / f'{parser.unique_id}.jsonl', 'a+') as f:
-        f.write(lines)
-
-    # Log the time taken to process the batch
-    end = time.time()
-    logger.info(
-        f'Processed {len(pdf_paths)} PDFs in {end - start:.2f} seconds'
-    )
+        # Store the JSON lines strings to a disk using a single write operation
+        with open(output_dir / f'{parser.unique_id}.jsonl', 'a+') as f:
+            f.write(lines)
 
 
 def parse_zip(
-    zip_file: str, output_dir: Path, parser_kwargs: dict[str, Any]
+    zip_file: str,
+    tmp_storage: Path,
+    output_dir: Path,
+    parser_kwargs: dict[str, Any],
 ) -> None:
     """Parse the PDF files stored within a zip file.
 
@@ -84,6 +82,8 @@ def parse_zip(
     ----------
     zip_file : str
         Path to the zip file containing the PDFs to parse.
+    tmp_storage : Path
+        Path to the local storage directory.
     output_dir : Path
         Directory to write the output JSON lines file to.
     parser_kwargs : dict[str, Any]
@@ -97,11 +97,15 @@ def parse_zip(
     from pathlib import Path
 
     from pdfwf.convert import parse_pdfs
+    from pdfwf.timer import Timer
+
+    # Time the worker function
+    timer = Timer('finished-parsing', zip_file).start()
 
     try:
         # Make a temporary directory to unzip the file (use a UUID
         # to avoid name collisions)
-        local_dir = Path('/local/scratch') / str(uuid.uuid4())
+        local_dir = tmp_storage / str(uuid.uuid4())
         temp_dir = local_dir / Path(zip_file).stem
         temp_dir.mkdir(parents=True)
 
@@ -112,13 +116,11 @@ def parse_zip(
         pdf_paths = [str(p) for p in temp_dir.glob('**/*.pdf')]
 
         # Call the parse_pdfs function
-        parse_pdfs(pdf_paths, output_dir, parser_kwargs)
+        with Timer('parse-pdfs', zip_file):
+            parse_pdfs(pdf_paths, output_dir, parser_kwargs)
 
         # Clean up the temporary directory
         shutil.rmtree(local_dir)
-
-        # Log the zip file that was processed
-        print(f'Finished processing {zip_file}')
 
     # Catch any exceptions possible. Note that we need to convert the exception
     # to a string to avoid issues with pickling the exception object
@@ -128,8 +130,11 @@ def parse_zip(
 
         traceback.print_exc()
         print(f'Failed to process {zip_file}: {e}')
-        # raise Exception(str(e))
         return None
+
+    finally:
+        # Stop the timer to log the worker time
+        timer.stop()
 
 
 class WorkflowConfig(BaseModel):
@@ -140,6 +145,9 @@ class WorkflowConfig(BaseModel):
 
     out_dir: Path
     """The output directory of the workflow."""
+
+    tmp_storage: Path = Path('/tmp')
+    """Temporary storage directory for unzipping files."""
 
     iszip: bool = False
     """Whether the input files are zip files containing many PDFs."""
@@ -218,6 +226,7 @@ if __name__ == '__main__':
     if config.iszip:
         worker_fn = functools.partial(
             parse_zip,
+            tmp_storage=config.tmp_storage,
             output_dir=pdf_output_dir,
             parser_kwargs=config.parser_settings.model_dump(),
         )
