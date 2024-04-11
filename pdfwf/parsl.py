@@ -276,12 +276,12 @@ export HTTPS_PROXY=http://proxy.alcf.anl.gov:3128
 export http_proxy=http://proxy.alcf.anl.gov:3128
 export https_proxy=http://proxy.alcf.anl.gov:3128
 git config --global http.proxy http://proxy.alcf.anl.gov:3128
-echo "before module load"
+echo 'before module load'
 module use /soft/modulefiles/
 module load frameworks/2023.12.15.001
-echo "after module load"
+echo 'after module load'
 source /lus/gila/projects/candle_aesp_CNDA/hippekp/venvs/pdfwf/bin/activate
-echo "after env activate""",
+echo 'after env activate' """,
                         nodes_per_block=self.num_nodes,
                         account=self.account,
                         queue=self.queue,
