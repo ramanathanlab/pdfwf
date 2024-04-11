@@ -257,6 +257,7 @@ class SunspotSettings(BaseComputeSettings):
         return Config(
             executors=[
                 HighThroughputExecutor(
+                    label=self.label,
                     available_accelerators=accel_ids,  # Ensures one worker per accelerator
                     cpu_affinity="block",  # Assigns cpus in sequential order
                     prefetch_capacity=0,
