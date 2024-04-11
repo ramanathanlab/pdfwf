@@ -124,6 +124,7 @@ class NougatParser(BaseParser):
         from nougat.utils.dataset import LazyDataset
         from torch.utils.data import ConcatDataset
         from torch.utils.data import DataLoader
+        import torch
 
         pdfs = [Path(pdf_file) for pdf_file in pdf_files]
 
@@ -179,6 +180,7 @@ class NougatParser(BaseParser):
             prefetch_factor=self.config.prefetch_factor,
             shuffle=False,
             collate_fn=LazyDataset.ignore_none_collate,
+            multiprocessing_context='fork'  # This dataloader seems to break with parsl
         )
         documents = []
         predictions = []
