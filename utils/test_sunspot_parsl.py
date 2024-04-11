@@ -22,7 +22,7 @@ if __name__ == "__main__":
 
     settings = SunspotSettings(
         num_nodes=10,
-        account="candle_aesp",
+        account="candle_aesp_CNDA",
         queue="run_next",
         walltime="00",
     )
