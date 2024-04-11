@@ -27,10 +27,9 @@ if __name__ == "__main__":
         walltime="00",
     )
 
-    parsl_config = settings.get_parsl_config(run_dir=args.run_dir)
+    parsl_config = settings.get_config(run_dir=args.run_dir)
 
     inputs = list(range(args.num_tasks))
 
     with ParslPoolExecutor(config=parsl_config) as pool:
         list(pool.map(sleep_fn, inputs))
-
