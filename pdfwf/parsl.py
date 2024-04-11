@@ -263,8 +263,8 @@ class SunspotSettings(BaseComputeSettings):
                     prefetch_capacity=0,
                     max_workers=12,
                     cores_per_worker=16,
-                    heartbeat_period=15,
-                    heartbeat_threshold=240,
+                    heartbeat_period=30,
+                    heartbeat_threshold=120,
                     provider=PBSProProvider(
                         launcher=MpiExecLauncher(
                             bind_cmd="--cpu-bind",
