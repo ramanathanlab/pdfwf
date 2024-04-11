@@ -233,13 +233,6 @@ class SunspotSettings(BaseComputeSettings):
 
     Each GPU tasks uses a single tile"""
 
-    torch_device = 'xpu'
-    lammps_cmd = ('/home/knight/lammps-git/src/lmp_aurora_gpu-lward '
-                  '-pk gpu 1 -sf gpu').split()
-    lammps_env = {'OMP_NUM_THREADS': '1'}
-    cpus_per_node = 208
-    gpus_per_node = 12
-
     name: Literal['sunspot'] = 'sunspot'  # type: ignore[assignment]
     label: str = 'htex'
 
