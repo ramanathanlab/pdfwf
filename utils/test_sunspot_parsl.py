@@ -21,7 +21,7 @@ if __name__ == "__main__":
     args.run_dir.mkdir(exist_ok=True, parents=True)
 
     settings = SunspotSettings(
-        num_nodes=10,
+        num_nodes=1,
         account="candle_aesp_CNDA",
         queue="run_next",
         walltime="01:00:00",
