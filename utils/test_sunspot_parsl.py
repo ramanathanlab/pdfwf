@@ -24,7 +24,7 @@ if __name__ == "__main__":
         num_nodes=10,
         account="candle_aesp_CNDA",
         queue="run_next",
-        walltime="00",
+        walltime="01:00:00",
     )
 
     parsl_config = settings.get_config(run_dir=args.run_dir)
