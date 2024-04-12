@@ -38,7 +38,7 @@ compute_settings:
   # The number of compute nodes to use
   num_nodes: 1
   # Make sure to update the path to your conda environment and HF cache
-  worker_init: "module load python/3.11.6--gcc--8.5.0; source /leonardo_scratch/large/userexternal/abrace00/venvs/parsl-test-venv/bin/activate; export HF_HOME=/leonardo_scratch/large/userexternal/abrace00/.cache"
+  worker_init: "module load python/3.11.6--gcc--8.5.0; source /leonardo_scratch/large/userexternal/abrace00/venvs/pdfwf-venv/bin/activate; export HF_HOME=/leonardo_scratch/large/userexternal/abrace00/.cache"
   # The scheduler options to use when submitting jobs
   scheduler_options: "#PBS -l filesystems=home:eagle:grand"
   # Partition to use.
