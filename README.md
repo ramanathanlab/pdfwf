@@ -299,9 +299,6 @@ $ pdfwf nougat [OPTIONS]
 
 Parse PDFs using the oreo parser.
 
-**Installation**
-Creation of directory `./static` was
-
 **Usage**:
 
 ```console
@@ -352,4 +349,21 @@ tox -e py310
 To generate the CLI documentation, run:
 ```
 typer pdfwf.cli utils docs --output CLI.md
+```
+
+## Installation on HPC systems
+
+### Leonardo
+For Nougat:
+```bash
+module load python/3.11.6--gcc--8.5.0
+python -m venv pdfwf-venv
+source pdfwf-venv/bin/activate
+pip install -U pip setuptools wheel
+pip install torch
+pip install numpy
+pip install -r requirements/nougat_requirements.txt
+pip install -e .
+python -m nltk.downloader words
+python -m nltk.downloader punkt
 ```
