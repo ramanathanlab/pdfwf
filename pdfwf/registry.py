@@ -2,8 +2,7 @@
 
 See: https://github.com/braceal/parsl_object_registry/tree/main
 """
-
-
+from __future__ import annotations
 
 import functools
 import inspect
@@ -13,9 +12,8 @@ from typing import Any
 from typing import Callable
 from typing import cast
 from typing import Generic
-from typing import TypeVar
 from typing import Optional
-from typing import Dict
+from typing import TypeVar
 
 if sys.version_info >= (3, 10):
     from typing import ParamSpec
@@ -30,8 +28,8 @@ P = ParamSpec('P')
 class RegistryInstance(Generic[T]):
     """Store an instance of an object and a shutdown hook."""
 
-    shutdown_callback: Optional[Callable[[T], Any]] = None
-    obj: Optional[T] = None
+    shutdown_callback: Optional[Callable[[T], Any]] = None  # noqa: UP007
+    obj: Optional[T] = None  # noqa: UP007
     arg_hash: int = 0
 
     def shutdown(self) -> None:
@@ -58,11 +56,11 @@ class RegistrySingleton:
     >>> my_object = registry.get(MyExpensiveTorchClass, *args, **kwargs)
     """
 
-    _registry: Dict[Callable[..., Any], RegistryInstance[Any]]
-    _active: Optional[Callable[..., Any]]
+    _registry: dict[Callable[..., Any], RegistryInstance[Any]]
+    _active: Optional[Callable[..., Any]]  # noqa: UP007
 
     # TODO: without future annotations I am not sure how to do this
-    def __new__(cls):
+    def __new__(cls):  # type: ignore[no-untyped-def]
         """Create a singleton instance of the registry."""
         if not hasattr(cls, '_instance'):
             cls._instance = super(RegistrySingleton, cls).__new__(cls)  # noqa: UP008
@@ -84,7 +82,7 @@ class RegistrySingleton:
     def register(
         self,
         cls_fn: Callable[P, T],
-        shutdown_callback: Optional[Callable[[T], Any]] = None,
+        shutdown_callback: Optional[Callable[[T], Any]] = None,  # noqa: UP007
     ) -> None:
         """Register an object type with the registry."""
         if cls_fn not in self._registry:
@@ -164,7 +162,7 @@ def _register_cls_decorator(cls: Callable[P, T]) -> Callable[P, T]:
 
 
 def register(
-    shutdown_callback: Optional[Callable[[T], Any]] = None,
+    shutdown_callback: Optional[Callable[[T], Any]] = None,  # noqa: UP007
 ) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """Register a function or class with the registry.
 

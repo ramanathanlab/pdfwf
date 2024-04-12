@@ -1,5 +1,5 @@
 """CLI for the PDF workflow package."""
-
+from __future__ import annotations
 
 from pathlib import Path
 
@@ -29,7 +29,8 @@ def nougat(  # noqa: PLR0913
         '-bs',
         help=(
             'Number of pages per patch. Maximum 10 for A100 40GB. '
-            'Maximum 14 for PVC, though this brings it right to the limit.'),
+            'Maximum 14 for PVC, though this brings it right to the limit.'
+        ),
     ),
     checkpoint: Path = typer.Option(  # noqa: B008
         'nougat_ckpts/base',
@@ -386,6 +387,40 @@ def balance_jsonl(
         lines_per_file=lines_per_file,
         num_workers=num_workers,
     )
+
+
+@app.command()
+def parse_timers(
+    run_path: Path = typer.Option(  # noqa: B008
+        ...,
+        '--run_path',
+        '-l',
+        help='Path to the workflow run directory.',
+    ),
+    csv_path: Path = typer.Option(  # noqa: B008
+        'timer_logs.csv',
+        '--csv_path',
+        '-c',
+        help='Path to the CSV file to write the parsed timer logs to.',
+    ),
+) -> None:
+    """Parse timer logs from the PDF workflow."""
+    import pandas as pd
+
+    from pdfwf.timer import TimeLogger
+
+    # Path to the timer logs
+    log_dir = run_path / 'parsl' / '000' / 'submit_scripts'
+
+    # Parse the timer logs
+    # Note: there could be multiple logs for a single run
+    # if the workflow submits multiple jobs back to back
+    time_stats = []
+    for log_path in log_dir.glob('*.stdout'):
+        time_stats.extend(TimeLogger().parse_logs(log_path))
+
+    # Write the parsed timer logs to a CSV file
+    pd.DataFrame(time_stats).to_csv(csv_path, index=False)
 
 
 def main() -> None:
