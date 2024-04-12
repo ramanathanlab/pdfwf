@@ -289,4 +289,5 @@ ComputeSettingsTypes = Union[
     LocalSettings,
     WorkstationSettings,
     PolarisSettings,
+    LeonardoSettings,
 ]
