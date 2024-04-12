@@ -129,11 +129,20 @@ class LeonardoSettings(BaseComputeSettings):
     """Number of nodes to request."""
     worker_init: str = ''
     """How to start a worker. Should load any modules and environments."""
+    scheduler_options: str = ''
+    """Additional scheduler options."""
     retries: int = 0
     """Number of retries upon failure."""
 
     def get_config(self, run_dir: PathLike) -> Config:
         """Create a parsl configuration for running on Leonardo."""
+        # Default scheduler options for GPU partition
+        scheduler_options = '#SBATCH --gres=gpu:4\n#SBATCH --ntasks-per-node=1'
+
+        # Add the user provided scheduler options
+        if self.scheduler_options:
+            scheduler_options += '\n' + self.scheduler_options
+
         return Config(
             run_dir=str(run_dir),
             retries=self.retries,
@@ -156,7 +165,7 @@ class LeonardoSettings(BaseComputeSettings):
                         walltime=self.walltime,
                         nodes_per_block=self.num_nodes,
                         # Switch to "-C cpu" for CPU partition
-                        scheduler_options='#SBATCH --gres=gpu:4\n#SBATCH --ntasks-per-node=1',  # noqa: E501
+                        scheduler_options=scheduler_options,
                         worker_init=self.worker_init,
                     ),
                 )
