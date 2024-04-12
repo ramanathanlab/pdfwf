@@ -20,16 +20,19 @@ if __name__ == "__main__":
 
     args.run_dir.mkdir(exist_ok=True, parents=True)
 
+    num_nodes = 32
     settings = SunspotSettings(
-        num_nodes=10,
+        num_nodes=num_nodes,
         account="candle_aesp_CNDA",
         queue="run_next",
-        walltime="01:00:00",
+        walltime="02:00:00",
     )
 
     parsl_config = settings.get_config(run_dir=args.run_dir)
 
-    inputs = list(range(args.num_tasks))
+    num_workers = num_nodes * 12
 
     with ParslPoolExecutor(config=parsl_config) as pool:
-        list(pool.map(sleep_fn, inputs))
+        for i in range(0, args.num_tasks, num_workers):
+            inputs = list(range(i, i + num_workers))
+            list(pool.map(sleep_fn, inputs))
