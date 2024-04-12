@@ -1,5 +1,5 @@
 # The directory containing the pdfs to convert
-pdf_dir: /lus/eagle/projects/tpc/braceal/metric-rag/data/raw_pdfs/scaling-data/zip-scaling-data
+pdf_dir: /lus/eagle/projects/tpc/braceal/metric-rag/data/raw_pdfs/scaling-data/zip-scaling-data-small
 
 # The output directory of the workflow
 out_dir: /lus/eagle/projects/tpc/braceal/metric-rag/data/parsed_pdfs/scaling/nougat.polaris.nodes256
