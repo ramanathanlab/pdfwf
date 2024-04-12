@@ -46,4 +46,4 @@ compute_settings:
   # The HPC queue to submit to
   queue: run_next
   # The amount of time to request for your job
-  walltime: "01:00:00"
+  walltime: "00:30:00"
