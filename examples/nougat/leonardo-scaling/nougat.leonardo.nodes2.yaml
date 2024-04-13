@@ -2,7 +2,7 @@
 pdf_dir: /leonardo_scratch/large/userexternal/abrace00/metric-rag/data/raw_pdfs/scaling-data/zip-scaling-data-small
 
 # The output directory of the workflow
-out_dir: /leonardo_scratch/large/userexternal/abrace00/metric-rag/data/parsed_pdfs/scaling/nougat.leonardo.nodes2
+out_dir: /leonardo_scratch/large/userexternal/abrace00/metric-rag/data/parsed_pdfs/scaling/nougat.leonardo.nodes2.test2
 
 # Search for zip files in the pdf_dir
 iszip: true
