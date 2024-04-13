@@ -28,7 +28,7 @@ parser_settings:
   # Preempt processing a paper if mode collapse causes repetitions (true is recommended)
   skipping: true
   # Path for the nougat-specific logs for the run.
-  nougat_logs_path: /leonardo_scratch/large/userexternal/abrace00/metric-rag/data/parsed_pdfs/scaling/nougat.leonardo.nodes2/nougat_logs
+  nougat_logs_path: /leonardo_scratch/large/userexternal/abrace00/metric-rag/data/parsed_pdfs/scaling/nougat.leonardo.nodes2.test2/nougat_logs
 
 
 # The compute settings for the workflow
