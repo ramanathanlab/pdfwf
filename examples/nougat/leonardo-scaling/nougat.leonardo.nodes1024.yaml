@@ -13,8 +13,8 @@ tmp_storage: /dev/shm
 # The settings for the pdf parser
 parser_settings:
   name: nougat
-  # Recommended batch size of pages (not pdfs) is 10, maximum that fits into A100 40GB.
-  batchsize: 10
+  # Recommended batch size of pages (not pdfs) is 12, maximum that fits into A100 64GB.
+  batchsize: 12
   # Path to download the checkpoint to. if already exists, will use existing.
   checkpoint: /leonardo_scratch/large/userexternal/abrace00/.cache/nougat/base
   # Set mmd_out to null if you don't want to write mmd files as a byproduct.
