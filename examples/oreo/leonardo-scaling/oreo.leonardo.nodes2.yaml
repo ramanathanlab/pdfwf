@@ -7,6 +7,9 @@ out_dir: /leonardo_scratch/large/userexternal/abrace00/metric-rag/data/parsed_pd
 # Search for zip files in the pdf_dir
 iszip: true
 
+# Temporary storage directory for unzipping files
+tmp_storage: /dev/shm
+
 # The settings for the pdf parser
 parser_settings:
   # The name of the parser to use.
