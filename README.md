@@ -226,7 +226,10 @@ conda create -n pdfwf python=3.10 -y
 conda activate pdfwf
 mamba install pytorch torchvision pytorch-cuda=11.8 -c pytorch -c nvidia -y
 pip install -r requirements/oreo_requirements.txt
+git clone git@github.com:ultralytics/yolov5.git
 ```
+
+Then set the `yolov5_path` option to the path of the cloned `yolov5` repository.
 
 ## CLI
 For running smaller jobs without using the Parsl workflow, the CLI can be used.
@@ -354,7 +357,6 @@ typer pdfwf.cli utils docs --output CLI.md
 ## Installation on HPC systems
 
 ### Leonardo
-For Nougat:
 ```bash
 module load python/3.11.6--gcc--8.5.0
 python -m venv pdfwf-venv
@@ -363,6 +365,7 @@ pip install -U pip setuptools wheel
 pip install torch
 pip install numpy
 pip install -r requirements/nougat_requirements.txt
+pip install -r requirements/oreo_requirements.txt
 pip install -e .
 python -m nltk.downloader words
 python -m nltk.downloader punkt
