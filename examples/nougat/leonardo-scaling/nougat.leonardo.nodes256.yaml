@@ -1,8 +1,8 @@
 # The directory containing the pdfs to convert
-pdf_dir: /leonardo_scratch/large/userexternal/abrace00/metric-rag/data/raw_pdfs/scaling-data/zip-scaling-data-small
+pdf_dir: /leonardo_scratch/large/userexternal/abrace00/metric-rag/data/raw_pdfs/scaling-data/zip-scaling-data
 
 # The output directory of the workflow
-out_dir: /leonardo_scratch/large/userexternal/abrace00/metric-rag/data/parsed_pdfs/scaling/nougat.leonardo.nodes2.test2
+out_dir: /leonardo_scratch/large/userexternal/abrace00/metric-rag/data/parsed_pdfs/scaling/nougat.leonardo.nodes256
 
 # Search for zip files in the pdf_dir
 iszip: true
@@ -28,7 +28,7 @@ parser_settings:
   # Preempt processing a paper if mode collapse causes repetitions (true is recommended)
   skipping: true
   # Path for the nougat-specific logs for the run.
-  nougat_logs_path: /leonardo_scratch/large/userexternal/abrace00/metric-rag/data/parsed_pdfs/scaling/nougat.leonardo.nodes2.test2/nougat_logs
+  nougat_logs_path: /leonardo_scratch/large/userexternal/abrace00/metric-rag/data/parsed_pdfs/scaling/nougat.leonardo.nodes256/nougat_logs
 
 
 # The compute settings for the workflow
@@ -36,7 +36,7 @@ compute_settings:
   # The name of the compute platform to use
   name: leonardo
   # The number of compute nodes to use
-  num_nodes: 2
+  num_nodes: 256
   # Make sure to update the path to your conda environment and HF cache
   worker_init: "module load python/3.11.6--gcc--8.5.0; source /leonardo_scratch/large/userexternal/abrace00/venvs/pdfwf-venv/bin/activate; export HF_HOME=/leonardo_scratch/large/userexternal/abrace00/.cache"
   # The scheduler options to use when submitting jobs

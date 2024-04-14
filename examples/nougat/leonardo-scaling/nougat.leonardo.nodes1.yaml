@@ -1,5 +1,5 @@
 # The directory containing the pdfs to convert
-pdf_dir: /leonardo_scratch/large/userexternal/abrace00/metric-rag/data/raw_pdfs/scaling-data/zip-scaling-data-small
+pdf_dir: /leonardo_scratch/large/userexternal/abrace00/metric-rag/data/raw_pdfs/scaling-data/zip-scaling-data
 
 # The output directory of the workflow
 out_dir: /leonardo_scratch/large/userexternal/abrace00/metric-rag/data/parsed_pdfs/scaling/nougat.leonardo.nodes1
@@ -40,13 +40,12 @@ compute_settings:
   # Make sure to update the path to your conda environment and HF cache
   worker_init: "module load python/3.11.6--gcc--8.5.0; source /leonardo_scratch/large/userexternal/abrace00/venvs/pdfwf-venv/bin/activate; export HF_HOME=/leonardo_scratch/large/userexternal/abrace00/.cache"
   # The scheduler options to use when submitting jobs
-  # scheduler_options: "#SBATCH --reservation=s_res_gb"
+  scheduler_options: "#SBATCH --reservation=s_res_gb"
   # Partition to use.
   partition: boost_usr_prod
   # Quality of service.
-  # qos: qos_resv
-  qos: boost_qos_dbg
+  qos: qos_resv
   # Account to charge compute to.
   account: try24_Genomics_0
   # The amount of time to request for your job
-  walltime: 00:30:00
+  walltime: 01:00:00
