@@ -1,0 +1,35 @@
+pdf_dir: /lus/gila/projects/candle_aesp_CNDA/hippekp/aglimmer/data/pdfs/zip-scaling-data-small
+out_dir: /lus/gila/projects/candle_aesp_CNDA/hippekp/aglimmer/data/parsed_pdfs/scaling/scaling-016
+
+# Only convert the first 100 pdfs for testing
+num_conversions: 9223372036854775807
+
+# The number of PDFs to parse in each parsl task
+chunk_size: 20
+
+# Search for zip files in the pdf_dir
+iszip: true
+
+# Temporary storage directory for unzipping files
+tmp_storage: /dev/shm
+
+parser_settings:
+    name: nougat
+    batchsize: 10
+    checkpoint: /lus/gila/projects/candle_aesp_CNDA/hippekp/aglimmer/nougat-checkpoint
+    mmd_out: null
+    recompute: false
+    full_precision: false
+    markdown: true
+    skipping: true
+    nougat_logs_path: /lus/gila/projects/candle_aesp_CNDA/hippekp/aglimmer/data/parsed_pdfs/scaling/nougat-logs
+
+# The compute settings for the workflow
+compute_settings:
+  name: sunspot 
+  num_nodes: 16
+  account: candle_aesp_CNDA
+  # The HPC queue to submit to
+  queue: run_next
+  # The amount of time to request for your job
+  walltime: 00:30:00
