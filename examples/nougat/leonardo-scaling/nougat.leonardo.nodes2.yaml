@@ -1,8 +1,8 @@
 # The directory containing the pdfs to convert
-pdf_dir: /leonardo_scratch/large/userexternal/abrace00/metric-rag/data/raw_pdfs/scaling-data/zip-scaling-data-small
+pdf_dir: /leonardo_scratch/large/userexternal/abrace00/metric-rag/data/raw_pdfs/scaling-data/zip-scaling-data
 
 # The output directory of the workflow
-out_dir: /leonardo_scratch/large/userexternal/abrace00/metric-rag/data/parsed_pdfs/scaling/nougat.leonardo.nodes2.test2
+out_dir: /leonardo_scratch/large/userexternal/abrace00/metric-rag/data/parsed_pdfs/scaling/nougat.leonardo.nodes2
 
 # Search for zip files in the pdf_dir
 iszip: true
@@ -45,7 +45,6 @@ compute_settings:
   partition: boost_usr_prod
   # Quality of service.
   qos: qos_resv
-  #qos: boost_qos_dbg
   # Account to charge compute to.
   account: try24_Genomics_0
   # The amount of time to request for your job
