@@ -37,7 +37,7 @@ parser_settings:
   # If true, accelerate inference by packing non-meta text patches.
   accelerate: false
   # Main batch size for detection/# of images loaded per batch.
-  batch_yolo: 64
+  batch_yolo: 128
   # Batch size of pre-processed patches for ViT pseudo-OCR inference.
   batch_vit: 512
   # Batch size K for subsequent text processing.
