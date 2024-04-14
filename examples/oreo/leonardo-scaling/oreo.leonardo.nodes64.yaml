@@ -1,0 +1,66 @@
+# The directory containing the pdfs to convert
+pdf_dir: /leonardo_scratch/large/userexternal/abrace00/metric-rag/data/raw_pdfs/scaling-data/zip-scaling-data
+
+# The output directory of the workflow
+out_dir: /leonardo_scratch/large/userexternal/abrace00/metric-rag/data/parsed_pdfs/scaling/oreo.leonardo.nodes64
+
+# Search for zip files in the pdf_dir
+iszip: true
+
+# Temporary storage directory for unzipping files
+tmp_storage: /dev/shm
+
+# The settings for the pdf parser
+parser_settings:
+  # The name of the parser to use.
+  name: oreo
+  # Weights to layout detection model.
+  detection_weights_path: /leonardo_scratch/large/userexternal/abrace00/metric-rag/src/oreo-models/yolov5_detection_weights.pt
+  # Model weights for (meta) text classifier.
+  text_cls_weights_path: /leonardo_scratch/large/userexternal/abrace00/metric-rag/src/oreo-models/meta_text_classifier
+  # Path to the SPV05 category file.
+  spv05_category_file_path: /leonardo_scratch/large/userexternal/abrace00/metric-rag/src/oreo-models/spv05_categories.yaml
+  # Path to a local copy of the ultralytics/yolov5 repository.
+  yolov5_path: /leonardo_scratch/large/userexternal/abrace00/metric-rag/src/oreo-models/yolov5
+  # Only scan PDFs for meta statistics on its attributes.
+  detect_only: false
+  # Only parse PDFs for meta data.
+  meta_only: false
+  # Include equations into the text categories
+  equation: true
+  # Include table visualizations (will be stored).
+  table: false
+  # Include figure  (will be stored).
+  figure: false
+  # Include secondary meta data (footnote, headers).
+  secondary_meta: false
+  # If true, accelerate inference by packing non-meta text patches.
+  accelerate: false
+  # Main batch size for detection/# of images loaded per batch.
+  batch_yolo: 64
+  # Batch size of pre-processed patches for ViT pseudo-OCR inference.
+  batch_vit: 512
+  # Batch size K for subsequent text processing.
+  batch_cls: 512
+  # Number of pixels along which.
+  bbox_offset: 2
+
+
+# The compute settings for the workflow
+compute_settings:
+  # The name of the compute platform to use
+  name: leonardo
+  # The number of compute nodes to use
+  num_nodes: 64
+  # Make sure to update the path to your conda environment and HF cache
+  worker_init: "module load python/3.11.6--gcc--8.5.0; source /leonardo_scratch/large/userexternal/abrace00/venvs/pdfwf-venv/bin/activate; export HF_HOME=/leonardo_scratch/large/userexternal/abrace00/.cache"
+  # The scheduler options to use when submitting jobs
+  scheduler_options: "#SBATCH --reservation=s_res_gb"
+  # Partition to use.
+  partition: boost_usr_prod
+  # Quality of service.
+  qos: qos_resv
+  # Account to charge compute to.
+  account: try24_Genomics_0
+  # The amount of time to request for your job
+  walltime: 01:00:00
