@@ -14,7 +14,7 @@ parser_settings:
   # Recommended batch size of pages (not pdfs) is 10, maximum that fits into A100 40GB.
   batchsize: 10
   # Path to download the checkpoint to. if already exists, will use existing.
-  checkpoint: /lus/eagle/projects/CVD-Mol-AI/braceal/.cache/nougat/base
+  checkpoint: /lus/eagle/projects/FoundEpidem/hippekp/aglimmer/nougat-checkpoint
   # Set mmd_out to null if you don't want to write mmd files as a byproduct.
   mmd_out: null
   # If set to false, a will skip the pdfs that already have a parsed mmd file in mmd_out
