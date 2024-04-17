@@ -213,6 +213,12 @@ def oreo(  # noqa: PLR0913
         '-s',
         help='Path to the SPV05 category file.',
     ),
+    yolov5_path: Path = typer.Option(  # noqa: B008
+        None,
+        '--yolov5_path',
+        '-y',
+        help='Path to the YOLOv5 repository.',
+    ),
     detect_only: bool = typer.Option(
         False,
         '--detect_only',
@@ -319,6 +325,7 @@ def oreo(  # noqa: PLR0913
         'detection_weights_path': detection_weights_path,
         'text_cls_weights_path': text_cls_weights_path,
         'spv05_category_file_path': spv05_category_file_path,
+        'yolov5_path': yolov5_path,
         'detect_only': detect_only,
         'meta_only': meta_only,
         'equation': equation,
