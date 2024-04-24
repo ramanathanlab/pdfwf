@@ -41,6 +41,13 @@ optional arguments:
   --config CONFIG  Path to workflow configuration file
 ```
 
+### Choosing a Parser (April 2024)
+[`Nougat`](https://arxiv.org/abs/2308.13418), [`Marker`](https://github.com/VikParuchuri/marker), and `Oreo` are designed and trained to parse academic papers of any scientific domain. Since there are no canonical metrics on how to evaluate parser output quality, it is non-trivial to compare accuracy in a meaningful way. Regardless, we conducted a small experiment on $n=380$ multi-disciplinary paragaphs amounting to $33,000$ words. 
+
+Nougat appears to be more accurate as evidenced by slightly higher transcription quality overall (as measured by BLEU score) and the ability to detect rare domain-specific terms, in particular. Oreo, on the other hand, is faster by a factor of $4$ and has slightly lower but comparable accuracy as Nougat (lower BLEU but higher METEOR score). However, Oreo struggles to properly order paragraphs on challenging document layouts and does not filter out erroneously repeated words as Nougat does. Marker is dominated by Oreo in terms of inference speed and inferior to Nougat in terms of transcription quality. These results are not domain-specific. As of now, we suggest Nougat if you parse <1M papers. 
+
+While PDFs of any kind can be parsed (e.g., blog articles, corporate documents) with any of these frameworks, it is unclear how accurate each of them is. Since scientific PDFs tend to have a complex layout, parsing PDFs should provide reasonable output as long as the layout is somewhat comparable to that of a scientific paper.
+
 ### Workflow Configuration
 The computing platform, virtual environment, parser settings, and other settings are specified via a YAML configuration file.
 
