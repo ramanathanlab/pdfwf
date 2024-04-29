@@ -1,8 +1,8 @@
 # The directory containing the pdfs to convert
-pdf_dir: /lus/eagle/projects/tpc/braceal/metric-rag/data/raw_pdfs/scaling-data/zip-scaling-data-small
+pdf_dir: /lus/eagle/projects/tpc/braceal/metric-rag/data/raw_pdfs/scaling-data/zip-scaling-data
 
 # The output directory of the workflow
-out_dir: /lus/eagle/projects/tpc/braceal/metric-rag/data/parsed_pdfs/scaling/nougat.polaris.nodes256
+out_dir: /lus/eagle/projects/FoundEpidem/hippekp/aglimmer/data/scaling/pdfparsing/nougat.polaris.nodes256
 
 # Search for zip files in the pdf_dir
 iszip: true
@@ -16,7 +16,7 @@ parser_settings:
   # Recommended batch size of pages (not pdfs) is 10, maximum that fits into A100 40GB.
   batchsize: 10
   # Path to download the checkpoint to. if already exists, will use existing.
-  checkpoint: /lus/eagle/projects/CVD-Mol-AI/braceal/.cache/nougat/base
+  checkpoint: /lus/eagle/projects/FoundEpidem/hippekp/aglimmer/nougat-checkpoint
   # Set mmd_out to null if you don't want to write mmd files as a byproduct.
   mmd_out: null
   # If set to false, a will skip the pdfs that already have a parsed mmd file in mmd_out
@@ -28,7 +28,7 @@ parser_settings:
   # Preempt processing a paper if mode collapse causes repetitions (true is recommended)
   skipping: true
   # Path for the nougat-specific logs for the run.
-  nougat_logs_path: /lus/eagle/projects/tpc/braceal/metric-rag/data/parsed_pdfs/scaling/nougat.polaris.nodes256/nougat_logs
+  nougat_logs_path: /lus/eagle/projects/FoundEpidem/hippekp/aglimmer/data/scaling/pdfparsing/nougat.polaris.nodes256/nougat_logs
 
 
 # The compute settings for the workflow
@@ -38,7 +38,7 @@ compute_settings:
   # The number of compute nodes to use
   num_nodes: 256
   # Make sure to update the path to your conda environment and HF cache
-  worker_init: "module load conda/2023-10-04; conda activate pdfwf; export HF_HOME=/lus/eagle/projects/CVD-Mol-AI/braceal/.cache"
+  worker_init: "module load conda/2023-10-04; conda activate pdfwf; export HF_HOME=/lus/eagle/projects/FoundEpidem/hippekp/hf-home"
   # The scheduler options to use when submitting jobs
   scheduler_options: "#PBS -l filesystems=home:eagle:grand"
   # Make sure to change the account to the account you want to charge
@@ -46,4 +46,4 @@ compute_settings:
   # The HPC queue to submit to
   queue: run_next
   # The amount of time to request for your job
-  walltime: "00:30:00"
+  walltime: "00:60:00"
