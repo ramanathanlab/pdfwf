@@ -12,6 +12,8 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import Self
 
+import traceback
+
 import torch
 from pydantic import field_validator
 from pydantic import model_validator
@@ -32,6 +34,8 @@ class OreoParserConfig(BaseParserConfig):
     text_cls_weights_path: Path
     # Path to the SPV05 category file.
     spv05_category_file_path: Path
+    # Path to a local copy of the ultralytics/yolov5 repository.
+    yolov5_path: Path | None = None
     # Only scan PDFs for meta statistics on its attributes.
     detect_only: bool = False
     # Only parse PDFs for meta data.
@@ -107,8 +111,15 @@ class OreoParser(BaseParser):
 
         # load models
         # - (1.) detection: Yolov5
+        yolo_path = (
+            config.yolov5_path if config.yolov5_path else 'ultralytics/yolov5'
+        )
         detect_model = torch.hub.load(
-            'ultralytics/yolov5', 'custom', path=config.detection_weights_path
+            yolo_path,
+            'custom',
+            source='local' if config.yolov5_path else 'github',
+            path=config.detection_weights_path,
+            skip_validation=True,
         )
         detect_model.to(device)
         detect_model.eval()
@@ -180,7 +191,7 @@ class OreoParser(BaseParser):
 
     @torch.no_grad()
     @exception_handler(default_return=None)
-    def parse(self, pdf_files: list[str]) -> list[dict[str, Any]] | None:
+    def parse(self, pdf_files: list[str]) -> list[dict[str, Any]] | None:  # noqa: PLR0912, PLR0915
         """Parse a PDF file and extract markdown.
 
         Parameters
@@ -208,15 +219,15 @@ class OreoParser(BaseParser):
             pdf_paths=pdf_files, meta_only=self.config.meta_only
         )
 
-        # TODO: Experiment with num_workers and pin_memory
         # Create a DataLoader for batching and shuffling
         data_loader = DataLoader(
             dataset=dataset,
             batch_size=self.config.batch_yolo,
             shuffle=False,
             collate_fn=custom_collate,
-            # num_workers=1,
-            # pin_memory=True
+            num_workers=4,
+            pin_memory=True,
+            prefetch_factor=2,
         )
 
         # Maps the keys [Text, Title, Keywords, Tables, Figures, Equations
@@ -241,33 +252,48 @@ class OreoParser(BaseParser):
             tensors, file_ids, file_paths = batch
             tensors = tensors.to(self.device)
 
-            # Yolov5 inference (object detection)
-            results = self.detect_model(tensors)
+            try:
+                # Yolov5 inference (object detection)
+                results = self.detect_model(tensors)
+            except Exception:
+                traceback.print_exc()
+                print('Error in Yolov5 inference. Skipping batch.')
+                continue
 
-            # y : dataframe of patch features
-            y = pre_processing(
-                results=results,
-                file_ids=file_ids,
-                rel_class_ids=self.rel_txt_classes,
-                iou_thres=0.001,
-            )
+            try:
+                # y : dataframe of patch features
+                y = pre_processing(
+                    results=results,
+                    file_ids=file_ids,
+                    rel_class_ids=self.rel_txt_classes,
+                    iou_thres=0.001,
+                )
+            except Exception:
+                traceback.print_exc()
+                print('Error in pre_processing. Skipping batch.')
+                continue
 
-            # metadata specific extraction
-            (
-                pack_patch_tensor,
-                idx_quad,
-                curr_file_ids,
-            ) = get_packed_patch_tensor(
-                tensors=tensors,
-                y=y,
-                rel_class_ids=self.rel_txt_classes,
-                unpackable_class_ids=self.unpackable_classes,
-                sep_symbol_flag=False,
-                btm_pad=4,
-                by=['file_id'],
-                offset=self.config.bbox_offset,
-                sep_symbol_tensor=None,
-            )
+            try:
+                # metadata specific extraction
+                (
+                    pack_patch_tensor,
+                    idx_quad,
+                    curr_file_ids,
+                ) = get_packed_patch_tensor(
+                    tensors=tensors,
+                    y=y,
+                    rel_class_ids=self.rel_txt_classes,
+                    unpackable_class_ids=self.unpackable_classes,
+                    sep_symbol_flag=False,
+                    btm_pad=4,
+                    by=['file_id'],
+                    offset=self.config.bbox_offset,
+                    sep_symbol_tensor=None,
+                )
+            except Exception:
+                traceback.print_exc()
+                print('Error in get_packed_patch_tensor. Skipping batch.')
+                continue
 
             # skip empty document batches
             if pack_patch_tensor is None:
@@ -293,12 +319,16 @@ class OreoParser(BaseParser):
             tensors = None
 
             # ViT: pseudo-OCR inference
-            text_results = accelerated_batch_inference(
-                tensors=pack_patch_tensor,
-                model=self.ocr_model,
-                processor=self.ocr_processor,
-                batch_size=self.config.batch_vit,
-            )
+            try:
+                text_results = accelerated_batch_inference(
+                    tensors=pack_patch_tensor,
+                    model=self.ocr_model,
+                    processor=self.ocr_processor,
+                    batch_size=self.config.batch_vit,
+                )
+            except torch.cuda.OutOfMemoryError:
+                print('OOM error. Skipping batch.')
+                continue
 
             # TODO: *Retool* this. Use (text) Transformer to get text patch
             #       embedding
@@ -314,14 +344,18 @@ class OreoParser(BaseParser):
             #     text_results=text_results,
             # )
 
-            # assign decoded text to file docs
-            doc_dict = update_main_content_dict(
-                doc_dict=doc_dict,
-                text_results=text_results,
-                index_quadruplet=idx_quad,
-                curr_file_ids=curr_file_ids,
-                vis_path_dict=vis_path_dict,
-            )
+            try:
+                # assign decoded text to file docs
+                doc_dict = update_main_content_dict(
+                    doc_dict=doc_dict,
+                    text_results=text_results,
+                    index_quadruplet=idx_quad,
+                    curr_file_ids=curr_file_ids,
+                    vis_path_dict=vis_path_dict,
+                )
+            except Exception:
+                print('Error in update_main_content_dict. Skipping batch.')
+                continue
 
             # Store the file path for each file_id in the batch
             doc_file_paths.update(dict(zip(file_ids, file_paths)))

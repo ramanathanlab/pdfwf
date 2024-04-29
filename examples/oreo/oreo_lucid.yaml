@@ -1,0 +1,58 @@
+# The directory containing the pdfs to convert
+pdf_dir: /lus/eagle/projects/FoundEpidem/braceal/projects/metric-rag/data/raw_pdfs/LUCID
+
+# The output directory of the workflow
+out_dir: /lus/eagle/projects/FoundEpidem/braceal/projects/metric-rag/data/parsed_pdfs/LUCID.oreo
+
+# The number of PDFs to parse in each parsl task
+chunk_size: 500
+
+# The settings for the pdf parser
+parser_settings:
+  # The name of the parser to use.
+  name: oreo
+  # Weights to layout detection model.
+  detection_weights_path: /lus/eagle/projects/argonne_tpc/siebenschuh/N-O-REO/model_weights/yolov5_detection_weights.pt
+  # Model weights for (meta) text classifier.
+  text_cls_weights_path: /lus/eagle/projects/argonne_tpc/siebenschuh/N-O-REO/text_classifier/meta_text_classifier
+  # Path to the SPV05 category file.
+  spv05_category_file_path: /lus/eagle/projects/argonne_tpc/siebenschuh/N-O-REO/meta/spv05_categories.yaml
+  # Only scan PDFs for meta statistics on its attributes.
+  detect_only: false
+  # Only parse PDFs for meta data.
+  meta_only: false
+  # Include equations into the text categories
+  equation: true
+  # Include table visualizations (will be stored).
+  table: false
+  # Include figure  (will be stored).
+  figure: false
+  # Include secondary meta data (footnote, headers).
+  secondary_meta: false
+  # If true, accelerate inference by packing non-meta text patches.
+  accelerate: false
+  # Main batch size for detection/# of images loaded per batch.
+  batch_yolo: 128
+  # Batch size of pre-processed patches for ViT pseudo-OCR inference.
+  batch_vit: 512
+  # Batch size K for subsequent text processing.
+  batch_cls: 512
+  # Number of pixels along which.
+  bbox_offset: 2
+
+# The compute settings for the workflow
+compute_settings:
+  # The name of the compute platform to use
+  name: polaris
+  # The number of compute nodes to use
+  num_nodes: 25
+  # Make sure to update the path to your conda environment and HF cache
+  worker_init: "module load conda/2023-10-04; conda activate pdfwf; export HF_HOME=/lus/eagle/projects/CVD-Mol-AI/braceal/cache/huggingface"
+  # The scheduler options to use when submitting jobs
+  scheduler_options: "#PBS -l filesystems=home:eagle:grand"
+  # Make sure to change the account to the account you want to charge
+  account: FoundEpidem
+  # The HPC queue to submit to
+  queue: demand
+  # The amount of time to request for your job
+  walltime: 01:00:00

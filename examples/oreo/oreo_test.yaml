@@ -15,7 +15,7 @@ parser_settings:
   # The name of the parser to use.
   name: oreo
   # Weights to layout detection model.
-  detection_weights_path: /lus/eagle/projects/argonne_tpc/siebenschuh/N-O-REO/yolov5/runs/train/best_SPv05_run/weights/best.pt
+  detection_weights_path: /lus/eagle/projects/argonne_tpc/siebenschuh/N-O-REO/model_weights/yolov5_detection_weights.pt
   # Model weights for (meta) text classifier.
   text_cls_weights_path: /lus/eagle/projects/argonne_tpc/siebenschuh/N-O-REO/text_classifier/meta_text_classifier
   # Path to the SPV05 category file.

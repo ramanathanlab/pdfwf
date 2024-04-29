@@ -1,0 +1,52 @@
+# The directory containing the pdfs to convert
+pdf_dir: /leonardo_scratch/large/userexternal/abrace00/metric-rag/data/raw_pdfs/scaling-data/zip-scaling-data
+
+# The output directory of the workflow
+out_dir: /leonardo_scratch/large/userexternal/abrace00/metric-rag/data/parsed_pdfs/scaling/nougat.leonardo.nodes512
+
+# Search for zip files in the pdf_dir
+iszip: true
+
+# Temporary storage directory for unzipping files
+tmp_storage: /dev/shm
+
+# The settings for the pdf parser
+parser_settings:
+  name: nougat
+  # Recommended batch size of pages (not pdfs) is 12, maximum that fits into A100 64GB.
+  batchsize: 12
+  # Path to download the checkpoint to. if already exists, will use existing.
+  checkpoint: /leonardo_scratch/large/userexternal/abrace00/.cache/nougat/base
+  # Set mmd_out to null if you don't want to write mmd files as a byproduct.
+  mmd_out: null
+  # If set to false, a will skip the pdfs that already have a parsed mmd file in mmd_out
+  recompute: false
+  # Set to true if you want to use fp32 instead of bfloat16 (false is recommended)
+  full_precision: false
+  # If set to true, output text will be formatted as a markdown file.
+  markdown: true
+  # Preempt processing a paper if mode collapse causes repetitions (true is recommended)
+  skipping: true
+  # Path for the nougat-specific logs for the run.
+  nougat_logs_path: /leonardo_scratch/large/userexternal/abrace00/metric-rag/data/parsed_pdfs/scaling/nougat.leonardo.nodes512/nougat_logs
+
+
+# The compute settings for the workflow
+compute_settings:
+  # The name of the compute platform to use
+  name: leonardo
+  # The number of compute nodes to use
+  num_nodes: 512
+  # Make sure to update the path to your conda environment and HF cache
+  worker_init: "module load python/3.11.6--gcc--8.5.0; source /leonardo_scratch/large/userexternal/abrace00/venvs/pdfwf-venv/bin/activate; export HF_HOME=/leonardo_scratch/large/userexternal/abrace00/.cache"
+  # The scheduler options to use when submitting jobs
+  scheduler_options: "#SBATCH --reservation=s_res_gb"
+  # Partition to use.
+  partition: boost_usr_prod
+  # Quality of service.
+  qos: qos_resv
+  #qos: boost_qos_dbg
+  # Account to charge compute to.
+  account: try24_Genomics_0
+  # The amount of time to request for your job
+  walltime: 01:00:00

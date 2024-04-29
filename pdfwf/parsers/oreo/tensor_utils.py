@@ -4,6 +4,7 @@ from __future__ import annotations
 import gc
 import os
 import re
+import time
 from collections import defaultdict
 from pathlib import Path
 
@@ -11,6 +12,7 @@ import fitz
 import numpy as np
 import torch
 import torch.nn.functional as F  # noqa: N812
+import torchvision
 import yaml
 from PIL import Image
 from pylatexenc.latex2text import LatexNodes2Text
@@ -21,7 +23,158 @@ from transformers import AutoModelForSequenceClassification
 from transformers import AutoTokenizer
 from transformers import DonutProcessor
 from transformers import VisionEncoderDecoderModel
-from yolov5.utils.general import non_max_suppression
+from yolov5.utils.general import xywh2xyxy
+from yolov5.utils.metrics import box_iou
+
+# Set a debug environment variable to enable debugging
+DEBUG = os.environ.get('OREO_DEBUG', False)
+
+
+# We need to patch the non_max_suppression from YOLOv5
+# to increase the time_limit. This code is adapted from:
+# https://github.com/ultralytics/yolov5/blob/master/utils/general.py#L1005
+# from yolov5.utils.general import non_max_suppression
+def non_max_suppression(  # type: ignore  # noqa
+    prediction,
+    conf_thres: float = 0.25,
+    iou_thres: float = 0.45,
+    classes=None,
+    agnostic=False,
+    multi_label=False,
+    labels=(),
+    max_det=300,
+    nm=0,  # number of masks
+) -> list[torch.Tensor]:
+    """Adapted from YOLOv5's non_max_suppression.
+
+    Non-Maximum Suppression (NMS) on inference results to reject overlapping
+    detections.
+
+    Returns
+    -------
+         list of detections, on (n,6) tensor per image [xyxy, conf, cls]
+    """
+    # Checks
+    assert 0 <= conf_thres <= 1, f'Invalid Confidence threshold {conf_thres}, '
+    'valid values are between 0.0 and 1.0'
+    assert (
+        0 <= iou_thres <= 1
+    ), f'Invalid IoU {iou_thres}, valid values are between 0.0 and 1.0'
+    if isinstance(
+        prediction, (list, tuple)
+    ):  # YOLOv5 model in validation model, output = (inference_out, loss_out)
+        prediction = prediction[0]  # select only inference output
+
+    device = prediction.device
+    mps = 'mps' in device.type  # Apple MPS
+    if mps:  # MPS not fully supported yet, convert tensors to CPU before NMS
+        prediction = prediction.cpu()
+    bs = prediction.shape[0]  # batch size
+    nc = prediction.shape[2] - nm - 5  # number of classes
+    xc = prediction[..., 4] > conf_thres  # candidates
+
+    # Settings
+    # min_wh = 2  # (pixels) minimum box width and height
+    max_wh = 7680  # (pixels) maximum box width and height
+    max_nms = 30000  # maximum number of boxes into torchvision.ops.nms()
+
+    # THIS IS THE ONLY CHANGE
+    # The maximum time (seconds) for processing one image.
+    max_time_img = 0.5  # seconds to quit after (original was 0.05)
+    time_limit = 0.5 + max_time_img * bs  # seconds to quit after
+    # THIS IS THE ONLY CHANGE
+
+    redundant = True  # require redundant detections
+    multi_label &= nc > 1  # multiple labels per box (adds 0.5ms/img)
+    merge = False  # use merge-NMS
+
+    t = time.time()
+    mi = 5 + nc  # mask start index
+    output = [torch.zeros((0, 6 + nm), device=prediction.device)] * bs
+    for xi, x in enumerate(prediction):  # image index, image inference
+        # Apply constraints
+        # x[((x[..., 2:4] < min_wh) | (x[..., 2:4] > max_wh)).any(1), 4] = 0
+        # width-height
+        x = x[xc[xi]]  # confidence # noqa: PLW2901
+
+        # Cat apriori labels if autolabelling
+        if labels and len(labels[xi]):
+            lb = labels[xi]
+            v = torch.zeros((len(lb), nc + nm + 5), device=x.device)
+            v[:, :4] = lb[:, 1:5]  # box
+            v[:, 4] = 1.0  # conf
+            v[range(len(lb)), lb[:, 0].long() + 5] = 1.0  # cls
+            x = torch.cat((x, v), 0)  # noqa: PLW2901
+
+        # If none remain process next image
+        if not x.shape[0]:
+            continue
+
+        # Compute conf
+        x[:, 5:] *= x[:, 4:5]  # conf = obj_conf * cls_conf
+
+        # Box/Mask
+        box = xywh2xyxy(
+            x[:, :4]
+        )  # center_x, center_y, width, height) to (x1, y1, x2, y2)
+        mask = x[:, mi:]  # zero columns if no masks
+
+        # Detections matrix nx6 (xyxy, conf, cls)
+        if multi_label:
+            i, j = (x[:, 5:mi] > conf_thres).nonzero(as_tuple=False).T
+            x = torch.cat(  # noqa: PLW2901
+                (box[i], x[i, 5 + j, None], j[:, None].float(), mask[i]), 1
+            )
+        else:  # best class only
+            conf, j = x[:, 5:mi].max(1, keepdim=True)
+            x = torch.cat((box, conf, j.float(), mask), 1)[  # noqa: PLW2901
+                conf.view(-1) > conf_thres
+            ]
+
+        # Filter by class
+        if classes is not None:
+            x = x[(x[:, 5:6] == torch.tensor(classes, device=x.device)).any(1)]  # noqa: PLW2901
+
+        # Apply finite constraint
+        # if not torch.isfinite(x).all():
+        #     x = x[torch.isfinite(x).all(1)]
+
+        # Check shape
+        n = x.shape[0]  # number of boxes
+        if not n:  # no boxes
+            continue
+        x = x[  # noqa: PLW2901
+            x[:, 4].argsort(descending=True)[:max_nms]
+        ]  # sort by confidence and remove excess boxes
+
+        # Batched NMS
+        c = x[:, 5:6] * (0 if agnostic else max_wh)  # classes
+        boxes, scores = (
+            x[:, :4] + c,
+            x[:, 4],
+        )  # boxes (offset by class), scores
+        i = torchvision.ops.nms(boxes, scores, iou_thres)  # NMS
+        i = i[:max_det]  # limit detections
+        if merge and (
+            1 < n < 3e3  # noqa: PLR2004
+        ):  # Merge NMS (boxes merged using weighted mean)
+            # update boxes as boxes(i,4) = weights(i,n) * boxes(n,4)
+            iou = box_iou(boxes[i], boxes) > iou_thres  # iou matrix
+            weights = iou * scores[None]  # box weights
+            x[i, :4] = torch.mm(weights, x[:, :4]).float() / weights.sum(
+                1, keepdim=True
+            )  # merged boxes
+            if redundant:
+                i = i[iou.sum(1) > 1]  # require redundancy
+
+        output[xi] = x[i]
+        if mps:
+            output[xi] = output[xi].to(device)
+        if (time.time() - t) > time_limit:
+            print(f'WARNING ⚠️ NMS time limit {time_limit:.3f}s exceeded')
+            break  # time limit exceeded
+
+    return output
 
 
 def accelerated_batch_inference(  # noqa: PLR0913
@@ -129,15 +282,34 @@ class PDFDataset(Dataset):
         """
         self.doc_file_paths = [Path(f) for f in pdf_paths]
         self.target_heigth = target_heigth
-        self.doc_file_ids = list(range(len(self.doc_file_paths)))
         self.meta_only = meta_only
 
-        # image count
+        # page image count & check pdf validity
         doc_lengths = []
+
+        # loop pdf paths
+        readable_pdfs = []
         for doc_path in self.doc_file_paths:
-            doc = fitz.open(doc_path)
-            doc_lengths.append(len(doc))
-            doc.close()
+            # skip exceptions of any kind
+            try:
+                doc = fitz.open(doc_path)
+                doc_lengths.append(len(doc))
+                doc.close()
+                readable_pdfs.append(doc_path)
+            except Exception:
+                continue
+            # This was causing a bug:
+            #    pixmap_data = pixmap_data.reshape((h, w, len(pixmap_data)
+            #       // (w * h)))
+            #    ZeroDivisionError: integer division or modulo by zero
+
+            #    doc = fitz.open()
+            #    doc_lengths.append(len(doc))
+            #    doc.close()
+
+        # Make sure this is done after we filter any bad PDFs
+        self.doc_file_paths = readable_pdfs
+        self.doc_file_ids = list(range(len(self.doc_file_paths)))
 
         # Cumulative page count across documents
         self.doc_csum = np.cumsum(doc_lengths).astype(int)
@@ -198,13 +370,15 @@ class PDFDataset(Dataset):
 
         assert self.current_doc_doc is not None
 
-        # requested page of current document
-        page = self.current_doc_doc[rel_page_idx]
-
         # output tensor representing a page
-        output = docpage_to_tensor(
-            page, self.target_heigth, fill_value=1
-        )  # (C, H, W)
+        try:
+            # requested page of current document
+            page = self.current_doc_doc[rel_page_idx]
+            # output shape: (C, H, W)
+            output = docpage_to_tensor(page, self.target_heigth, fill_value=1)
+        except Exception:
+            # Create a blank float tensor if the page cannot be processed
+            output = torch.ones((3, 1280, 960)).float()
 
         assert self.current_doc_file_path is not None
         return (output, self.current_doc_file_id, self.current_doc_file_path)
@@ -1340,17 +1514,16 @@ def grouped_patch_list(
     return patch_sublists, subset_indices
 
 
-def get_packed_patch_list(  # noqa: PLR0913, PLR0912, PLR0915
+def get_packed_patch_list(  # noqa: PLR0913, PLR0912, PLR0915, PLR0913
     patch_list: list[torch.Tensor],
     sep_tensor: torch.Tensor,
-    return_indices: bool = True,
     sep_flag: bool = False,
     sep_symbol_flag: bool = False,
     btm_pad: int = 6,
     max_width: int = 420,
     max_height: int = 420,
     alpha: float = 0.5,
-) -> list[torch.Tensor]:
+) -> tuple[list[torch.Tensor], list[list[int]]]:
     """Merge patches into packed patches.
 
     Merges the patches (CxHxW patches) as tightly as possible into a list
@@ -1363,9 +1536,6 @@ def get_packed_patch_list(  # noqa: PLR0913, PLR0912, PLR0915
     sep_tensor : torch.Tensor
         Separator image stores as a tensor to be inserted into the patch at the
         end or each row (if sep_flag=True)
-    return_indices : bool, optional
-        Flag indicating if the indices of the respective patches are to be
-        returned (for debgging), by default True
     sep_flag : bool, optional
         Flag indicating if a separation line is to be included in between
         lines, by default False
@@ -1417,8 +1587,9 @@ def get_packed_patch_list(  # noqa: PLR0913, PLR0912, PLR0915
         if current_row_width + w < max_width:
             # append row
             current_row.append(patch)
-            if return_indices:
-                current_row_indices.append(j)
+            # indices
+            current_row_indices.append(j)
+
             # update row dimensions
             current_row_width += w
             max_row_height = max(h, max_row_height)
@@ -1447,13 +1618,11 @@ def get_packed_patch_list(  # noqa: PLR0913, PLR0912, PLR0915
                 # store previous patch
                 if len(list_of_rows) > 0:
                     out_patches.append(merge_rows_into_patch(list_of_rows))
-                if return_indices:
-                    out_indices.append(list_of_rows_indices)
+                out_indices.append(list_of_rows_indices)
 
                 # init new patch/row
                 list_of_rows = []
-                if return_indices:
-                    list_of_rows_indices = []
+                list_of_rows_indices = []
                 current_patch_heigth = h
             else:
                 # same patch, new row
@@ -1462,8 +1631,9 @@ def get_packed_patch_list(  # noqa: PLR0913, PLR0912, PLR0915
                 current_row_width = w
             # new row w/ or w/o new patch
             current_row = [patch]
-            if return_indices:
-                current_row_indices = [j]
+            # update indices
+            current_row_indices = [j]
+
             # separator symbol
             if sep_symbol_flag:
                 current_row.append(sep_tensor)
@@ -1483,8 +1653,7 @@ def get_packed_patch_list(  # noqa: PLR0913, PLR0912, PLR0915
                 )
             )
             # log patch index
-            if return_indices:
-                list_of_rows_indices += current_row_indices
+            list_of_rows_indices += current_row_indices
         else:
             list_of_rows = [
                 merge_patches_into_row(
@@ -1504,7 +1673,8 @@ def get_packed_patch_list(  # noqa: PLR0913, PLR0912, PLR0915
             out_patches = [merge_rows_into_patch(list_of_rows)]
             out_indices = [list_of_rows_indices]
 
-    return out_patches
+    # Hands off this piece of code please
+    return out_patches, out_indices
 
 
 def lexsort(keys: torch.Tensor, dim: int = -1) -> torch.Tensor:
@@ -1618,7 +1788,7 @@ def restate_global_patch_indices(
     Parameters
     ----------
     packed_indices : list[list[list[int]]]
-        List of list of list. 1st list (groups of patches that can be merged
+        List of list of lists. 1st list (groups of patches that can be merged
         theoretically), 2nd list (actual packed patches)
 
     Returns
@@ -1651,7 +1821,7 @@ def restate_global_patch_indices(
 
     assert len(packed_indices) == len(
         new_packed_indices
-    ), 'Length should coicide'
+    ), 'Length should coincide'
     assert len(packed_indices[0]) == len(
         new_packed_indices[0]
     ), 'Inner list lengths do not coincide.'
@@ -1934,7 +2104,6 @@ def get_packed_patch_tensor(  # noqa: PLR0913
                 groups,
                 sep_tensor=sep_symbol_tensor,
                 btm_pad=btm_pad,
-                return_indices=True,
                 sep_flag=sep_flag,
                 sep_symbol_flag=sep_symbol_flag,
             )
@@ -1943,6 +2112,7 @@ def get_packed_patch_tensor(  # noqa: PLR0913
 
         # single list of patches
         packed_patches = [pair[0] for pair in packed_patches_and_indices]
+
         packed_indices = restate_global_patch_indices(
             [pair[1] for pair in packed_patches_and_indices]
         )
@@ -1950,9 +2120,11 @@ def get_packed_patch_tensor(  # noqa: PLR0913
         # flatten patch & index lists
         flat_patches = [item for sublist in packed_patches for item in sublist]
         flat_indices = [idx for sublist in packed_indices for idx in sublist]
+
         # del. empty list elements
         flat_indices = [f for f in flat_indices if len(f) > 0]
 
+        # 2nd issue below
         index_quadruplet = y_subset[[f[0] for f in flat_indices], :][
             :, [file_idx_column, page_idx_column, order_idx_column, cls_column]
         ].to(torch.int)
@@ -2241,7 +2413,8 @@ def extract_file_specific_doc_dict(
                         proc_text = latex_to_text.latex_to_text(extracted_text)
                         file_dict[key] = re.sub(pattern, '\n', proc_text)
                     except:  # noqa: E722
-                        print(extracted_text)
+                        if DEBUG:
+                            print(extracted_text)
     return file_dict
 
 
@@ -2439,8 +2612,11 @@ def store_visuals(  # noqa: PLR0913
         try:
             img_patch.save(patch_file_path)
         except:  # noqa: E722
-            print('x_min, y_min, x_max, y_max : ', x_min, y_min, x_max, y_max)
-            print('tensors.size() : ', tensors.size())
+            if DEBUG:
+                print(
+                    'x_min, y_min, x_max, y_max : ', x_min, y_min, x_max, y_max
+                )
+                print('tensors.size() : ', tensors.size())
 
     last_file_id = file_id
 
