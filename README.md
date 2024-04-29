@@ -233,7 +233,10 @@ conda create -n pdfwf python=3.10 -y
 conda activate pdfwf
 mamba install pytorch torchvision pytorch-cuda=11.8 -c pytorch -c nvidia -y
 pip install -r requirements/oreo_requirements.txt
+git clone git@github.com:ultralytics/yolov5.git
 ```
+
+Then set the `yolov5_path` option to the path of the cloned `yolov5` repository.
 
 ## CLI
 For running smaller jobs without using the Parsl workflow, the CLI can be used.
@@ -316,9 +319,9 @@ $ pdfwf oreo [OPTIONS]
 
 * `-p, --pdf_path PATH`: The directory containing the PDF files to convert (recursive glob).  [required]
 * `-o, --output_dir PATH`: The directory to write the output JSON lines file to.  [required]
-* `-d, --detection_weights_path PATH`: Weights to layout detection model.  [required]
-* `-t, --text_cls_weights_path PATH`: Model weights for (meta) text classifier.  [required]
-* `-s, --spv05_category_file_path PATH`: Path to the SPV05 category file.  [required]
+* `-d, --detection_weights_path PATH`: Weights to layout detection model.
+* `-t, --text_cls_weights_path PATH`: Model weights for (meta) text classifier.
+* `-s, --spv05_category_file_path PATH`: Path to the SPV05 category file.
 * `-d, --detect_only`: File type to be parsed (ignores other files in the input_dir)
 * `-m, --meta_only`: Only parse PDFs for meta data
 * `-e, --equation`: Include equations into the text categories
@@ -329,7 +332,7 @@ $ pdfwf oreo [OPTIONS]
 * `-b, --batch_yolo INTEGER`: Main batch size for detection/# of images loaded per batch  [default: 128]
 * `-v, --batch_vit INTEGER`: Batch size of pre-processed patches for ViT pseudo-OCR inference  [default: 512]
 * `-c, --batch_cls INTEGER`: Batch size K for subsequent text processing  [default: 512]
-* `-o, --bbox_offset INTEGER`: Number of pixels along which  [default: 2]
+* `-x, --bbox_offset INTEGER`: Number of pixels along which  [default: 2]
 * `-nc, --num_conversions INTEGER`: Number of pdfs to convert (useful for debugging, by default convert every document) [default: 0].
 * `--help`: Show this message and exit.
 
@@ -356,4 +359,21 @@ tox -e py310
 To generate the CLI documentation, run:
 ```
 typer pdfwf.cli utils docs --output CLI.md
+```
+
+## Installation on HPC systems
+
+### Leonardo
+```bash
+module load python/3.11.6--gcc--8.5.0
+python -m venv pdfwf-venv
+source pdfwf-venv/bin/activate
+pip install -U pip setuptools wheel
+pip install torch
+pip install numpy
+pip install -r requirements/nougat_requirements.txt
+pip install -r requirements/oreo_requirements.txt
+pip install -e .
+python -m nltk.downloader words
+python -m nltk.downloader punkt
 ```

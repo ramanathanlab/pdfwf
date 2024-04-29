@@ -113,13 +113,16 @@ def exception_handler(
     return decorator
 
 
-def setup_logging(logger_name: str, out_dir: Path) -> logging.Logger:
+def setup_logging(
+    logger_name: str, out_dir: Path | None = None
+) -> logging.Logger:
     """Set up logging for the PDF workflow."""
     logger = logging.getLogger(logger_name)
     logger.setLevel(logging.INFO)
 
     # Create the output directory if it does not exist
-    out_dir.mkdir(exist_ok=True, parents=True)
+    if out_dir is not None:
+        out_dir.mkdir(exist_ok=True, parents=True)
 
     # Set the format for the log messages
     formatter = logging.Formatter(
@@ -127,12 +130,12 @@ def setup_logging(logger_name: str, out_dir: Path) -> logging.Logger:
         datefmt='%Y-%m-%d %H:%M:%S',
     )
 
-    handlers: list[logging.Handler] = [
-        # Add a console log
-        logging.StreamHandler(),
-        # Add a file log
-        logging.FileHandler(out_dir / f'{logger_name}.log'),
-    ]
+    # Add a console log
+    handlers: list[logging.Handler] = [logging.StreamHandler()]
+
+    # Add a file log if an output directory is provided
+    if out_dir is not None:
+        handlers.append(logging.FileHandler(out_dir / f'{logger_name}.log'))
 
     # Set the format for the log messages
     for handler in handlers:
