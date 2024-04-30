@@ -1,7 +1,9 @@
 """PDF conversion workflow."""
+
 from __future__ import annotations
 
 import functools
+import re
 import sys
 from argparse import ArgumentParser
 from pathlib import Path
@@ -137,6 +139,51 @@ def parse_zip(
         timer.stop()
 
 
+def parse_checkpoint(checkpoint_path: str) -> set[str]:
+    """Parse which input paths have been completed from a pdfwf output dir.
+
+    NOTE: This function currently only is possible if the input is parsed with
+    zip files. The raw pdf parsing logging does not log each individual pdf
+    file parsed. If we need this functionality we need to explicitly log each
+    parsed pdf instead of grepping the timing logs.
+
+    Parameters
+    ----------
+    checkpoint_path : str
+        Path to root pdfwf directory. Should contain a `parsl` directory
+
+    Returns
+    -------
+    set[str]
+        A set of paths that have already been parsed in previous runs
+    """
+    # Regex pattern to extract items in square brackets []
+    regex_pattern = r'\[([^\[\]]+)\]'
+
+    # get all *.stdout files
+    stdout_files = Path(checkpoint_path).glob('**/*.stdout')
+
+    # Find out which files have been successfully parsed by the workflow in
+    # previous runs
+    parsed_files = set()
+    for stdout_file in stdout_files:
+        text = stdout_file.read_text()
+
+        # For each line, figure out if it has the finished-parsing tag which
+        # (in the case of zip parsing) contains the path to the input file
+        for line in text.strip().split('\n'):
+            matches = re.findall(regex_pattern, line)
+            if len(matches) == 0:
+                continue
+
+            tag = matches[1]
+            if 'finished-parsing' in tag:
+                _, pdf_path = tag.split(' ')
+                parsed_files.add(pdf_path)
+
+    return parsed_files
+
+
 class WorkflowConfig(BaseModel):
     """Configuration for the PDF parsing workflow."""
 
@@ -190,11 +237,26 @@ if __name__ == '__main__':
     # Save the configuration to the output directory
     config.write_yaml(config.out_dir / 'config.yaml')
 
+    # If we have run before, find all previously parsed files
+    # else we use a empty set to check against
+    # NOTE: this function assumes the input file paths have not changed from
+    # run to run. If they have this method will fail and there will be
+    # duplicated parses. Similarly, if you switch from parsing zips to parsing
+    # pdfs it will fail.
+    if (config.out_dir / 'parsl').exists():
+        already_parsed_files = parse_checkpoint(str(config.out_dir / 'parsl'))
+    else:
+        already_parsed_files = set()
+
     # File extension for the input files
     file_ext = 'zip' if config.iszip else 'pdf'
 
-    # Collect files in batches for more efficient processing
-    files = [p.as_posix() for p in config.pdf_dir.glob(f'**/*.{file_ext}')]
+    # Collect files and check if already parsed before
+    files = [
+        p.as_posix()
+        for p in config.pdf_dir.glob(f'**/*.{file_ext}')
+        if p.as_posix() not in already_parsed_files
+    ]
 
     # Limit the number of conversions for debugging
     if len(files) >= config.num_conversions:
