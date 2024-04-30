@@ -71,6 +71,9 @@ def parse_pdfs(
         with open(output_dir / f'{parser.unique_id}.jsonl', 'a+') as f:
             f.write(lines)
 
+    # Sometimes parsl won't flush the stdout, so this is necessary for logs
+    print('', end='', flush=True)
+
 
 def parse_zip(
     zip_file: str,
@@ -137,6 +140,8 @@ def parse_zip(
     finally:
         # Stop the timer to log the worker time
         timer.stop()
+        # Sometimes parsl won't flush the stdout, so this is necessary for logs
+        print('', end='', flush=True)
 
 
 def parse_checkpoint(checkpoint_path: str) -> set[str]:

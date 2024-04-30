@@ -83,7 +83,7 @@ class NougatParser(BaseParser):
     def __init__(self, config: NougatParserConfig) -> None:
         """Initialize the marker parser."""
         import torch
-        from nougat import NougatModel  # type: ignore
+        from nougat import NougatModel
         from nougat.utils.device import move_to_device
 
         self.config = config
