@@ -1,4 +1,5 @@
 """Balance output jsonl files from a workflow run."""
+
 from __future__ import annotations
 
 import functools

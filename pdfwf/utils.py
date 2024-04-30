@@ -1,4 +1,5 @@
 """Utilities for the PDF workflow."""
+
 from __future__ import annotations
 
 import json

@@ -1,4 +1,5 @@
 """The Oreo parser for extracting text and visual content from PDFs."""
+
 from __future__ import annotations
 
 import sys
