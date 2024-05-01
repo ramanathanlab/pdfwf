@@ -109,8 +109,14 @@ class Timer:
         self._start_unix = time.time()
         return self
 
-    def stop(self) -> None:
-        """Stop the timer."""
+    def stop(self, flush: bool = False) -> None:
+        """Stop the timer.
+
+        Parameters
+        ----------
+        flush : bool, optional
+            Flush the buffer (usually stdout), by default False
+        """
         self._end = time.perf_counter_ns()
         self._end_unix = time.time()
         self._running = False
@@ -120,7 +126,7 @@ class Timer:
             start_unix=self._start_unix,
             end_unix=self._end_unix,
         )
-        TimeLogger().log(time_stats)
+        TimeLogger().log(time_stats, flush=flush)
 
 
 class TimeLogger:
@@ -153,10 +159,19 @@ class TimeLogger:
 
         return time_stats
 
-    def log(self, ts: TimeStats) -> None:
-        """Log the timer information."""
+    def log(self, ts: TimeStats, flush: bool = False) -> None:
+        """Log the timer information.
+
+        Parameters
+        ----------
+        ts : TimeStats
+            The time statistics object to be logged
+        flush : bool, optional
+            Flush the buffer (usually stdout), by default False
+        """
         print(
             f'[timer] [{" ".join(map(str, ts.tags))}]'
             f' in [{ts.elapsed_s:.2f}] seconds.',
             f' start: [{ts.start_unix:.2f}], end: [{ts.end_unix:.2f}]',
+            flush=flush,
         )
