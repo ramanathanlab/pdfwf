@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import functools
-import re
 import sys
 from argparse import ArgumentParser
 from pathlib import Path
@@ -138,10 +137,8 @@ def parse_zip(
         return None
 
     finally:
-        # Stop the timer to log the worker time
-        timer.stop()
-        # Sometimes parsl won't flush the stdout, so this is necessary for logs
-        print('', end='', flush=True)
+        # Stop the timer to log the worker time and flush the buffer
+        timer.stop(flush=True)
 
 
 def parse_checkpoint(checkpoint_path: str) -> set[str]:
@@ -162,8 +159,8 @@ def parse_checkpoint(checkpoint_path: str) -> set[str]:
     set[str]
         A set of paths that have already been parsed in previous runs
     """
-    # Regex pattern to extract items in square brackets []
-    regex_pattern = r'\[([^\[\]]+)\]'
+    # Grab time logger for parsing functionality
+    from pdfwf.timer import TimeLogger
 
     # get all *.stdout files
     stdout_files = Path(checkpoint_path).glob('**/*.stdout')
@@ -172,19 +169,15 @@ def parse_checkpoint(checkpoint_path: str) -> set[str]:
     # previous runs
     parsed_files = set()
     for stdout_file in stdout_files:
-        text = stdout_file.read_text()
-
-        # For each line, figure out if it has the finished-parsing tag which
-        # (in the case of zip parsing) contains the path to the input file
-        for line in text.strip().split('\n'):
-            matches = re.findall(regex_pattern, line)
-            if len(matches) == 0:
-                continue
-
-            tag = matches[1]
-            if 'finished-parsing' in tag:
-                _, pdf_path = tag.split(' ')
-                parsed_files.add(pdf_path)
+        time_stats = TimeLogger().parse_logs(stdout_file)
+        for log_elem in time_stats:
+            tags = log_elem.tags
+            if 'finished-parsing' in tags:
+                # This is will add everything after the tag type (first elem)
+                # to the set. Currently there should only be one element after
+                # but this will extend to more types of logs if they occur
+                for elem in tags[1:]:
+                    parsed_files.add(elem)
 
     return parsed_files
 
