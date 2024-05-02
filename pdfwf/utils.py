@@ -6,6 +6,7 @@ import json
 import logging
 import sys
 import traceback
+import zipfile
 from pathlib import Path
 from typing import Any
 from typing import Callable
@@ -156,3 +157,21 @@ def batch_data(data: list[T], chunk_size: int) -> list[list[T]]:
     if len(data) > chunk_size * len(batches):
         batches.append(data[len(batches) * chunk_size :])
     return batches
+
+
+def zip_worker(files: list[Path], output_path: Path) -> Path:
+    """Worker function to zip together a group of pdfs.
+
+    Parameters
+    ----------
+    files : list[Path]
+        List of files to zip together
+    output_path : Path
+        Output zip file to create
+    """
+    with zipfile.ZipFile(output_path, 'w') as zipf:
+        for infile in files:
+            # Add each file to the ZIP
+            zipf.write(infile, infile.name)
+
+    return output_path

@@ -435,6 +435,71 @@ def parse_timers(
     pd.DataFrame(time_stats).to_csv(csv_path, index=False)
 
 
+@app.command()
+def zip_pdfs(
+    root_dir: Path = typer.Option(  # noqa: B008
+        ...,
+        '--input_dir',
+        '-i',
+        help='Path to the root directory containing pdfs.',
+    ),
+    output_dir: Path = typer.Option(  # noqa: B008
+        ...,
+        '--output_dir',
+        '-o',
+        help='Path to the output directory.',
+    ),
+    chunk_size: int = typer.Option(
+        10,
+        '--chunk_size',
+        '-c',
+        help='Number of PDF files per chunk.',
+    ),
+    glob_pattern: str = typer.Option(
+        '**/*.pdf',
+        '--glob_pattern',
+        '-g',
+        help='Glob pattern to search the root directory for.',
+    ),
+    num_cpus: int = typer.Option(
+        1, '--num_cpus', '-n', help="Number of cpu's to use for zipping."
+    ),
+) -> None:
+    """Zip PDF files in chunks."""
+    from concurrent.futures import as_completed
+    from concurrent.futures import ProcessPoolExecutor
+
+    from pdfwf.utils import zip_worker
+
+    # Make output directory if it does not already exist
+    output_dir.mkdir(exist_ok=True, parents=True)
+
+    # Get all PDF files in the directory
+    pdf_files = list(root_dir.glob(glob_pattern))[:1000]
+    total_files = len(pdf_files)
+    print(f'Found {total_files} PDF files.')
+
+    # Calculate the number of chunks
+    num_chunks = (total_files + chunk_size - 1) // chunk_size
+
+    with ProcessPoolExecutor(max_workers=num_cpus) as pool:
+        futures = []
+        for i in range(num_chunks):
+            # Determine the chunk files
+            start_index = i * chunk_size
+            end_index = min(start_index + chunk_size, total_files)
+            chunk_files = pdf_files[start_index:end_index]
+            output_path = output_dir / f'chunk_{i}.zip'
+
+            futures.append(pool.submit(zip_worker, chunk_files, output_path))
+
+        for fut in as_completed(futures):
+            if fut.exception() is not None:
+                print(f'Problem in future: {fut.exception()}')
+            else:
+                print(f'Completed chunk: {fut.result().name}')
+
+
 def main() -> None:
     """Entry point for CLI."""
     app()
