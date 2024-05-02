@@ -466,38 +466,41 @@ def zip_pdfs(
     ),
 ) -> None:
     """Zip PDF files in chunks."""
-    from concurrent.futures import as_completed
+    import json
     from concurrent.futures import ProcessPoolExecutor
 
+    from pdfwf.utils import batch_data
     from pdfwf.utils import zip_worker
 
     # Make output directory if it does not already exist
     output_dir.mkdir(exist_ok=True, parents=True)
 
     # Get all PDF files in the directory
-    pdf_files = list(root_dir.glob(glob_pattern))[:1000]
+    pdf_files = list(root_dir.glob(glob_pattern))
     total_files = len(pdf_files)
     print(f'Found {total_files} PDF files.')
 
-    # Calculate the number of chunks
-    num_chunks = (total_files + chunk_size - 1) // chunk_size
+    # Get batched data
+    batched_data = batch_data(pdf_files, chunk_size=chunk_size)
+
+    # Get output files
+    output_files = [
+        output_dir / f'chunk_{i}.zip' for i in range(len(batched_data))
+    ]
+
+    # Setup manifest and save
+    manifest = {
+        str(output_path.resolve()): [str(f.resolve()) for f in batch]
+        for output_path, batch in zip(output_files, batched_data)
+    }
+    # Save a log that saves which zip file contains which pdf's
+    with open(output_dir / 'manifest.json', 'w') as f:
+        json.dump(manifest, f)
 
     with ProcessPoolExecutor(max_workers=num_cpus) as pool:
-        futures = []
-        for i in range(num_chunks):
-            # Determine the chunk files
-            start_index = i * chunk_size
-            end_index = min(start_index + chunk_size, total_files)
-            chunk_files = pdf_files[start_index:end_index]
-            output_path = output_dir / f'chunk_{i}.zip'
+        pool.map(zip_worker, batched_data, output_files)
 
-            futures.append(pool.submit(zip_worker, chunk_files, output_path))
-
-        for fut in as_completed(futures):
-            if fut.exception() is not None:
-                print(f'Problem in future: {fut.exception()}')
-            else:
-                print(f'Completed chunk: {fut.result().name}')
+    print(f'Zipped files to {output_dir}')
 
 
 def main() -> None:
