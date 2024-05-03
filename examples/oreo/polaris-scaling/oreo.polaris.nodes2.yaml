@@ -65,4 +65,3 @@ compute_settings:
   queue: demand
   # The amount of time to request for your job
   walltime: "1:00:00"
-

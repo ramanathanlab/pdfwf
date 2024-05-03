@@ -1,4 +1,5 @@
 """CLI for the PDF workflow package."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -432,6 +433,74 @@ def parse_timers(
 
     # Write the parsed timer logs to a CSV file
     pd.DataFrame(time_stats).to_csv(csv_path, index=False)
+
+
+@app.command()
+def zip_pdfs(
+    root_dir: Path = typer.Option(  # noqa: B008
+        ...,
+        '--input_dir',
+        '-i',
+        help='Path to the root directory containing pdfs.',
+    ),
+    output_dir: Path = typer.Option(  # noqa: B008
+        ...,
+        '--output_dir',
+        '-o',
+        help='Path to the output directory.',
+    ),
+    chunk_size: int = typer.Option(
+        10,
+        '--chunk_size',
+        '-c',
+        help='Number of PDF files per chunk.',
+    ),
+    glob_pattern: str = typer.Option(
+        '**/*.pdf',
+        '--glob_pattern',
+        '-g',
+        help='Glob pattern to search the root directory for.',
+    ),
+    num_cpus: int = typer.Option(
+        1, '--num_cpus', '-n', help="Number of cpu's to use for zipping."
+    ),
+) -> None:
+    """Zip PDF files in chunks."""
+    import json
+    from concurrent.futures import ProcessPoolExecutor
+
+    from pdfwf.utils import batch_data
+    from pdfwf.utils import zip_worker
+
+    # Make output directory if it does not already exist
+    output_dir.mkdir(exist_ok=True, parents=True)
+
+    # Get all PDF files in the directory
+    pdf_files = list(root_dir.glob(glob_pattern))
+    total_files = len(pdf_files)
+    print(f'Found {total_files} PDF files.')
+
+    # Get batched data
+    batched_data = batch_data(pdf_files, chunk_size=chunk_size)
+
+    # Get output files
+    output_files = [
+        output_dir / f'chunk_{i}.zip' for i in range(len(batched_data))
+    ]
+
+    # Setup manifest and save
+    manifest = {
+        str(output_path.resolve()): [str(f.resolve()) for f in batch]
+        for output_path, batch in zip(output_files, batched_data)
+    }
+    # Save a log that saves which zip file contains which pdf's
+    with open(output_dir / 'manifest.json', 'w') as f:
+        json.dump(manifest, f)
+
+    with ProcessPoolExecutor(max_workers=num_cpus) as pool:
+        pool.map(zip_worker, batched_data, output_files)
+
+    print(f'Zipped files to {output_dir}')
 
 
 def main() -> None:

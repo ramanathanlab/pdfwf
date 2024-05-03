@@ -62,4 +62,3 @@ compute_settings:
   queue: R1800955
   # The amount of time to request for your job
   walltime: "24:00:00"
-

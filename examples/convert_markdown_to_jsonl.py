@@ -1,4 +1,5 @@
 """Converts a directory of markdown files to JSONL files."""
+
 from __future__ import annotations
 
 import json

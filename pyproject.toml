@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pdfwf"
-version = "0.1.5"
+version = "0.1.6"
 authors = [
     {name = "Kyle Hippe", email = "khippe@anl.gov"},
     {name = "Alexander Brace", email = "abrace@anl.gov"},
@@ -95,7 +95,7 @@ allow_untyped_defs = true
 
 [tool.ruff]
 # See all rules here: https://beta.ruff.rs/docs/rules
-select = [
+lint.select = [
     # pyflakes
     "F",
     # pycodestyle
@@ -130,14 +130,14 @@ select = [
     "RUF",
 ]
 line-length = 79
-extend-ignore = []
+lint.extend-ignore = []
 target-version = "py38"
-ignore = ["COM812", "ISC001"] # silence warning
+lint.ignore = ["COM812", "ISC001"] # silence warning
 
-[tool.ruff.flake8-pytest-style]
+[tool.ruff.lint.flake8-pytest-style]
 parametrize-values-type = "tuple"
 
-[tool.ruff.flake8-quotes]
+[tool.ruff.lint.flake8-quotes]
 inline-quotes = "single"
 multiline-quotes = "double" # silence warning
 
@@ -145,17 +145,17 @@ multiline-quotes = "double" # silence warning
 indent-style = "space"
 quote-style = "single"
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 force-single-line = true
 known-first-party = ["pdfwf", "test", "testing"]
 order-by-type = false
 required-imports = ["from __future__ import annotations"]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "*/__init__.py" = ["F401"]
 "*/*_test.py" = ["D10"]
 
-[tool.ruff.pydocstyle]
+[tool.ruff.lint.pydocstyle]
 convention = "numpy"
 
 [tool.setuptools.packages.find]

@@ -1,4 +1,5 @@
 """PDF conversion workflow."""
+
 from __future__ import annotations
 
 import functools
@@ -69,6 +70,9 @@ def parse_pdfs(
         with open(output_dir / f'{parser.unique_id}.jsonl', 'a+') as f:
             f.write(lines)
 
+    # Sometimes parsl won't flush the stdout, so this is necessary for logs
+    print('', end='', flush=True)
+
 
 def parse_zip(
     zip_file: str,
@@ -133,8 +137,49 @@ def parse_zip(
         return None
 
     finally:
-        # Stop the timer to log the worker time
-        timer.stop()
+        # Stop the timer to log the worker time and flush the buffer
+        timer.stop(flush=True)
+
+
+def parse_checkpoint(checkpoint_path: str) -> set[str]:
+    """Parse which input paths have been completed from a pdfwf output dir.
+
+    NOTE: This function currently only is possible if the input is parsed with
+    zip files. The raw pdf parsing logging does not log each individual pdf
+    file parsed. If we need this functionality we need to explicitly log each
+    parsed pdf instead of grepping the timing logs.
+
+    Parameters
+    ----------
+    checkpoint_path : str
+        Path to root pdfwf directory. Should contain a `parsl` directory
+
+    Returns
+    -------
+    set[str]
+        A set of paths that have already been parsed in previous runs
+    """
+    # Grab time logger for parsing functionality
+    from pdfwf.timer import TimeLogger
+
+    # get all *.stdout files
+    stdout_files = Path(checkpoint_path).glob('**/*.stdout')
+
+    # Find out which files have been successfully parsed by the workflow in
+    # previous runs
+    parsed_files = set()
+    for stdout_file in stdout_files:
+        time_stats = TimeLogger().parse_logs(stdout_file)
+        for log_elem in time_stats:
+            tags = log_elem.tags
+            if 'finished-parsing' in tags:
+                # This is will add everything after the tag type (first elem)
+                # to the set. Currently there should only be one element after
+                # but this will extend to more types of logs if they occur
+                for elem in tags[1:]:
+                    parsed_files.add(elem)
+
+    return parsed_files
 
 
 class WorkflowConfig(BaseModel):
@@ -190,11 +235,26 @@ if __name__ == '__main__':
     # Save the configuration to the output directory
     config.write_yaml(config.out_dir / 'config.yaml')
 
+    # If we have run before, find all previously parsed files
+    # else we use a empty set to check against
+    # NOTE: this function assumes the input file paths have not changed from
+    # run to run. If they have this method will fail and there will be
+    # duplicated parses. Similarly, if you switch from parsing zips to parsing
+    # pdfs it will fail.
+    if (config.out_dir / 'parsl').exists():
+        already_parsed_files = parse_checkpoint(str(config.out_dir / 'parsl'))
+    else:
+        already_parsed_files = set()
+
     # File extension for the input files
     file_ext = 'zip' if config.iszip else 'pdf'
 
-    # Collect files in batches for more efficient processing
-    files = [p.as_posix() for p in config.pdf_dir.glob(f'**/*.{file_ext}')]
+    # Collect files and check if already parsed before
+    files = [
+        p.as_posix()
+        for p in config.pdf_dir.glob(f'**/*.{file_ext}')
+        if p.as_posix() not in already_parsed_files
+    ]
 
     # Limit the number of conversions for debugging
     if len(files) >= config.num_conversions:
