@@ -148,6 +148,9 @@ class TimeLogger:
         # Extracted items from all print statements
         for line in lines:
             match = re.findall(regex_pattern, line)
+            # If the line doesn't contain the timer information, skip it
+            if not match:
+                continue
             time_stats.append(
                 TimeStats(
                     tags=match[1].split(),
