@@ -40,12 +40,12 @@ class PyPDFParser(BaseParser):
 
         # pypdf is verbose
         logging.getLogger().setLevel(logging.ERROR)
- 
+
     def extract_doi_info(self, input_str:str) -> str:
         """
         Extracts doi from pypdf metadata entry (if present)
         """
-        match = re.search(r'(doi:\s*|doi\.org/)(\S+)', input_str) 
+        match = re.search(r'(doi:\s*|doi\.org/)(\S+)', input_str)
         if match:
             return match.group(2)
         else:
@@ -55,15 +55,15 @@ class PyPDFParser(BaseParser):
         """Wraps pypdf functionality"""
         # open
         reader = PdfReader(pdf_path)
-        
+
         # scrape text
         text_text=''
         for page in reader.pages:
                 full_text += page.extract_text(extraction_mode="layout")
-      
+
         first_page = reader.pages[0] if len(reader.pages[0]) > 0 else ''
         meta = reader.metadata
-        
+
         # metadata (available to pypdf)
         title = meta.get('/Title', '')
         authors = meta.get('/Author', '')
@@ -75,20 +75,20 @@ class PyPDFParser(BaseParser):
         abstract = meta.get('/Subject', '') if len(meta.get('/Subject', '')) > self.abstract_threshold else ''
 
         # - assemble
-        out_meta = {'title' : title, 
+        out_meta = {'title' : title,
                     'authors' : authors,
-                    'createdate' : createdate, 
-                    'keywords' : keywords, 
-                    'doi' : doi, 
-                    'producer' : prod, 
-                    'format' : form, 
+                    'createdate' : createdate,
+                    'keywords' : keywords,
+                    'doi' : doi,
+                    'producer' : prod,
+                    'format' : form,
                     'first_page' : first_page_text,
                     'abstract' : abstract,
         }
-        
-        # full text & metadata entries 
+
+        # full text & metadata entries
         output = full_text, out_meta
-        
+
         return output
 
     @exception_handler(default_return=None)
@@ -117,23 +117,23 @@ class PyPDFParser(BaseParser):
         documents = []
         # Process each PDF
         for pdf_file in pdf_files:
-	    # Parse the PDF
-	    output = self.parse_pdf(pdf_file)
+            # Parse the PDF
+            output = self.parse_pdf(pdf_file)
 
             # Check if the PDF was parsed successfully
-	    if output is None:
+            if output is None:
                 print(f'Error: Failed to parse {pdf_file}')
-	        continue
+                continue
 
-	    # Unpack the output
+            # Unpack the output
             text, metadata = output
 
-	    # Setup the document fields to be stored
-	    document = {
+            # Setup the document fields to be stored
+            document = {
                 'text': text,
-		'path': str(pdf_file),
-		'metadata': metadata,
-	    }
-	    documents.append(document)
+                'path': str(pdf_file),
+                'metadata': metadata,
+            }
+            documents.append(document)
 
         return documents
