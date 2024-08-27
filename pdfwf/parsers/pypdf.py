@@ -61,7 +61,7 @@ class PyPDFParser(BaseParser):
         for page in reader.pages:
             full_text += page.extract_text(extraction_mode="layout")
 
-        first_page = reader.pages[0] if len(reader.pages[0]) > 0 else ''
+        first_page_text = reader.pages[0].extract_text(extraction_mode="layout") if len(reader.pages[0]) > 0 else ''
         meta = reader.metadata
 
         # metadata (available to pypdf)
