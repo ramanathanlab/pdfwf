@@ -57,9 +57,9 @@ class PyPDFParser(BaseParser):
         reader = PdfReader(pdf_path)
 
         # scrape text
-        text_text=''
+        full_text=''
         for page in reader.pages:
-                full_text += page.extract_text(extraction_mode="layout")
+            full_text += page.extract_text(extraction_mode="layout")
 
         first_page = reader.pages[0] if len(reader.pages[0]) > 0 else ''
         meta = reader.metadata
