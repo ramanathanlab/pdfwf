@@ -158,42 +158,17 @@ mkdir wf-validation
 cd wf-validation/
 
 # Create a base conda environment
-module load conda/2023-10-04
+module use /soft/modulefiles; module load conda/2024-04-29
 conda create -n marker-wf python=3.10
 conda activate marker-wf
 
+# install torch(vision) 
+pip3 install torch torchvision
+
 # Install Marker
-git clone https://github.com/VikParuchuri/marker.git
-cd marker/
-conda install -c conda-forge tesseract -y
-conda install -c conda-forge ghostscript -y
-python3 -m pip install --upgrade pip setuptools wheel
-python3 -m pip install -e .
-python3 -m pip install pip setuptools wheel transformers deepspeed torch==2.0.1+cu118 torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu118 --force-reinstall --upgrade -vvv
-
-##### Setup local.env for Marker #####
-
-# Option 1: manually create the file. Must have the conda environment open and tesseract installed
-touch local.env
-echo "TESSDATA_PREFIX=$(find $CONDA_PREFIX -name tessdata)" > local.env
-echo "TORCH_DEVICE=cuda" >> local.env
-echo "INFERENCE_RAM=40" >> local.env
-
-# Option 2: Use the script provided in utils
-bash $path_to_pdfwf_root/utils/setup_marker.sh local.env
-
-#### END Setup local.env ####
-```
-
-### Non-Conda Env
-If you are not using conda, these instructions will establish the local.env file
-```bash
-# Replace the path below with the path to your environment/where you install tesseract
-find /home/hippekp/CVD-Mol_AI/hippekp/conda/envs/marker-wf/ -name tessdata
-# replace the path in this command with the output of the above command
-echo "TESSDATA_PREFIX=/home/hippekp/CVD-Mol_AI/hippekp/conda/envs/marker-wf/share/tessdata" >> marker/local.env
-echo "TORCH_DEVICE=cuda" >> marker/local.env
-echo "INFERENCE_RAM=40" >> marker/local.env
+pip install marker-pdf
+pip install PyMuPDF
+pip install pypdf
 ```
 
 ## `Nougat` Pipeline Installation
