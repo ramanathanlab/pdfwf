@@ -23,7 +23,7 @@ classifiers = [
 ]
 dependencies = [
     "parsl>=2024.2.5",
-    "pydantic==2.6.1",
+    "pydantic>=2.6.1",
     "typer[all]>=0.7.0",
 ]
 
