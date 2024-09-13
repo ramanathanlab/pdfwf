@@ -41,6 +41,7 @@ class AdaParse(BaseParser):
 
     def __init__(self, config: AdaParseConfig) -> None:
         """Initialize the parser."""
+        # Initialize the PyMuPDF and Nougat parsers
         self.pymudf_parser = PyMuPDFParser(config=config.pymupdf_config)
         self.nougat_parser = NougatParser(config=config.nougat_config)
 
@@ -65,7 +66,7 @@ class AdaParse(BaseParser):
         # Remove the documents that failed the quality check
         documents = [d for d, q in zip(documents, qualities) if q]
 
-        # Collect the documents that failed the quality check
+        # Collect the pdf files that failed the quality check
         low_quality_pdfs = [p for p, q in zip(pdf_files, qualities) if not q]
 
         # If no low-quality documents, return the parsed documents

@@ -6,7 +6,7 @@ import re
 from typing import Any
 from typing import Literal
 
-import fitz
+import pymupdf
 
 from pdfwf.parsers.base import BaseParser
 from pdfwf.parsers.base import BaseParserConfig
@@ -54,7 +54,7 @@ class PyMuPDFParser(BaseParser):
             extracted from the PDF. If parsing fails, return None.
         """
         # Open pdf
-        doc = fitz.open(pdf_path)
+        doc = pymupdf.open(pdf_path)
 
         # Scrape text
         text_list = []
