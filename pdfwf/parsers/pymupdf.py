@@ -29,7 +29,7 @@ class PyMuPDFParser(BaseParser):
     """Interface for the PyMuPDF PDF parser."""
 
     def __init__(self, config: PyMuPDFParserConfig) -> None:
-        """Initialize the marker parser."""
+        """Initialize the parser."""
         self.config = config
         self.abstract_threshold = 580
 

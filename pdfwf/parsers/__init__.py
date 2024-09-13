@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from pdfwf.parsers.adaparse import AdaParse
+from pdfwf.parsers.adaparse import AdaParseConfig
 from pdfwf.parsers.base import BaseParser
 from pdfwf.parsers.base import BaseParserConfig
 from pdfwf.parsers.marker import MarkerParser
@@ -24,9 +26,15 @@ ParserConfigTypes = (
     | NougatParserConfig
     | PyMuPDFParserConfig
     | PyPDFParserConfig
+    | AdaParseConfig
 )
 ParserTypes = (
-    MarkerParser | NougatParser | OreoParser | PyMuPDFParser | PyPDFParser
+    MarkerParser
+    | NougatParser
+    | OreoParser
+    | PyMuPDFParser
+    | PyPDFParser
+    | AdaParse
 )
 
 _ParserTypes = tuple[type[ParserConfigTypes], type[ParserTypes]]
@@ -37,6 +45,7 @@ STRATEGIES: dict[str, _ParserTypes] = {
     'nougat': (NougatParserConfig, NougatParser),
     'pymupdf': (PyMuPDFParserConfig, PyMuPDFParser),
     'pypdf': (PyPDFParserConfig, PyPDFParser),
+    'adaparse': (AdaParseConfig, AdaParse),
 }
 
 
@@ -70,6 +79,7 @@ def get_parser(
     - nougat
     - pymupdf
     - pypdf
+    - adaparse
 
     Parameters
     ----------
