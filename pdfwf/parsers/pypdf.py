@@ -43,69 +43,11 @@ class PyPDFParser(BaseParser):
     def extract_doi_info(self, input_str: str) -> str:
         """Extract doi from pypdf metadata entry (if present)."""
         match = re.search(r'(doi:\s*|doi\.org/)(\S+)', input_str)
-        if match:
-            return match.group(2)
-        else:
-            return ''
-
-    def convert_single_pdf(self, pdf_path: str) -> tuple[str, dict[str, str]]:
-        """Wrap pypdf functionality."""
-        # open
-        reader = PdfReader(pdf_path)
-
-        # scrape text
-        full_text = ''
-        for page in reader.pages:
-            full_text += page.extract_text(extraction_mode='layout')
-
-        first_page_text = (
-            reader.pages[0].extract_text(extraction_mode='layout')
-            if len(reader.pages[0]) > 0
-            else ''
-        )
-        meta = reader.metadata
-
-        # metadata (available to pypdf)
-        title = meta.get('/Title', '')
-        authors = meta.get('/Author', '')
-        createdate = meta.get('/CreationDate', '')
-        keywords = meta.get('/Keywords', '')
-        doi = (
-            meta.get('/doi', '')
-            if meta.get('/doi', '') != ''
-            else self.extract_doi_info(meta.get('/Subject', ''))
-        )  # Use .get() to handle the missing DOI key
-        prod = meta.get('/Producer', '')
-        form = meta.get(
-            '/Format', ''
-        )  # Not included for pypdf, so we set it directly
-        abstract = (
-            meta.get('/Subject', '')
-            if len(meta.get('/Subject', '')) > self.abstract_threshold
-            else ''
-        )
-
-        # - assemble
-        out_meta = {
-            'title': title,
-            'authors': authors,
-            'createdate': createdate,
-            'keywords': keywords,
-            'doi': doi,
-            'producer': prod,
-            'format': form,
-            'first_page': first_page_text,
-            'abstract': abstract,
-        }
-
-        # full text & metadata entries
-        output = full_text, out_meta
-
-        return output
+        return match.group(2) if match else ''
 
     @exception_handler(default_return=None)
     def parse_pdf(self, pdf_path: str) -> tuple[str, dict[str, str]] | None:
-        """Parse a PDF file and extract markdown.
+        """Parse a PDF file.
 
         Parameters
         ----------
@@ -118,7 +60,54 @@ class PyPDFParser(BaseParser):
             A tuple containing the full text of the PDF and the metadata
             extracted from the PDF. If parsing fails, return None.
         """
-        full_text, out_meta = self.convert_single_pdf(pdf_path)
+        # TODO: This needs to be closed
+        # Open
+        reader = PdfReader(pdf_path)
+
+        # Scrape text
+        full_text = ''
+        for page in reader.pages:
+            full_text += page.extract_text(extraction_mode='layout')
+
+        first_page_text = (
+            reader.pages[0].extract_text(extraction_mode='layout')
+            if len(reader.pages[0]) > 0
+            else ''
+        )
+        meta = reader.metadata
+
+        # Metadata (available to pypdf)
+        title = meta.get('/Title', '')
+        authors = meta.get('/Author', '')
+        createdate = meta.get('/CreationDate', '')
+        keywords = meta.get('/Keywords', '')
+        # Use .get() to handle the missing DOI key
+        doi = (
+            meta.get('/doi', '')
+            if meta.get('/doi', '') != ''
+            else self.extract_doi_info(meta.get('/Subject', ''))
+        )
+        prod = meta.get('/Producer', '')
+        # Not included for pypdf, so we set it directly
+        form = meta.get('/Format', '')
+        abstract = (
+            meta.get('/Subject', '')
+            if len(meta.get('/Subject', '')) > self.abstract_threshold
+            else ''
+        )
+
+        # Assemble the metadata
+        out_meta = {
+            'title': title,
+            'authors': authors,
+            'createdate': createdate,
+            'keywords': keywords,
+            'doi': doi,
+            'producer': prod,
+            'format': form,
+            'first_page': first_page_text,
+            'abstract': abstract,
+        }
 
         return full_text, out_meta
 

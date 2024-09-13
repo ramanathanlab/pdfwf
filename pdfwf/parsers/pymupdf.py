@@ -26,10 +26,7 @@ class PyMuPDFParserConfig(BaseParserConfig):
 
 
 class PyMuPDFParser(BaseParser):
-    """Warmstart interface for the PyMuPDF PDF parser.
-
-    No warmsart eneded as PyMuPDF is a Python library using CPUs only
-    """
+    """Interface for the PyMuPDF PDF parser."""
 
     def __init__(self, config: PyMuPDFParserConfig) -> None:
         """Initialize the marker parser."""
@@ -39,26 +36,36 @@ class PyMuPDFParser(BaseParser):
     def extract_doi_info(self, input_str: str) -> str:
         """Extract doi from PyMUPDF metadata entry (if present)."""
         match = re.search(r'(doi:\s*|doi\.org/)(\S+)', input_str)
-        if match:
-            return match.group(2)
-        else:
-            return ''
+        return match.group(2) if match else ''
 
-    def convert_single_pdf(self, pdf_path: str) -> tuple[str, dict[str, str]]:
-        """Wrap PyMuPDF functionality."""
-        # open pdf
+    @exception_handler(default_return=None)
+    def parse_pdf(self, pdf_path: str) -> tuple[str, dict[str, str]] | None:
+        """Parse a PDF file.
+
+        Parameters
+        ----------
+        pdf_path : str
+            Path to the PDF file to convert.
+
+        Returns
+        -------
+        tuple[str, dict[str, str]] | None
+            A tuple containing the full text of the PDF and the metadata
+            extracted from the PDF. If parsing fails, return None.
+        """
+        # Open pdf
         doc = fitz.open(pdf_path)
 
-        # scrape text
+        # Scrape text
         text_list = []
         for page in doc:
             text_list.append(page.get_text())
         full_text = '\n'.join(text_list)
 
-        # get first page (asa proxy for `abstract`)
+        # Get first page (as a proxy for `abstract`)
         first_page_text = text_list[0] if len(text_list) > 0 else ''
 
-        # metadata (available to PyMuPDF)
+        # Metadata (available to PyMuPDF)
         title = doc.metadata.get('title', '')
         authors = doc.metadata.get('author', '')
         createdate = doc.metadata.get('creationDate', '')
@@ -72,7 +79,7 @@ class PyMuPDFParser(BaseParser):
             else ''
         )
 
-        # - assemble
+        # Assemble the metadata
         out_meta = {
             'title': title,
             'authors': authors,
@@ -85,26 +92,10 @@ class PyMuPDFParser(BaseParser):
             'abstract': abstract,
         }
 
+        # TODO: Should we close the document?
+        # doc.close()
+
         # full text & metadata entries
-        return full_text, out_meta
-
-    @exception_handler(default_return=None)
-    def parse_pdf(self, pdf_path: str) -> tuple[str, dict[str, str]] | None:
-        """Parse a PDF file and extract markdown.
-
-        Parameters
-        ----------
-        pdf_path : str
-            Path to the PDF file to convert.
-
-        Returns
-        -------
-        tuple[str, dict[str, str]] | None
-            A tuple containing the full text of the PDF and the metadata
-            extracted from the PDF. If parsing fails, return None.
-        """
-        full_text, out_meta = self.convert_single_pdf(pdf_path)
-
         return full_text, out_meta
 
     @exception_handler(default_return=None)
