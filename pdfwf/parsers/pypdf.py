@@ -2,17 +2,16 @@
 
 from __future__ import annotations
 
-from pypdf import PdfReader
-import re
 import logging
-
+import re
 from typing import Any
 from typing import Literal
+
+from pypdf import PdfReader
 
 from pdfwf.parsers.base import BaseParser
 from pdfwf.parsers.base import BaseParserConfig
 from pdfwf.utils import exception_handler
-
 
 __all__ = [
     'PyPDFParser',
@@ -41,27 +40,29 @@ class PyPDFParser(BaseParser):
         # pypdf is verbose
         logging.getLogger().setLevel(logging.ERROR)
 
-    def extract_doi_info(self, input_str:str) -> str:
-        """
-        Extracts doi from pypdf metadata entry (if present)
-        """
+    def extract_doi_info(self, input_str: str) -> str:
+        """Extract doi from pypdf metadata entry (if present)."""
         match = re.search(r'(doi:\s*|doi\.org/)(\S+)', input_str)
         if match:
             return match.group(2)
         else:
             return ''
 
-    def convert_single_pdf(self, pdf_path) -> str:
-        """Wraps pypdf functionality"""
+    def convert_single_pdf(self, pdf_path: str) -> tuple[str, dict[str, str]]:
+        """Wrap pypdf functionality."""
         # open
         reader = PdfReader(pdf_path)
 
         # scrape text
-        full_text=''
+        full_text = ''
         for page in reader.pages:
-            full_text += page.extract_text(extraction_mode="layout")
+            full_text += page.extract_text(extraction_mode='layout')
 
-        first_page_text = reader.pages[0].extract_text(extraction_mode="layout") if len(reader.pages[0]) > 0 else ''
+        first_page_text = (
+            reader.pages[0].extract_text(extraction_mode='layout')
+            if len(reader.pages[0]) > 0
+            else ''
+        )
         meta = reader.metadata
 
         # metadata (available to pypdf)
@@ -69,21 +70,32 @@ class PyPDFParser(BaseParser):
         authors = meta.get('/Author', '')
         createdate = meta.get('/CreationDate', '')
         keywords = meta.get('/Keywords', '')
-        doi = meta.get('/doi', '') if meta.get('/doi', '')!='' else self.extract_doi_info(meta.get('/Subject', ''))  # Use .get() to handle the missing DOI key
+        doi = (
+            meta.get('/doi', '')
+            if meta.get('/doi', '') != ''
+            else self.extract_doi_info(meta.get('/Subject', ''))
+        )  # Use .get() to handle the missing DOI key
         prod = meta.get('/Producer', '')
-        form = meta.get('/Format', '')  # Not included for pypdf, so we set it directly
-        abstract = meta.get('/Subject', '') if len(meta.get('/Subject', '')) > self.abstract_threshold else ''
+        form = meta.get(
+            '/Format', ''
+        )  # Not included for pypdf, so we set it directly
+        abstract = (
+            meta.get('/Subject', '')
+            if len(meta.get('/Subject', '')) > self.abstract_threshold
+            else ''
+        )
 
         # - assemble
-        out_meta = {'title' : title,
-                    'authors' : authors,
-                    'createdate' : createdate,
-                    'keywords' : keywords,
-                    'doi' : doi,
-                    'producer' : prod,
-                    'format' : form,
-                    'first_page' : first_page_text,
-                    'abstract' : abstract,
+        out_meta = {
+            'title': title,
+            'authors': authors,
+            'createdate': createdate,
+            'keywords': keywords,
+            'doi': doi,
+            'producer': prod,
+            'format': form,
+            'first_page': first_page_text,
+            'abstract': abstract,
         }
 
         # full text & metadata entries
@@ -106,7 +118,6 @@ class PyPDFParser(BaseParser):
             A tuple containing the full text of the PDF and the metadata
             extracted from the PDF. If parsing fails, return None.
         """
-
         full_text, out_meta = self.convert_single_pdf(pdf_path)
 
         return full_text, out_meta

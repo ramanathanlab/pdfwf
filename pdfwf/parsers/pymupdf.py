@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
-import fitz
 import re
-
 from typing import Any
 from typing import Literal
+
+import fitz
 
 from pdfwf.parsers.base import BaseParser
 from pdfwf.parsers.base import BaseParserConfig
 from pdfwf.utils import exception_handler
-
 
 __all__ = [
     'PyMuPDFParser',
@@ -36,19 +35,17 @@ class PyMuPDFParser(BaseParser):
         """Initialize the marker parser."""
         self.config = config
         self.abstract_threshold = 580
-    
-    def extract_doi_info(self, input_str:str) -> str:
-        """
-        Extracts doi from PyMUPDF metadata entry (if present)
-        """
-        match = re.search(r'(doi:\s*|doi\.org/)(\S+)', input_str) 
+
+    def extract_doi_info(self, input_str: str) -> str:
+        """Extract doi from PyMUPDF metadata entry (if present)."""
+        match = re.search(r'(doi:\s*|doi\.org/)(\S+)', input_str)
         if match:
             return match.group(2)
         else:
             return ''
 
-    def convert_single_pdf(self, pdf_path) -> str:
-        """Wraps PyMuPDF functionality"""
+    def convert_single_pdf(self, pdf_path: str) -> tuple[str, dict[str, str]]:
+        """Wrap PyMuPDF functionality."""
         # open pdf
         doc = fitz.open(pdf_path)
 
@@ -56,37 +53,40 @@ class PyMuPDFParser(BaseParser):
         text_list = []
         for page in doc:
             text_list.append(page.get_text())
-        full_text = "\n".join(text_list)
-        
+        full_text = '\n'.join(text_list)
+
         # get first page (asa proxy for `abstract`)
         first_page_text = text_list[0] if len(text_list) > 0 else ''
-       
+
         # metadata (available to PyMuPDF)
         title = doc.metadata.get('title', '')
         authors = doc.metadata.get('author', '')
         createdate = doc.metadata.get('creationDate', '')
         keywords = doc.metadata.get('keywords', '')
-        doi = self.extract_doi_info(doc.metadata.get('subject', '')) 
+        doi = self.extract_doi_info(doc.metadata.get('subject', ''))
         prod = doc.metadata.get('producer', '')
         form = doc.metadata.get('format', '')
-        abstract = doc.metadata.get('subject', '') if len(doc.metadata.get('subject', '')) > self.abstract_threshold else ''
+        abstract = (
+            doc.metadata.get('subject', '')
+            if len(doc.metadata.get('subject', '')) > self.abstract_threshold
+            else ''
+        )
 
         # - assemble
-        out_meta = {'title' : title, 
-                    'authors' : authors,
-                    'creationdate' : createdate, 
-                    'keywords' : keywords, 
-                    'doi' : doi, 
-                    'producer' : prod, 
-                    'format' : form, 
-                    'first_page' : first_page_text,
-                    'abstract' : abstract,
+        out_meta = {
+            'title': title,
+            'authors': authors,
+            'creationdate': createdate,
+            'keywords': keywords,
+            'doi': doi,
+            'producer': prod,
+            'format': form,
+            'first_page': first_page_text,
+            'abstract': abstract,
         }
-        
-        # full text & metadata entries 
-        output = full_text, out_meta
-        
-        return output
+
+        # full text & metadata entries
+        return full_text, out_meta
 
     @exception_handler(default_return=None)
     def parse_pdf(self, pdf_path: str) -> tuple[str, dict[str, str]] | None:
@@ -103,7 +103,6 @@ class PyMuPDFParser(BaseParser):
             A tuple containing the full text of the PDF and the metadata
             extracted from the PDF. If parsing fails, return None.
         """
-
         full_text, out_meta = self.convert_single_pdf(pdf_path)
 
         return full_text, out_meta

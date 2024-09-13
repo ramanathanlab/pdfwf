@@ -16,11 +16,18 @@ from pdfwf.parsers.pymupdf import PyMuPDFParser
 from pdfwf.parsers.pymupdf import PyMuPDFParserConfig
 from pdfwf.parsers.pypdf import PyPDFParser
 from pdfwf.parsers.pypdf import PyPDFParserConfig
-
 from pdfwf.registry import registry
 
-ParserConfigTypes = MarkerParserConfig | OreoParserConfig | NougatParserConfig | PyMuPDFParserConfig | PyPDFParserConfig
-ParserTypes = MarkerParser| NougatParser | OreoParser | PyMuPDFParser | PyPDFParser
+ParserConfigTypes = (
+    MarkerParserConfig
+    | OreoParserConfig
+    | NougatParserConfig
+    | PyMuPDFParserConfig
+    | PyPDFParserConfig
+)
+ParserTypes = (
+    MarkerParser | NougatParser | OreoParser | PyMuPDFParser | PyPDFParser
+)
 
 _ParserTypes = tuple[type[ParserConfigTypes], type[ParserTypes]]
 

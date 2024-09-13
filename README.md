@@ -84,7 +84,7 @@ We provide example configurations for each parser in these files:
 - **nougat**: [examples/nougat/nougat_test.yaml](examples/nougat/nougat_test.yaml)
 - **oreo**: [examples/oreo/oreo_test.yaml](examples/oreo/oreo_test.yaml)
 - **pymupdf**: [examples/pymupdf/pymupdf_test.yaml](examples/pymupdf/pymupdf_test.yaml)
-  
+
 **Note**: Please see the comments in the example YAML files for **documentation
  on the settings**.
 
@@ -241,7 +241,7 @@ conda create -n pymupdf-wf python=3.10 -y
 conda activate pymupdf-wf
 pip install -r requirements/pymupdf_requirements.txt
 ```
-to create a conda environment that serves the PDF extraction tools `PyMuPDF` and `pypdf`. 
+to create a conda environment that serves the PDF extraction tools `PyMuPDF` and `pypdf`.
 Both tools are lightweight and operational from the same conda environment.
 
 ## `pypdf` Pipeline Installation
