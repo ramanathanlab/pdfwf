@@ -54,7 +54,7 @@ class MarkerParser(BaseParser):
         """
         from marker.convert import convert_single_pdf
 
-        # new output
+        # Convert the PDF
         full_text, _, out_meta = convert_single_pdf(pdf_path, self.model_lst)
 
         return full_text, out_meta
