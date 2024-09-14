@@ -53,6 +53,10 @@ class TextClassifierConfig(BaseModel):
         default=8,
         description='The batch size for the classifier.',
     )
+    max_character_length: int = Field(
+        default=3200,
+        description='The maximum length of the input text (in characters).',
+    )
     num_data_workers: int = Field(
         default=1,
         description='The number of data workers for the classifier.',
@@ -109,8 +113,11 @@ class TextClassifier:
         list[int]
             The predicted classes.
         """
+        # Truncate the text
+        _text = [t[: self.config.max_character_length] for t in text]
+
         # Create the dataset
-        dataset = TextDataset(text)
+        dataset = TextDataset(_text)
 
         # Create the data collator (tokenization function)
         collater_fn = functools.partial(
