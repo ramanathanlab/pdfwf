@@ -30,17 +30,17 @@ __all__ = [
 class TextDataset(Dataset):
     """Dataset for sequence classification."""
 
-    def __init__(self, sequences: list[str]) -> None:
+    def __init__(self, texts: list[str]) -> None:
         """Initialize the dataset."""
-        self.sequences = sequences
+        self.texts = texts
 
     def __len__(self) -> int:
-        """Return the number of sequences."""
-        return len(self.sequences)
+        """Return the number of text."""
+        return len(self.texts)
 
     def __getitem__(self, idx: int) -> str:
         """Return a sequence."""
-        return self.sequences[idx]
+        return self.texts[idx]
 
 
 class TextClassifierConfig(BaseModel):
