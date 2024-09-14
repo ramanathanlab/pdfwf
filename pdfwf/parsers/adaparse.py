@@ -19,6 +19,7 @@ from pdfwf.parsers.nougat_ import NougatParser
 from pdfwf.parsers.nougat_ import NougatParserConfig
 from pdfwf.parsers.pymupdf import PyMuPDFParser
 from pdfwf.parsers.pymupdf import PyMuPDFParserConfig
+from pdfwf.timer import Timer
 from pdfwf.utils import exception_handler
 
 __all__ = [
@@ -193,15 +194,17 @@ class AdaParse(BaseParser):
     def parse(self, pdf_files: list[str]) -> list[dict[str, Any]] | None:
         """Parse a list of pdf files and return the parsed data."""
         # First, parse the PDFs using PyMuPDF
-        documents = self.pymudf_parser.parse(pdf_files)
+        with Timer('adaparse-pymupdf-parsing', self.unique_id):
+            documents = self.pymudf_parser.parse(pdf_files)
 
         # If no documents, there was an error parsing the PDFs with PyMuPDF
         if documents is None:
             return None
 
         # Apply the quality check regressor
-        document_text = [d['text'] for d in documents]
-        qualities = self.classifier.predict(document_text)
+        with Timer('adaparse-quality-check', self.unique_id):
+            document_text = [d['text'] for d in documents]
+            qualities = self.classifier.predict(document_text)
 
         # Remove the documents that failed the quality check
         documents = [d for d, q in zip(documents, qualities) if q]
@@ -214,7 +217,8 @@ class AdaParse(BaseParser):
             return documents
 
         # Parse the low-quality documents using the Nougat parser
-        nougat_documents = self.nougat_parser.parse(low_quality_pdfs)
+        with Timer('adaparse-nougat-parsing', self.unique_id):
+            nougat_documents = self.nougat_parser.parse(low_quality_pdfs)
 
         # If Nougat documents were parsed, add them to the output
         if nougat_documents is not None:

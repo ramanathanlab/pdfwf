@@ -36,32 +36,34 @@ class TimeStats(NamedTuple):
 class Timer:
     """Performance timer with nanosecond precision.
 
-    Example:
-        ```python
-        from distllm.timer import Timer
+    Example
+    -------
+    ```python
+    from pdfwf.timer import Timer
 
-        with Timer() as timer:
-            ...
-
-        print(timer.elapsed_ms)
-        ```
-
-    Example:
-        ```python
-        from distllm.timer import Timer
-
-        timer = Timer("my_run")
-        timer.start()
+    with Timer() as timer:
         ...
-        timer.stop()
 
-        print(timer.elapsed_ms)
-        ```
+    print(timer.elapsed_ms)
+    ```
+
+    Example
+    -------
+    ```python
+    from pdfwf.timer import Timer
+
+    timer = Timer("my_run")
+    timer.start()
+    ...
+    timer.stop()
+
+    print(timer.elapsed_ms)
+    ```
 
     Raises
     ------
-        RuntimeError: If the elapsed time is accessed before the timer is
-            stopped or the context block is exited.
+    RuntimeError: If the elapsed time is accessed before the timer is
+        stopped or the context block is exited.
     """
 
     def __init__(self, *tags: Any) -> None:
