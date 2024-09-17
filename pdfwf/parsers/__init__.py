@@ -12,10 +12,22 @@ from pdfwf.parsers.nougat_ import NougatParser
 from pdfwf.parsers.nougat_ import NougatParserConfig
 from pdfwf.parsers.oreo import OreoParser
 from pdfwf.parsers.oreo import OreoParserConfig
+from pdfwf.parsers.pymupdf import PyMuPDFParser
+from pdfwf.parsers.pymupdf import PyMuPDFParserConfig
+from pdfwf.parsers.pypdf import PyPDFParser
+from pdfwf.parsers.pypdf import PyPDFParserConfig
 from pdfwf.registry import registry
 
-ParserConfigTypes = MarkerParserConfig | OreoParserConfig | NougatParserConfig
-ParserTypes = MarkerParser | OreoParser | NougatParser
+ParserConfigTypes = (
+    MarkerParserConfig
+    | OreoParserConfig
+    | NougatParserConfig
+    | PyMuPDFParserConfig
+    | PyPDFParserConfig
+)
+ParserTypes = (
+    MarkerParser | NougatParser | OreoParser | PyMuPDFParser | PyPDFParser
+)
 
 _ParserTypes = tuple[type[ParserConfigTypes], type[ParserTypes]]
 
@@ -23,6 +35,8 @@ STRATEGIES: dict[str, _ParserTypes] = {
     'marker': (MarkerParserConfig, MarkerParser),
     'oreo': (OreoParserConfig, OreoParser),
     'nougat': (NougatParserConfig, NougatParser),
+    'pymupdf': (PyMuPDFParserConfig, PyMuPDFParser),
+    'pypdf': (PyPDFParserConfig, PyPDFParser),
 }
 
 
@@ -54,6 +68,8 @@ def get_parser(
     - marker
     - oreo
     - nougat
+    - pymupdf
+    - pypdf
 
     Parameters
     ----------
