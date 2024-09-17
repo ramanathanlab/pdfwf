@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import functools
+from abc import ABC
+from abc import abstractmethod
 from pathlib import Path
 from typing import Any
 from typing import Literal
@@ -68,7 +70,7 @@ class TextClassifierConfig(BaseModel):
     )
 
 
-class TextClassifier:
+class TextClassifier(ABC):
     """Text classifier."""
 
     def __init__(self, config: TextClassifierConfig) -> None:
@@ -99,6 +101,22 @@ class TextClassifier:
         self.device = device
         self.model = model
         self.tokenizer = tokenizer
+
+    @abstractmethod
+    def decision_function(self, logits: torch.Tensor) -> torch.Tensor:
+        """Return the decision function.
+
+        Parameters
+        ----------
+        logits : torch.Tensor
+            The model logits.
+
+        Returns
+        -------
+        torch.Tensor
+            The decision function result (tensor of ints).
+        """
+        ...
 
     @torch.no_grad()
     def predict(self, text: list[str]) -> list[int]:
@@ -149,13 +167,39 @@ class TextClassifier:
             # Run the model forward pass
             outputs = self.model(**inputs)
 
-            # Get the predicted logits
-            y_pred = outputs.logits.argmax(dim=1)
+            # Call the decision function
+            y_pred = self.decision_function(outputs.logits)
 
             # Collect the predictions
             predictions.extend(y_pred.tolist())
 
         return predictions
+
+
+class NougatTextClassifier(TextClassifier):
+    """Text classifier for the Nougat parser."""
+
+    def decision_function(self, logits: torch.Tensor) -> torch.Tensor:
+        """Return the decision function.
+
+        Parameters
+        ----------
+        logits : torch.Tensor
+            The model logits.
+
+        Returns
+        -------
+        torch.Tensor
+            The decision function result (tensor of ints).
+        """
+        # Get the predicted classes
+        y_pred = logits.argmax(dim=1)
+
+        # We only care about the class 0 (high quality) and class 1
+        # (low quality). Assign 0 to class 0 and 1 to all other classes.
+        y_pred[y_pred != 0] = 1
+
+        return y_pred
 
 
 class AdaParseConfig(BaseParserConfig):
@@ -187,8 +231,9 @@ class AdaParse(BaseParser):
 
         # Initialize the quality check classifier
         # Return a 0 or 1 for each parsed text. If 0, the pdf text, as parsed
-        # by pymupdf is of low quality and should be parsed with Nougat.
-        self.classifier = TextClassifier(config=config.classifier_config)
+        # by pymupdf is of high quality. If not 0, the pdf text should be
+        # parsed with Nougat.
+        self.classifier = NougatTextClassifier(config=config.classifier_config)
 
     @exception_handler(default_return=None)
     def parse(self, pdf_files: list[str]) -> list[dict[str, Any]] | None:
@@ -206,11 +251,11 @@ class AdaParse(BaseParser):
             document_text = [d['text'] for d in documents]
             qualities = self.classifier.predict(document_text)
 
-        # Remove the documents that failed the quality check
-        documents = [d for d, q in zip(documents, qualities) if q]
+        # Collect the documents that passed the quality check
+        documents = [d for d, q in zip(documents, qualities) if q == 0]
 
         # Collect the pdf files that failed the quality check
-        low_quality_pdfs = [p for p, q in zip(pdf_files, qualities) if not q]
+        low_quality_pdfs = [p for p, q in zip(pdf_files, qualities) if q != 0]
 
         # If no low-quality documents, return the parsed documents
         if not low_quality_pdfs:
