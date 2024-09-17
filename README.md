@@ -247,6 +247,29 @@ Both tools are lightweight and operational from the same conda environment.
 ## `pypdf` Pipeline Installation
 Both PDF extraction tools `PyMuPDF` and `pypdf` are fairly lightweight and operate in the conda environment `pymupdf-wf`.
 
+## `AdaParse` Installation
+On any node, run:
+```bash
+module use /soft/modulefiles; module load conda/2024-04-29
+conda create -n adaparse-wf python=3.10 -y
+conda activate adaparse-wf
+# navigate to pdfwf root dir
+pip install -e .
+pip install -r requirements/adaparse_requirements.txt
+pip install albumentations==1.4.11     # annoying but needed
+```
+This conda environment is able to run `PyMuPDF`, `pypdf`, `Nougat`, and `AdaParse` that runs a combination of two of them right now.
+
+### Running small scaling experiments: 
+Small scaling experiments through `adaparse-wf` can be launched by config in `./examples/{parser}/{parser}_small_test.yaml`. I.e, 
+```
+nohup python -m pdfwf.convert --config ./examples/pymupdf/pymupdf_small_test.yaml &> nohup_pymupdf.out &
+nohup python -m pdfwf.convert --config ./examples/pypdf/pypdf_on_adaparse_small_scale.yaml &> nohup_pypdf.out &
+nohup python -m pdfwf.convert --config ./examples/nougat/nougat_on_adaparse_small_scale.yaml &> nohup_nougat.out &
+nohup python -m pdfwf.convert --config ./examples/adaparse/adaparse_on_adaparse_small_scale.yaml &> nohup_adaparse.out &
+```
+
+
 ## CLI
 For running smaller jobs without using the Parsl workflow, the CLI can be used.
 The CLI provides different commands for running the various parsers. The CLI
