@@ -9,7 +9,7 @@ authors = [
     {name = "Kyle Hippe", email = "khippe@anl.gov"},
     {name = "Alexander Brace", email = "abrace@anl.gov"},
     {name = "Ozan Gokdemir", email = "ogokdemir@anl.gov"},
-    {name = "Carlo Siebenschuh", email = "siebenschuh@uchicago.edu"}
+    {name = "Carlo Siebenschuh", email = "siebenschuh@anl.gov"}
 ]
 description = "Workflow for running pdf to text conversions at scale"
 readme = "README.md"
@@ -23,8 +23,10 @@ classifiers = [
 ]
 dependencies = [
     "parsl>=2024.2.5",
-    "pydantic==2.6.1",
+    "pydantic>=2.6.1",
     "typer[all]>=0.7.0",
+    "PyMuPDF>=1.24.0",
+    "pypdf>=4.2.0"
 ]
 
 [project.urls]

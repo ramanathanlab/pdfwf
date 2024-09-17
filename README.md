@@ -15,6 +15,7 @@ to run on other HPC systems by adding an appropriate
 - [Install Marker](#marker-pipeline-installation)
 - [Install Nougat](#nougat-pipeline-installation)
 - [Install Oreo](#oreo-pipeline-installation)
+- [Install PyMuPDF](#pymupdf-pipeline-installation)
 
 **Note**: You may need different virtual environments for each parser.
 
@@ -74,7 +75,7 @@ compute_settings:
   # The number of compute nodes to use
   num_nodes: 1
   # Make sure to update the path to your conda environment and HF cache
-  worker_init: "module load conda/2023-10-04; conda activate marker-wf; export HF_HOME=<path-to-your-HF-cache-dir>"
+  worker_init: "module use /soft/modulefiles; module load conda/2024-04-29; conda activate marker-wf; export HF_HOME=<path-to-your-HF-cache-dir>"
   # The scheduler options to use when submitting jobs
   scheduler_options: "#PBS -l filesystems=home:eagle:grand"
   # Make sure to change the account to the account you want to charge
@@ -89,6 +90,7 @@ We provide example configurations for each parser in these files:
 - **marker**: [examples/marker/marker_test.yaml](examples/marker/marker_test.yaml)
 - **nougat**: [examples/nougat/nougat_test.yaml](examples/nougat/nougat_test.yaml)
 - **oreo**: [examples/oreo/oreo_test.yaml](examples/oreo/oreo_test.yaml)
+- **pymupdf**: [examples/pymupdf/pymupdf_test.yaml](examples/pymupdf/pymupdf_test.yaml)
 
 **Note**: Please see the comments in the example YAML files for **documentation
  on the settings**.
@@ -158,7 +160,7 @@ mkdir wf-validation
 cd wf-validation/
 
 # Create a base conda environment
-module load conda/2023-10-04
+module use /soft/modulefiles; module load conda/2024-04-29
 conda create -n marker-wf python=3.10
 conda activate marker-wf
 
@@ -200,7 +202,7 @@ echo "INFERENCE_RAM=40" >> marker/local.env
 On a compute node, run:
 ```bash
 # Create a conda environment with python3.10
-module load conda/2023-10-04
+module use /soft/modulefiles; module load conda/2024-04-29
 conda create -n nougat-wf python=3.10
 conda activate nougat-wf
 
@@ -228,7 +230,7 @@ If `Nougat` inference ran successfully, proceed to install the `pdfwf` workflow 
 ## `Oreo` Pipeline Installation
 On a compute node, run:
 ```bash
-module load conda/2023-10-04
+module use /soft/modulefiles; module load conda/2024-04-29
 conda create -n pdfwf python=3.10 -y
 conda activate pdfwf
 mamba install pytorch torchvision pytorch-cuda=11.8 -c pytorch -c nvidia -y
@@ -237,6 +239,20 @@ git clone git@github.com:ultralytics/yolov5.git
 ```
 
 Then set the `yolov5_path` option to the path of the cloned `yolov5` repository.
+
+## `PyMuPDF` Pipeline Installation
+On any node, run:
+```bash
+module use /soft/modulefiles; module load conda/2024-04-29
+conda create -n pymupdf-wf python=3.10 -y
+conda activate pymupdf-wf
+pip install -r requirements/pymupdf_requirements.txt
+```
+to create a conda environment that serves the PDF extraction tools `PyMuPDF` and `pypdf`.
+Both tools are lightweight and operational from the same conda environment.
+
+## `pypdf` Pipeline Installation
+Both PDF extraction tools `PyMuPDF` and `pypdf` are fairly lightweight and operate in the conda environment `pymupdf-wf`.
 
 ## CLI
 For running smaller jobs without using the Parsl workflow, the CLI can be used.
