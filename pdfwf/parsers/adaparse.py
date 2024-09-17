@@ -276,6 +276,11 @@ class AdaParse(BaseParser):
             document_text = [d['text'] for d in documents]
             qualities = self.classifier.predict(document_text)
 
+        # Log the percentage of low-quality documents
+        low_quality_num = sum(q != 0 for q in qualities)
+        low_quality_percentage = (low_quality_num / len(qualities)) * 100
+        print(f'Low-quality documents: {low_quality_percentage:.2f}%')
+
         # Collect the documents that passed the quality check
         documents = [d for d, q in zip(documents, qualities) if q == 0]
 
@@ -292,6 +297,7 @@ class AdaParse(BaseParser):
 
         # If Nougat documents were parsed, add them to the output
         if nougat_documents is not None:
+            print(f'Nougat parsed documents: {len(nougat_documents)}')
             documents.extend(nougat_documents)
 
         # Finally, return the parsed documents from both parsers
