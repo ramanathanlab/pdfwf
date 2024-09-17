@@ -16,7 +16,6 @@ from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 
 from pdfwf.parsers.base import BaseParser
-from pdfwf.parsers.base import BaseParserConfig
 from pdfwf.parsers.nougat_ import NougatParser
 from pdfwf.parsers.nougat_ import NougatParserConfig
 from pdfwf.parsers.pymupdf import PyMuPDFParser
@@ -202,22 +201,48 @@ class NougatTextClassifier(TextClassifier):
         return y_pred
 
 
-class AdaParseConfig(BaseParserConfig):
+class AdaParseConfig(
+    PyMuPDFParserConfig, NougatParserConfig, TextClassifierConfig
+):
     """Settings for the AdaParse parser."""
 
     # The name of the parser.
     name: Literal['adaparse'] = 'adaparse'  # type: ignore[assignment]
 
-    pymupdf_config: PyMuPDFParserConfig = Field(
-        default_factory=PyMuPDFParserConfig,
-        description='Settings for the PyMuPDF-PDF parser.',
-    )
-    nougat_config: NougatParserConfig = Field(
-        description='Settings for the Nougat-PDF parser.',
-    )
-    classifier_config: TextClassifierConfig = Field(
-        description='Settings for the text classifier.',
-    )
+    # DEV NOTE: The following are convenience properties to access the
+    # individual parser configurations (we need a flat configuration for
+    # the parser to be compatible with the warmstart registry module).
+    @property
+    def pymupdf_config(self) -> PyMuPDFParserConfig:
+        """Return the PyMuPDF parser configuration."""
+        return PyMuPDFParserConfig()
+
+    @property
+    def nougat_config(self) -> NougatParserConfig:
+        """Return the Nougat parser configuration."""
+        return NougatParserConfig(
+            batchsize=self.batchsize,
+            num_workers=self.num_workers,
+            prefetch_factor=self.prefetch_factor,
+            checkpoint=self.checkpoint,
+            mmd_out=self.mmd_out,
+            recompute=self.recompute,
+            full_precision=self.full_precision,
+            markdown=self.markdown,
+            skipping=self.skipping,
+            nougat_logs_path=self.nougat_logs_path,
+        )
+
+    @property
+    def classifier_config(self) -> TextClassifierConfig:
+        """Return the text classifier configuration."""
+        return TextClassifierConfig(
+            weights_path=self.weights_path,
+            batch_size=self.batch_size,
+            max_character_length=self.max_character_length,
+            num_data_workers=self.num_data_workers,
+            pin_memory=self.pin_memory,
+        )
 
 
 class AdaParse(BaseParser):
