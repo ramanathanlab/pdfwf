@@ -1,7 +1,5 @@
-git+https://github.com/facebookresearch/nougat.git
-transformers>=4.38.2
-PyMuPDF==1.24.9
-pypdf==4.3.1
+nougat-ocr==0.1.17
+transformers==4.38.2
 texify==0.1.10
 torch
 peft>=0.12.0

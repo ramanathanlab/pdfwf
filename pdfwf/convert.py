@@ -296,6 +296,8 @@ if __name__ == '__main__':
             output_dir=pdf_output_dir,
             parser_kwargs=config.parser_settings.model_dump(),
         )
+    # NEW LINE
+    logger.info(f'-->config.parser_settings.model_dump() : {config.parser_settings.model_dump()}')    
 
     # Setup parsl for distributed computing
     parsl_config = config.compute_settings.get_config(config.out_dir / 'parsl')
