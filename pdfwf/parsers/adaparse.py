@@ -196,7 +196,14 @@ class NougatTextClassifier(TextClassifier):
 
         # We only care about the class 0 (high quality) and class 1
         # (low quality). Assign 0 to class 0 and 1 to all other classes.
-        y_pred[y_pred != 0] = 1
+        
+        # NEW (SIMPLE PERF TEST)
+        #probability = 0.05  # 5%
+        #mask = torch.rand(y_pred.shape, dtype=torch.float32) < probability
+        #mask = mask.to(y_pred.dtype)
+        #y_pred[mask.bool()] = 1  # Ensure the mask is boolean for indexing
+        # legacy: always 0
+        y_pred[y_pred != 0] = 0
 
         return y_pred
 

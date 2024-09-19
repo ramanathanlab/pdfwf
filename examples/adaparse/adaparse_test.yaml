@@ -2,7 +2,7 @@
 pdf_dir: /eagle/projects/argonne_tpc/siebenschuh/aurora_gpt/tiny_test_pdf_set
 
 # The directory to place the converted pdfs in
-out_dir: /eagle/projects/argonne_tpc/siebenschuh/aurora_gpt/tiny_test_pdf_set_to_pymupdf
+out_dir: /lus/eagle/projects/argonne_tpc/siebenschuh/aurora_gpt/benchmark_data/output/test_pdf_set_to_adaparse
 
 # The settings for the pdf parser
 parser_settings:
@@ -10,40 +10,34 @@ parser_settings:
   name: adaparse
 
   # The Nougat parser settings
-  nougat_config:
-    name: nougat
-    # Recommended batch size of pages (not pdfs) is 10, maximum that fits into A100 40GB.
-    batchsize: 10
-    # Path to download the checkpoint to. if already exists, will use existing.
-    checkpoint: /lus/eagle/projects/FoundEpidem/hippekp/aglimmer/nougat-checkpoint
-    # Set mmd_out to null if you don't want to write mmd files as a byproduct.
-    mmd_out: null
-    # If set to false, a will skip the pdfs that already have a parsed mmd file in mmd_out
-    recompute: false
-    # Set to true if you want to use fp32 instead of bfloat16 (false is recommended)
-    full_precision: false
-    # If set to true, output text will be formatted as a markdown file.
-    markdown: true
-    # Preempt processing a paper if mode collapse causes repetitions (true is recommended)
-    skipping: true
-    # Path for the nougat-specific logs for the run.
-    nougat_logs_path: TODO /home/ogokdemir/nougat_wf/nougat_logs/
+  # Recommended batch size of pages (not pdfs) is 10, maximum that fits into A100 40GB.
+  batchsize: 1
+  # Path to download the checkpoint to. if already exists, will use existing.
+  checkpoint: /lus/eagle/projects/FoundEpidem/hippekp/aglimmer/nougat-checkpoint
+  # Set mmd_out to null if you don't want to write mmd files as a byproduct.
+  mmd_out: null
+  # If set to false, a will skip the pdfs that already have a parsed mmd file in mmd_out
+  recompute: false
+  # Set to true if you want to use fp32 instead of bfloat16 (false is recommended)
+  full_precision: false
+  # If set to true, output text will be formatted as a markdown file.
+  markdown: true
+  # Preempt processing a paper if mode collapse causes repetitions (true is recommended)
+  skipping: true
+  # Path for the nougat-specific logs for the run.
+  nougat_logs_path: /eagle/projects/argonne_tpc/siebenschuh/aurora_gpt/tiny_test_pdf_set_to_adaparse/nougat_logs
 
   # The AdaParse classifier settings
-  classifier_config:
-    # The path to the fine-tuned model weights.
-    weights_path: TODO
-    # The batch size for the classifier.
-    batch_size: 8
-    # The maximum length of the input text (in characters).
-    max_character_length: 3200
-    # The number of data workers for the classifier.
-    num_data_workers: 1
-    # Whether to pin memory for the classifier.
-    pin_memory: true
-
-
-
+  # The path to the fine-tuned model weights.
+  weights_path: /home/siebenschuh/Projects/dataprep/code/DPO/regr_mvp/stored_regression
+  # The batch size for the classifier.
+  batch_size: 256
+  # The maximum length of the input text (in characters).
+  max_character_length: 3200
+  # The number of data workers for the classifier.
+  num_data_workers: 1
+  # Whether to pin memory for the classifier.
+  pin_memory: true
 
 # The compute settings for the workflow
 compute_settings:
@@ -51,6 +45,8 @@ compute_settings:
   name: polaris
   # The number of compute nodes to use
   num_nodes: 1
+  # No of cpus for each worker -> total # of workers (impacted by chunksize)
+  cores_per_worker: 2
   # Make sure to update the path to your conda environment and HF cache
   worker_init: "module use /soft/modulefiles; module load conda/2024-04-29; conda activate adaparse-wf"
   # The scheduler options to use when submitting jobs
