@@ -278,6 +278,109 @@ class PolarisSettings(BaseComputeSettings):
 
         return config
 
+class PolarisCPUSettings(BaseComputeSettings):
+    """Polaris@ALCF settings.
+
+    See here for details: https://docs.alcf.anl.gov/polaris/workflows/parsl/
+    """
+
+    name: Literal['polaris_cpu'] = 'polaris_cpu'  # type: ignore[assignment]
+    label: str = 'htex'
+
+    num_nodes: int = 1
+    """Number of nodes to request"""
+    worker_init: str = ''
+    """How to start a worker. Should load any modules and environments."""
+    scheduler_options: str = '#PBS -l filesystems=home:eagle:grand'
+    """PBS directives, pass -J for array jobs."""
+    account: str
+    """The account to charge compute to."""
+    queue: str
+    """Which queue to submit jobs to, will usually be prod."""
+    walltime: str
+    """Maximum job time."""
+    cpus_per_node: int = 32
+    """Up to 64 with multithreading."""
+    cores_per_worker: float = 4 # optimal at 4 ...
+    #"""Number of cores per worker. Evenly distributed between GPUs."""
+    # available_accelerators: int = 4
+    """Number of GPU to use."""
+    retries: int = 0
+    """Number of retries upon failure."""
+    worker_debug: bool = False
+    """Enable worker debug."""
+    monitoring_settings: MonitoringSettings | None = None
+    """Optional monitoring settings, if not provided, skip monitoring."""
+
+    def get_config(self, run_dir: PathLike) -> Config:
+        """Create a parsl configuration for running on Polaris@ALCF.
+
+        We will launch 4 workers per node, each pinned to a different GPU.
+
+        Parameters
+        ----------
+        run_dir: PathLike
+            Directory in which to store Parsl run files.
+        """
+        run_dir = str(run_dir)
+        checkpoints = get_all_checkpoints(run_dir)
+
+        monitoring = None
+        if self.monitoring_settings:
+            monitoring = MonitoringHub(
+                hub_address=address_by_interface('bond0'),
+                hub_port=self.monitoring_settings.hub_port,
+                monitoring_debug=self.monitoring_settings.monitoring_debug,
+                resource_monitoring_interval=self.monitoring_settings.resource_monitoring_interval,
+                logging_endpoint=self.monitoring_settings.logging_endpoint,
+                workflow_name=self.monitoring_settings.workflow_name,
+            )
+
+        config = Config(
+            executors=[
+                HighThroughputExecutor(
+                    label=self.label,
+                    heartbeat_period=15,
+                    heartbeat_threshold=120,
+                    worker_debug=self.worker_debug,
+                    # available_accelerators will override settings
+                    # for max_workers
+                    # available_accelerators=self.available_accelerators,
+                    cores_per_worker=self.cores_per_worker,
+                    # address=address_by_interface('bond0'),
+                    cpu_affinity='block-reverse',
+                    prefetch_capacity=0,
+                    provider=PBSProProvider(
+                        launcher=MpiExecLauncher(
+                            bind_cmd='--cpu-bind',
+                            overrides='--depth=64 --ppn 1',
+                        ),
+                        account=self.account,
+                        queue=self.queue,
+                        # select_options='ngpus=4', # commented out
+                        # PBS directives: for array jobs pass '-J' option
+                        scheduler_options=self.scheduler_options,
+                        # Command to be run before starting a worker, such as:
+                        worker_init=self.worker_init,
+                        # number of compute nodes allocated for each block
+                        nodes_per_block=self.num_nodes,
+                        init_blocks=1,
+                        min_blocks=0,
+                        max_blocks=1,  # Increase to have more parallel jobs
+                        cpus_per_node=self.cpus_per_node,
+                        walltime=self.walltime,
+                    ),
+                ),
+            ],
+            monitoring=monitoring,
+            checkpoint_files=checkpoints,
+            run_dir=run_dir,
+            checkpoint_mode='task_exit',
+            retries=self.retries,
+            app_cache=True,
+        )
+
+        return config
 
 class MonitoringSettings(BaseModel):
     """Monitoring settings."""
@@ -299,5 +402,6 @@ ComputeSettingsTypes = Union[
     LocalSettings,
     WorkstationSettings,
     PolarisSettings,
+    PolarisCPUSettings,
     LeonardoSettings,
 ]
