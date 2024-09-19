@@ -2,7 +2,7 @@
 pdf_dir: /eagle/projects/argonne_tpc/siebenschuh/aurora_gpt/tiny_test_pdf_set
 
 # The directory to place the converted pdfs in
-out_dir: /eagle/projects/argonne_tpc/siebenschuh/aurora_gpt/tiny_test_pdf_set_to_pymupdf
+out_dir: /lus/eagle/projects/argonne_tpc/siebenschuh/aurora_gpt/benchmark_data/output/experiment_3
 
 # The settings for the pdf parser
 parser_settings:
@@ -12,9 +12,11 @@ parser_settings:
 # The compute settings for the workflow
 compute_settings:
   # The name of the compute platform to use
-  name: polaris
+  name: polaris_cpu
   # The number of compute nodes to use
   num_nodes: 1
+  # No of cpus for each worker -> total # of workers (impacted by chunksize)
+  cores_per_worker: float = 4
   # Make sure to update the path to your conda environment and HF cache
   worker_init: "module use /soft/modulefiles; module load conda/2024-04-29; conda activate pymupdf-wf"
   # The scheduler options to use when submitting jobs
