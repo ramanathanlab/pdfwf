@@ -1,8 +1,8 @@
 # The directory containing the pdfs to convert
-pdf_dir: /lus/eagle/projects/argonne_tpc/siebenschuh/aurora_gpt/benchmark_data/block_256
+pdf_dir: /lus/eagle/projects/argonne_tpc/siebenschuh/aurora_gpt/benchmark_data/block_100
 
 # The directory to place the converted pdfs in
-out_dir: /lus/eagle/projects/argonne_tpc/siebenschuh/aurora_gpt/benchmark_data/output/experiment_1
+out_dir: /lus/eagle/projects/argonne_tpc/siebenschuh/aurora_gpt/benchmark_data/output/experiment_100_1c
 
 # The settings for the pdf parser
 parser_settings:
@@ -13,7 +13,7 @@ parser_settings:
 iszip: true
 
 # Temporary directory
-tmp_storage: './tmp'
+tmp_storage: '/dev/shm'
 
 # Number of file chunks (1 for zip)
 chunk_size: 1
@@ -25,7 +25,7 @@ compute_settings:
   # The number of compute nodes to use
   num_nodes: 1
   # No of cpus for each worker -> total # of workers (impacted by chunksize)
-  cores_per_worker: float = 4
+  cores_per_worker: 1
   # Make sure to update the path to your conda environment and HF cache
   worker_init: "module use /soft/modulefiles; module load conda/2024-04-29; conda activate adaparse-wf"
   # The scheduler options to use when submitting jobs
@@ -35,4 +35,4 @@ compute_settings:
   # The HPC queue to submit to
   queue: debug
   # The amount of time to request for your job
-  walltime: 00:15:00
+  walltime: 00:25:00
