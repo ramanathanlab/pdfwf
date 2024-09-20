@@ -1,8 +1,14 @@
 # The directory containing the pdfs to convert
-pdf_dir: /eagle/projects/argonne_tpc/siebenschuh/aurora_gpt/tiny_test_pdf_set
+pdf_dir: /lus/eagle/projects/argonne_tpc/siebenschuh/aurora_gpt/benchmark_data/mini_block_256_times_8
 
 # The directory to place the converted pdfs in
-out_dir: /eagle/projects/argonne_tpc/siebenschuh/aurora_gpt/scaling_experiments/tiny_test_adaparse_on_adaparse
+out_dir: /lus/eagle/projects/argonne_tpc/siebenschuh/aurora_gpt/benchmark_data/output/experiment_256_times_8_updated_adaparse_w_zip
+
+# Input is .zip rather than .pdf
+iszip: true
+
+# Temporary directory
+tmp_storage: '/dev/shm'
 
 # The settings for the pdf parser
 parser_settings:
@@ -31,11 +37,11 @@ parser_settings:
   # The path to the fine-tuned model weights.
   weights_path: /home/siebenschuh/Projects/dataprep/code/DPO/regr_mvp/stored_regression
   # The batch size for the classifier.
-  batch_size: 8
+  batch_size: 256
   # The maximum length of the input text (in characters).
   max_character_length: 3200
   # The number of data workers for the classifier.
-  num_data_workers: 1
+  num_data_workers: 2
   # Whether to pin memory for the classifier.
   pin_memory: true
 
@@ -48,6 +54,8 @@ compute_settings:
   name: polaris
   # The number of compute nodes to use
   num_nodes: 1
+  # No of cpus for each worker -> total # of workers (impacted by chunksize)
+  cores_per_worker: 4
   # Make sure to update the path to your conda environment and HF cache
   worker_init: "module use /soft/modulefiles; module load conda/2024-04-29; conda activate adaparse-wf"
   # The scheduler options to use when submitting jobs
@@ -57,4 +65,4 @@ compute_settings:
   # The HPC queue to submit to
   queue: debug
   # The amount of time to request for your job
-  walltime: 00:20:00
+  walltime: 00:60:00
