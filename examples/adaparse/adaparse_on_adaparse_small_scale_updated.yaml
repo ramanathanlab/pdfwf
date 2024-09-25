@@ -35,7 +35,7 @@ parser_settings:
 
   # The AdaParse classifier settings
   # The path to the fine-tuned model weights.
-  weights_path: /home/siebenschuh/Projects/dataprep/code/DPO/regr_mvp/stored_regression
+  weights_path: /lus/eagle/projects/argonne_tpc/siebenschuh/aurora_gpt/adaparse_weights/stored_regression
   # The batch size for the classifier.
   batch_size: 256
   # The maximum length of the input text (in characters).
