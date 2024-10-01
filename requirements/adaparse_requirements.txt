@@ -3,3 +3,5 @@ transformers==4.38.2
 texify==0.1.10
 torch
 peft>=0.12.0
+pytesseract>=0.3.13
+pillow>=10.4.0
