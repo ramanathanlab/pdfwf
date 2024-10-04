@@ -2,7 +2,7 @@
 pdf_dir: /lus/eagle/projects/argonne_tpc/adaparse-scaling-data
 
 # The directory to place the converted pdfs in
-out_dir: /lus/eagle/projects/argonne_tpc/ogokdemir/adaparse_prod_runs/pymupdf/nodes_4
+out_dir: /lus/eagle/projects/argonne_tpc/siebenschuh/adaparse_prod_runs/pymupdf/nodes_4
 
 # The settings for the pdf parser
 parser_settings:
