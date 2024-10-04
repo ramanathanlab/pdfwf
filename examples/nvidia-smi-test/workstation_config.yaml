@@ -5,10 +5,10 @@ pdf_dir: /eagle/projects/argonne_tpc/siebenschuh/aurora_gpt/joint_mini
 out_dir: /lus/eagle/projects/argonne_tpc/ogokdemir/parser_outs/nvidia_smi_test_local
 
 # Only convert the first 100 pdfs for testing
-num_conversions: 200
+num_conversions: 4
 
 # The number of PDFs to parse in each parsl task
-chunk_size: 5
+chunk_size: 1
 
 parser_settings:
   name: "nougat"
@@ -35,8 +35,8 @@ compute_settings:
   name: workstation
   # setting CUDA_VISIBLE_DEVICES=0,1,2,3
   available_accelerators: ["0", "1", "2", "3"]
-  monitoring_settings:
-    resource_monitoring_interval: 10
-    logging_endpoint: 'sqlite:////lus/eagle/projects/argonne_tpc/ogokdemir/adaparse/nougat/nougat_nvidia_smi_test_local2.db'
-    workflow_name: nougat_monitoring_nvidia_smi_local
-    hub_port: 10500
+  # monitoring_settings:
+  #   resource_monitoring_interval: 10
+  #   logging_endpoint: 'sqlite:////lus/eagle/projects/argonne_tpc/ogokdemir/adaparse/nougat/nougat_nvidia_smi_test_local2.db'
+  #   workflow_name: nougat_monitoring_nvidia_smi_local
+  #   hub_port: 10500
