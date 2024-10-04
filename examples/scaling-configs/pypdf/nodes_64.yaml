@@ -3,6 +3,9 @@ pdf_dir: /lus/eagle/projects/argonne_tpc/adaparse-scaling-data
 
 iszip: true
 
+# Temporary directory
+tmp_storage: '/dev/shm'
+
 # The directory to place the converted pdfs in
 out_dir: /lus/eagle/projects/argonne_tpc/siebenschuh/adaparse_prod_runs/pypdf/nodes_64
 
