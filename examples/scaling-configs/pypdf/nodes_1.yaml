@@ -7,7 +7,7 @@ iszip: true
 out_dir: /lus/eagle/projects/argonne_tpc/siebenschuh/adaparse_prod_runs/pypdf/nodes_1
 
 # The settings for the pdf parser
-parser_settings:v
+parser_settings:
   # The name of the parser to use
   name: pypdf
 
