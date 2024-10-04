@@ -14,7 +14,7 @@ tmp_storage: '/dev/shm'
 parser_settings:
   # The name of the parser to use
   name: adaparse
-v
+
   # The Nougat parser settings
   # Recommended batch size of pages (not pdfs) is 10, maximum that fits into A100 40GB.
   batchsize: 5
