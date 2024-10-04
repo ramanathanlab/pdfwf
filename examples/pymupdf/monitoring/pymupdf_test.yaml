@@ -1,0 +1,31 @@
+# The directory containing the pdfs to convert
+pdf_dir: /lus/eagle/projects/argonne_tpc/ogokdemir/joint_mini
+
+# The output directory of the workflow
+out_dir: /lus/eagle/projects/argonne_tpc/ogokdemir/parser_outs/pymupdf_max_cpu_profiling
+
+# The settings for the pdf parser
+parser_settings:
+  # The name of the parser to use
+  name: pymupdf
+
+# The compute settings for the workflow
+compute_settings:
+  # The name of the compute platform to use
+  name: polaris_cpu
+  # The number of compute nodes to use
+  num_nodes: 1
+  # Make sure to update the path to your conda environment and HF cache
+  worker_init: "module use /soft/modulefiles; module load conda/2024-04-29; conda activate pymupdf-wf"
+  # The scheduler options to use when submitting jobs
+  scheduler_options: "#PBS -l filesystems=home:eagle"
+  # Make sure to change the account to the account you want to charge
+  account: argonne_tpc
+  # The HPC queue to submit to
+  queue: debug
+  # The amount of time to request for your job
+  walltime: 01:00:00
+  monitoring_settings:
+    resource_monitoring_interval: 10
+    logging_endpoint: 'sqlite:////lus/eagle/projects/argonne_tpc/ogokdemir/adaparse/pymupdf/pymupdf_max_cpu_perf_log.db'
+    workflow_name: pymupdf_max_cpu_monitoring

@@ -1,0 +1,51 @@
+# The directory containing the pdfs to convert
+pdf_dir: /eagle/projects/argonne_tpc/siebenschuh/aurora_gpt/joint_mini
+
+# The output directory of the workflow
+out_dir: /lus/eagle/projects/argonne_tpc/ogokdemir/parser_outs/nougat_profiling
+
+# Only convert the first 100 pdfs for testing
+num_conversions: 200
+
+# The number of PDFs to parse in each parsl task
+chunk_size: 5
+
+parser_settings:
+  name: "nougat"
+  # Recommended batch size of pages (not pdfs) is 10, maximum that fits into A100 40GB.
+  batchsize: 10
+  # Path to download the checkpoint to. if already exists, will use existing.
+  checkpoint: /lus/eagle/projects/argonne_tpc/ogokdemir/adaparse/nougat/base_ckpt
+  # Set mmd_out to null if you don't want to write mmd files as a byproduct.
+  mmd_out: null
+  # If set to false, a will skip the pdfs that already have a parsed mmd file in mmd_out
+  recompute: true
+  # Set to true if you want to use fp32 instead of bfloat16 (false is recommended)
+  full_precision: false
+  # If set to true, output text will be formatted as a markdown file.
+  markdown: false
+  # Preempt processing a paper if mode collapse causes repetitions (true is recommended)
+  skipping: true
+  # Path for the nougat-specific logs for the run.
+  nougat_logs_path: /lus/eagle/projects/argonne_tpc/ogokdemir/adaparse/nougat/nougat.log
+
+# The compute settings for the workflow
+compute_settings:
+  # The name of the compute platform to use
+  name: polaris
+  # The number of compute nodes to use
+  num_nodes: 1
+  # Make sure to update the path to your conda environment and HF cache
+  worker_init: "module use /soft/modulefiles; module load conda; conda activate nougat-wf"
+  # The scheduler options to use when submitting jobs
+  scheduler_options: "#PBS -l filesystems=home:eagle:grand"
+  # Make sure to change the account to the account you want to charge
+  account: argonne_tpc
+  # The HPC queue to submit to
+  queue: debug
+  # The amount of time to request for your job
+  walltime: 01:00:00
+  monitoring_settings:
+    resource_monitoring_interval: 10
+    logging_endpoint: 'sqlite:////lus/eagle/projects/argonne_tpc/ogokdemir/adaparse/nougat/nougat_perf.db'
+    workflow_name: nougat_monitoring

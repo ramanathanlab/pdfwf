@@ -7,6 +7,9 @@ import logging
 import sys
 import traceback
 import zipfile
+import subprocess
+import threading
+import time
 from pathlib import Path
 from typing import Any
 from typing import Callable
@@ -87,6 +90,79 @@ class BaseModel(_BaseModel):
         with open(path) as fp:
             raw_data = yaml.safe_load(fp)
         return cls(**raw_data)
+
+
+class NvidiaSMILogger:
+    def __init__(self, log_file: Path, interval: int = 1, flush_interval: int = 60, iterations: int = 900):
+        """
+        Initializes the NvidiaSMILogger.
+
+        Parameters
+        ----------
+        log_file : Path
+            The path to the log file where GPU performance metrics will be saved.
+        interval : int
+            The time interval (in seconds) between consecutive `nvidia-smi` calls.
+        flush_interval : int
+            The time interval (in seconds) for flushing the buffer to the log file.
+        iterations : int
+            The number of times to log the GPU metrics.
+        """
+        self.log_file = log_file
+        self.interval = interval
+        self.flush_interval = flush_interval
+        self.iterations = iterations
+        self.buffer = []
+        self.running = False
+
+    def _log_gpu_stats(self):
+        """
+        Internal method to log GPU stats by calling `nvidia-smi` command.
+        Buffers the output and flushes it to the log file periodically.
+        """
+        last_flush_time = time.time()
+
+        for _ in range(self.iterations):
+            # Run the nvidia-smi command and capture the output
+            result = subprocess.run(
+                ['nvidia-smi', '--query-gpu=timestamp,index,name,utilization.gpu,utilization.memory,memory.total,memory.used,temperature.gpu,power.draw', '--format=csv'],
+                stdout=subprocess.PIPE,
+                text=True
+            )
+            # Add the output to the buffer
+            self.buffer.append(result.stdout)
+
+            # Flush the buffer to file if the flush interval has passed
+            current_time = time.time()
+            if current_time - last_flush_time >= self.flush_interval:
+                self.flush()
+                last_flush_time = current_time
+
+            # Sleep for the specified interval
+            time.sleep(self.interval)
+
+        # Final flush before stopping
+        self.flush()
+
+    def flush(self):
+        """Flush the buffer to the log file."""\
+        #create the log file directory if it doesn't exist.
+        self.log_file.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(self.log_file, 'a+') as f:
+            f.writelines(self.buffer)
+        self.buffer = []  # Clear the buffer after flushing
+
+    def start(self):
+        """Start logging GPU performance in a separate thread."""
+        self.running = True
+        thread = threading.Thread(target=self._log_gpu_stats)
+        thread.daemon = True  # Ensures the thread will exit when the main program exits
+        thread.start()
+
+    def stop(self):
+        """Stop logging GPU performance."""
+        self.running = False
 
 
 def exception_handler(

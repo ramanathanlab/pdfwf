@@ -1,0 +1,35 @@
+# The directory containing the pdfs to convert
+pdf_dir: /lus/eagle/projects/argonne_tpc/ogokdemir/joint_mini
+
+# The output directory of the workflow
+out_dir: /lus/eagle/projects/argonne_tpc/ogokdemir/parser_outs/marker_profiling
+
+# Only convert the first 100 pdfs for testing
+num_conversions: 200
+
+# The number of PDFs to parse in each parsl task
+chunk_size: 5
+
+parser_settings:
+  name: "marker"
+
+# The compute settings for the workflow
+compute_settings:
+  # The name of the compute platform to use
+  name: polaris
+  # The number of compute nodes to use
+  num_nodes: 1
+  # Make sure to update the path to your conda environment and HF cache
+  worker_init: "module use /soft/modulefiles; module load conda; conda activate marker-wf"
+  # The scheduler options to use when submitting jobs
+  scheduler_options: "#PBS -l filesystems=home:eagle:grand"
+  # Make sure to change the account to the account you want to charge
+  account: argonne_tpc
+  # The HPC queue to submit to
+  queue: debug
+  # The amount of time to request for your job
+  walltime: 01:00:00
+  monitoring_settings:
+    resource_monitoring_interval: 10
+    logging_endpoint: 'sqlite:////lus/eagle/projects/argonne_tpc/ogokdemir/adaparse/marker/marker_perf_log.db'
+    workflow_name: marker_monitoring

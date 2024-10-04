@@ -14,7 +14,7 @@ from pdfwf.parsers import ParserConfigTypes
 from pdfwf.parsl import ComputeSettingsTypes
 from pdfwf.utils import BaseModel
 from pdfwf.utils import batch_data
-from pdfwf.utils import setup_logging
+from pdfwf.utils import setup_logging, NvidiaSMILogger
 
 
 def parse_pdfs(
@@ -37,7 +37,7 @@ def parse_pdfs(
 
     from pdfwf.parsers import get_parser
     from pdfwf.timer import Timer
-    from pdfwf.utils import setup_logging
+    from pdfwf.utils import setup_logging, NvidiaSMILogger
 
     # Setup logging
     logger = setup_logging('pdfwf')
@@ -52,9 +52,27 @@ def parse_pdfs(
     with Timer('initialize-parser', unique_id):
         parser = get_parser(parser_kwargs, register=True)
 
+    #Setup GPU perf logging
+    nvidiasmi_logger = NvidiaSMILogger(
+        #using the parsl process-level unique id to avoid collisions
+        log_file = output_dir.parent / 'nvidia-smi-logs' / f'nvidia_smi_{parser.unique_id}.csv',
+        interval= 1,
+        flush_interval = 60,
+        iterations= 900
+    )
+
+    #start the nvidia-smi logger.
+    nvidiasmi_logger.start()
+
     # Process the PDF files in bulk
     with Timer('parser-parse', unique_id):
         documents = parser.parse(pdf_paths)
+
+    #parsing has finished, flush nvidia-smi logger state to disk.
+    nvidiasmi_logger.flush()
+
+    #stop the nvidia-smi logger so its thread is killed.
+    nvidiasmi_logger.stop()
 
     # If parsing failed, return early
     if documents is None:
@@ -297,7 +315,7 @@ if __name__ == '__main__':
             parser_kwargs=config.parser_settings.model_dump(),
         )
     # NEW LINE
-    logger.info(f'-->config.parser_settings.model_dump() : {config.parser_settings.model_dump()}')    
+    logger.info(f'-->config.parser_settings.model_dump() : {config.parser_settings.model_dump()}')
 
     # Setup parsl for distributed computing
     parsl_config = config.compute_settings.get_config(config.out_dir / 'parsl')
