@@ -153,6 +153,12 @@ class TimeLogger:
             # If the line doesn't contain the timer information, skip it
             if not match:
                 continue
+
+            # Handle any odd log lines by skipping them
+            if len(match) != 5:
+                print(f"Invalid log format detected: {match}\n{line}")
+                continue
+
             time_stats.append(
                 TimeStats(
                     tags=match[1].split(),
