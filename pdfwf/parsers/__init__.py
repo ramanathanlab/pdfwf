@@ -6,6 +6,8 @@ from typing import Any
 
 from pdfwf.parsers.adaparse import AdaParse
 from pdfwf.parsers.adaparse import AdaParseConfig
+from pdfwf.parsers.adafast import AdaFast
+from pdfwf.parsers.adafast import AdaFastConfig
 from pdfwf.parsers.base import BaseParser
 from pdfwf.parsers.base import BaseParserConfig
 from pdfwf.parsers.marker import MarkerParser
@@ -24,6 +26,7 @@ from pdfwf.registry import registry
 
 ParserConfigTypes = (
     AdaParseConfig
+    | AdaFastConfig
     | MarkerParserConfig
     | OreoParserConfig
     | NougatParserConfig
@@ -34,6 +37,7 @@ ParserConfigTypes = (
 )
 ParserTypes = (
     AdaParse
+    | AdaFast
     | MarkerParser
     | NougatParser
     | OreoParser
@@ -46,6 +50,7 @@ _ParserTypes = tuple[type[ParserConfigTypes], type[ParserTypes]]
 
 STRATEGIES: dict[str, _ParserTypes] = {
     'adaparse': (AdaParseConfig, AdaParse),
+    'adafast': (AdaFastConfig, AdaFast),
     'marker': (MarkerParserConfig, MarkerParser),
     'oreo': (OreoParserConfig, OreoParser),
     'nougat': (NougatParserConfig, NougatParser),
@@ -81,6 +86,7 @@ def get_parser(
 
     Currently supports the following strategies:
     - adaparse
+    - adafast
     - marker
     - oreo
     - nougat
