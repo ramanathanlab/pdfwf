@@ -91,7 +91,7 @@ class TextRegressor(ABC):
 
         # load
         self.fasttext_model = fasttext.load_model(f'{self.fasttext_dir}/cc.en.300.bin')
-        fasttext.util.reduce_model(self.fasttext_model, 100)
+        #fasttext.util.reduce_model(self.fasttext_model, 100)
 
     @abstractmethod
     def decision_function(self, preds: np.array, sign_threshold: float) -> np.array:
@@ -182,7 +182,7 @@ class NougatTextClassifier(TextRegressor):
             The decision function result (array of 1s and 0s).
         """
         # Compute the difference between the two columns (predictions)
-        preds_diff = preds[:, 0] - preds[:, 1]
+        preds_diff = preds[:, 1] - preds[:, 0]
 
         # Return 1 if the difference exceeds the threshold, otherwise 0
         decision_result = np.where(preds_diff > sign_threshold, 1, 0)
