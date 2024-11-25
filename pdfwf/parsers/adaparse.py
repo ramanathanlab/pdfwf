@@ -83,11 +83,16 @@ class TextClassifier(ABC):
 
         # Load the base model
         model = AutoModelForSequenceClassification.from_pretrained(
-            'bert-base-uncased', num_labels=11
+            'bert-base-uncased', num_labels=1
         )
 
         # Load the fine-tuned model with LoRA adapters
         model = PeftModel.from_pretrained(model, config.weights_path)
+
+        # quantize
+        #model = torch.quantization.quantize_dynamic(
+        #    model, {torch.nn.Linear}, dtype=torch.qint8  # lin layers only
+        #)
 
         # Move the model to the appropriate device
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -169,6 +174,9 @@ class TextClassifier(ABC):
             # Call the decision function
             y_pred = self.decision_function(outputs.logits)
 
+            # debug
+            print('...y_pred: ', y_pred)
+
             # Collect the predictions
             predictions.extend(y_pred.tolist())
 
@@ -184,28 +192,36 @@ class NougatTextClassifier(TextClassifier):
         Parameters
         ----------
         logits : torch.Tensor
-            The model logits.
+            The model logits (regression output).
 
         Returns
         -------
         torch.Tensor
-            The decision function result (tensor of ints).
+            The decision function result (binary tensor of ints).
         """
-        # Get the predicted classes
-        y_pred = logits.argmax(dim=1)
+        # DEBUG: Print logits
+        #print('logits (regression output):')
+        #print(logits.detach().cpu())
 
-        # We only care about the class 0 (high quality) and class 1
-        # (low quality). Assign 0 to class 0 and 1 to all other classes.
-        
-        # NEW (SIMPLE PERF TEST)
-        #probability = 0.05  # 5%
-        #mask = torch.rand(y_pred.shape, dtype=torch.float32) < probability
-        #mask = mask.to(y_pred.dtype)
-        #y_pred[mask.bool()] = 1  # Ensure the mask is boolean for indexing
-        # legacy: always 0
-        y_pred[y_pred != 0] = 0
+        # Convert logits to float (if not already)
+        y_pred = logits.float()
 
-        return y_pred
+        # Calculate the 50th percentile (median)
+        threshold = torch.quantile(y_pred, 0.05)  # 50th percentile
+
+        # DEBUG: Print threshold value
+        #print('Threshold (5th percentile):', threshold.item())
+
+        # Assign values: 1 for low quality (below or equal to threshold), 0 for high quality (above threshold)
+        y_pred_binary = torch.where(y_pred <= threshold, 1, 0)
+
+        ## DEBUG: Print y_pred after thresholding
+        #print('y_pred_binary (after thresholding):')
+        #print(y_pred_binary.detach().cpu())
+
+        return y_pred_binary.float()
+
+
 
 
 class AdaParseConfig(
@@ -282,17 +298,29 @@ class AdaParse(BaseParser):
         with Timer('adaparse-quality-check', self.unique_id):
             document_text = [d['text'] for d in documents]
             qualities = self.classifier.predict(document_text)
+            # i d['text'] has less than 100 characters -> set entry in qualities to
+
+        # how to print thoise too?
+        #print('qualities')
+        #print('Qualities:', qualities)
 
         # Log the percentage of low-quality documents
-        low_quality_num = sum(q != 0 for q in qualities)
+        low_quality_num = sum(sum(q) > 0.1 for q in qualities)
         low_quality_percentage = (low_quality_num / len(qualities)) * 100
         print(f'Low-quality documents: {low_quality_percentage:.2f}%')
 
         # Collect the documents that passed the quality check
-        documents = [d for d, q in zip(documents, qualities) if q == 0]
+        #new_docs = [d for d, q in zip(documents, qualities) if sum(q) < 0.1]
+        tracked_documents = []
+        for d, q in zip(documents, qualities):
+            if sum(q) < 0.1:
+                d['parser'] = 'pymupdf'
+                tracked_documents.append(d)
+        documents = tracked_documents
+
 
         # Collect the pdf files that failed the quality check
-        low_quality_pdfs = [p for p, q in zip(pdf_files, qualities) if q != 0]
+        low_quality_pdfs = [p for p, q in zip(pdf_files, qualities) if sum(q) > 0.1]
 
         # If no low-quality documents, return the parsed documents
         if not low_quality_pdfs:
@@ -301,6 +329,13 @@ class AdaParse(BaseParser):
         # Parse the low-quality documents using the Nougat parser
         with Timer('adaparse-nougat-parsing', self.unique_id):
             nougat_documents = self.nougat_parser.parse(low_quality_pdfs)
+            # track parser source
+            tracked_nougat_documents = []
+            for noug_doc in nougat_documents:
+                noug_doc['parser'] = 'nougat'
+                tracked_nougat_documents.append(noug_doc)
+            nougat_documents = tracked_nougat_documents
+
 
         # If Nougat documents were parsed, add them to the output
         if nougat_documents is not None:

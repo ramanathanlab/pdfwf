@@ -1,3 +1,4 @@
+marker-pdf
 nougat-ocr==0.1.17
 transformers==4.38.2
 texify==0.1.10
