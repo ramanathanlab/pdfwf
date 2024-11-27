@@ -81,20 +81,27 @@ class TesseractParser(BaseParser):
         # Open pdf
         doc = pymupdf.open(pdf_path)
 
+        # track char page indices
+        cumm_idx = 0
+        page_indices = [0]
         # Parse text from image from document page
         text_list = []
         for page in doc:
             try:
-                # convert the page to image (pixmap) given config`s dpi
+                # - convert the page to image (pixmap) given config`s dpi
                 pix = page.get_pixmap(dpi=self.config.dpi)
 
-                # Convert the pixmap to a PIL image
+                # - convert the pixmap to a PIL image
                 img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
 
-                # Use pytesseract to perform OCR on the image
+                # - use pytesseract to perform OCR on the image
                 page_text = pytesseract.image_to_string(img, lang=self.config.lang)
 
-                # Append the text to the list
+                # - char indices
+                cumm_idx+=(len(page_text) + len('\n'))
+                page_indices.append(cumm_idx)
+
+                # - append the text to the list
                 text_list.append(page_text)
             except Exception as e:
                 print(f"An error occurred on page {page.number}: {e}")
@@ -102,11 +109,17 @@ class TesseractParser(BaseParser):
         # cloe document
         doc.close()
 
+        # remove trailing index
+        page_indices = page_indices[:-1]
+
+        # meta data
+        out_meta = {'page_char_idx' : page_indices, }
+
         # merge page-wise texts
         full_text = '\n'.join(text_list)
 
-        # return full text
-        return full_text
+        # return full text, meta
+        return full_text, out_meta
 
     @exception_handler(default_return=None)
     def parse(self, pdf_files: list[str]) -> list[dict[str, Any]] | None:
@@ -114,21 +127,22 @@ class TesseractParser(BaseParser):
         documents = []
         # Process each PDF
         for pdf_file in pdf_files:
-            # Parse the PDF
+            # parse the PDF
             output = self.parse_pdf(pdf_file)
 
-            # Check if the PDF was parsed successfully
+            # check if the PDF was parsed successfully
             if output is None:
                 print(f'Error: Failed to parse {pdf_file}')
                 continue
 
             # output is full-text-only
-            text = output
+            text, metadata = output
 
-            # Setup the document fields to be stored
+            # setup the document fields to be stored
             document = {
                 'text': text,
                 'path': str(pdf_file),
+                'metadata' : metadata,
             }
             documents.append(document)
 
