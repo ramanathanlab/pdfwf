@@ -1,13 +1,17 @@
 # The directory containing the pdfs to convert
-pdf_dir: /lus/eagle/projects/argonne_tpc/siebenschuh/small-pdf-dataset/
+pdf_dir: /lus/eagle/projects/argonne_tpc/siebenschuh/small-pdf-dataset-zipped/
 
 # The directory to place the converted pdfs in
-out_dir: /eagle/projects/argonne_tpc/siebenschuh/aurora_gpt/output/pypdf/
+out_dir: /eagle/projects/argonne_tpc/siebenschuh/aurora_gpt/output/tesseract/
 
 # The settings for the pdf parser
 parser_settings:
   # The name of the parser to use
-  name: pypdf
+  name: tesseract
+  # Image resolution (DPI)
+  dpi: 100
+  # Language
+  lang: eng
 
 # The compute settings for the workflow
 compute_settings:
@@ -15,7 +19,7 @@ compute_settings:
   name: polaris
   # The number of compute nodes to use
   num_nodes: 1
-  # Path to conda environment
+  # Make sure to update the path to your conda environment and HF cache
   worker_init: "module use /soft/modulefiles; module load conda/2024-04-29; conda activate adaparse"
   # The scheduler options to use when submitting jobs
   scheduler_options: "#PBS -l filesystems=home:eagle"
@@ -24,4 +28,4 @@ compute_settings:
   # The HPC queue to submit to
   queue: debug
   # The amount of time to request for your job
-  walltime: 00:15:00
+  walltime: 00:30:00

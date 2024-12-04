@@ -1,0 +1,4 @@
+git+https://github.com/facebookresearch/nougat.git
+transformers==4.38.2
+albumentations==1.4.11
+albucore==0.0.16

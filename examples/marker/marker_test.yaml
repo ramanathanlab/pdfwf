@@ -1,8 +1,8 @@
 # The directory containing the pdfs to convert
-pdf_dir: /lus/eagle/projects/argonne_tpc/hippekp/small-pdf-set
+pdf_dir: /lus/eagle/projects/argonne_tpc/siebenschuh/small-pdf-dataset/
 
 # The directory to place the converted pdfs in
-out_dir: runs/output-text
+out_dir: /eagle/projects/argonne_tpc/siebenschuh/aurora_gpt/output/marker/
 
 # The settings for the pdf parser
 parser_settings:
@@ -16,12 +16,12 @@ compute_settings:
   # The number of compute nodes to use
   num_nodes: 1
   # Make sure to update the path to your conda environment and HF cache
-  worker_init: "module load conda/2023-10-04; conda activate marker-wf; export HF_HOME=/lus/eagle/projects/CVD-Mol-AI/braceal/cache/huggingface"
+  worker_init: "module load conda/2023-04-29; conda activate adaparse; export HF_HOME=/eagle/projects/argonne_tpc/siebenschuh/aurora_gpt/cache/huggingface"
   # The scheduler options to use when submitting jobs
-  scheduler_options: "#PBS -l filesystems=home:eagle:grand"
+  scheduler_options: "#PBS -l filesystems=home:eagle"
   # Make sure to change the account to the account you want to charge
-  account: FoundEpidem
+  account: argonne_tpc
   # The HPC queue to submit to
   queue: debug
   # The amount of time to request for your job
-  walltime: 01:00:00
+  walltime: 00:60:00
