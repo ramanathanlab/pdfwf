@@ -97,60 +97,6 @@ an entry for that PDF.
 See the [Monitoring the Workflow](#monitoring-the-workflow) section for
 description of the other log files that are generated during the workflow.
 
-### Monitoring
-Once you've started the workflow, you can monitor the outputs by watching the
-output files in the `out_dir` specified in the configuration file. Below are
-some useful commands to monitor the workflow. First, `cd` to the `out_dir`.
-
-To see the number of PDFs that have been parsed:
-```console
-cat parsed_pdfs/* | grep '{"path":' | wc -l
-```
-
-To watch the stdout and stderr of the tasks:
-```console
-tail -f parsl/000/submit_scripts/*
-```
-
-To check the Parsl workflow log:
-```console
-tail -f parsl/000/parsl.log
-```
-
-To see the basic workflow log:
-```console
-cat pdfwf.log
-```
-
-### Stopping the Workflow
-If you'd like to stop the workflow while it's running, you need to
-stop the Python process, the Parsl high-throughput executor process, and then `qdel` the job ID.
-The process IDs can be determined using the `ps` command. The job ID can be found using `qstat`.
-
-## `Marker` Pipeline Installation
-
-This setup will install the `Marker` tool in a new environment.
-
-On a compute node of Polaris, follow the following instructions:
-
-_Note setting up the local.env assumes conda, see [Non-Conda Env](#non-conda-env)_
-```bash
-mkdir wf-validation
-cd wf-validation/
-
-# Create a base conda environment
-module use /soft/modulefiles; module load conda/2024-04-29
-conda create -n marker-wf python=3.10
-conda activate marker-wf
-
-# install torch(vision)
-pip3 install torch torchvision
-
-# Install Marker
-pip install marker-pdf
-pip install PyMuPDF
-pip install pypdf
-```
 
 ## Developement
 It is recommended to use a virtual environment for developement. The following
@@ -162,15 +108,4 @@ source venv/bin/activate
 pip install -U pip setuptools wheel
 pip install -e '.[dev,docs]'
 pre-commit install
-```
-
-To test the code, run the following command:
-```bash
-pre-commit run --all-files
-tox -e py310
-```
-
-To generate the CLI documentation, run:
-```
-typer pdfwf.cli utils docs --output CLI.md
 ```
