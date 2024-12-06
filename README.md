@@ -14,7 +14,7 @@ supercomputer at Argonne National Laboratory (ANL). Regardless, AdaParse can run
 The steps below enable any of the parsers.
 ```bash
 git clone git@github.com:7shoe/AdaParse.git
-cd adaparse
+cd AdaParse
 pip install --upgrade pip setuptools wheel
 pip install -e .
 ```
@@ -82,9 +82,9 @@ Example configuration files for each parser can be found in:
 - **Tesseract**: [examples/tesseract/tesseract_test.yaml](examples/tesseract/tesseract_test.yaml)
 
 ### Output
-Once you've updated the YAML file and run the AdaParse command, the textual output will be written to the `out_dir`. 
+Once you've updated the YAML file and run the AdaParse command, the textual output will be written to the `out_dir`.
 The subdirectory `<out_dir>/parsed_pdfs` contains the parsed PDF output in JSON lines format. Each line of the JSONL file contains
-the `path` field with the PDF source file, the `text` field containing the parsed text, and the `metadata` field containing information on author, title. etc.. 
+the `path` field with the PDF source file, the `text` field containing the parsed text, and the `metadata` field containing information on author, title. etc..
 Please note that the particular metadata stored depends on the parser used.
 ```json
 {"path": "/path/to/1.pdf", "text": "This is the text of the first PDF."}
@@ -143,7 +143,7 @@ module use /soft/modulefiles; module load conda/2024-04-29
 conda create -n marker-wf python=3.10
 conda activate marker-wf
 
-# install torch(vision) 
+# install torch(vision)
 pip3 install torch torchvision
 
 # Install Marker
