@@ -9,9 +9,9 @@ from typing import Literal
 
 from pypdf import PdfReader
 
-from pdfwf.parsers.base import BaseParser
-from pdfwf.parsers.base import BaseParserConfig
-from pdfwf.utils import exception_handler
+from adaparse.parsers.base import BaseParser
+from adaparse.parsers.base import BaseParserConfig
+from adaparse.utils import exception_handler
 
 __all__ = [
     'PyPDFParser',
@@ -66,11 +66,11 @@ class PyPDFParser(BaseParser):
 
         # Scrape text
         full_text = ''
-       
+
         # - page char indices
         cumm_idx = 0
         page_indices = [0]
-        
+
         # loop pages
         for page in reader.pages:
             page_txt = page.extract_text(extraction_mode='layout')
@@ -78,8 +78,8 @@ class PyPDFParser(BaseParser):
             # - char indices
             cumm_idx += len(page_txt)
             page_indices.append(cumm_idx)
-        
-        # remove trailing index 
+
+        # remove trailing index
         page_indices = page_indices[:-1]
 
         # 1st page
@@ -121,7 +121,7 @@ class PyPDFParser(BaseParser):
             'format': form,
             'first_page': first_page_text,
             'abstract': abstract,
-            'page_char_idx' : page_indices,
+            'page_char_idx': page_indices,
         }
 
         return full_text, out_meta
@@ -148,7 +148,7 @@ class PyPDFParser(BaseParser):
                 'text': text,
                 'path': str(pdf_file),
                 'metadata': metadata,
-                'parser': self.config.name
+                'parser': self.config.name,
             }
             documents.append(document)
 

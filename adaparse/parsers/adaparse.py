@@ -5,23 +5,25 @@ from __future__ import annotations
 import functools
 from abc import ABC
 from abc import abstractmethod
+from collections import Counter
 from pathlib import Path
 from typing import Any
 from typing import Literal
 
+import numpy as np
 import torch
 from pydantic import BaseModel
 from pydantic import Field
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 
-from pdfwf.parsers.base import BaseParser
-from pdfwf.parsers.nougat_ import NougatParser
-from pdfwf.parsers.nougat_ import NougatParserConfig
-from pdfwf.parsers.pymupdf import PyMuPDFParser
-from pdfwf.parsers.pymupdf import PyMuPDFParserConfig
-from pdfwf.timer import Timer
-from pdfwf.utils import exception_handler
+from adaparse.parsers.base import BaseParser
+from adaparse.parsers.nougat_ import NougatParser
+from adaparse.parsers.nougat_ import NougatParserConfig
+from adaparse.parsers.pymupdf import PyMuPDFParser
+from adaparse.parsers.pymupdf import PyMuPDFParserConfig
+from adaparse.timer import Timer
+from adaparse.utils import exception_handler
 
 __all__ = [
     'AdaParse',
@@ -48,6 +50,9 @@ class TextDataset(Dataset):
 class TextClassifierConfig(BaseModel):
     """Settings for the text classifier."""
 
+    alpha: float = Field(
+        description='Max. proportion of high-quality parser.',
+    )
     weights_path: Path = Field(
         description='The path to the fine-tuned model weights.',
     )
@@ -74,20 +79,18 @@ class TextClassifier(ABC):
 
     def __init__(self, config: TextClassifierConfig) -> None:
         """Initialize the classifier."""
-        from peft import PeftModel
         from transformers import AutoModelForSequenceClassification
         from transformers import AutoTokenizer
 
         # Load the tokenizer
-        tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
+        tokenizer = AutoTokenizer.from_pretrained(
+            '7shoe/adaparse-scibert-uncased'
+        )
 
         # Load the base model
         model = AutoModelForSequenceClassification.from_pretrained(
-            'bert-base-uncased', num_labels=11
+            '7shoe/adaparse-scibert-uncased', num_labels=6
         )
-
-        # Load the fine-tuned model with LoRA adapters
-        model = PeftModel.from_pretrained(model, config.weights_path)
 
         # Move the model to the appropriate device
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -142,6 +145,7 @@ class TextClassifier(ABC):
             self.tokenizer,
             return_tensors='pt',
             truncation=True,
+            max_length=512,
             padding=True,
             return_special_tokens_mask=False,
         )
@@ -167,7 +171,7 @@ class TextClassifier(ABC):
             outputs = self.model(**inputs)
 
             # Call the decision function
-            y_pred = self.decision_function(outputs.logits)
+            y_pred = self.decision_function(outputs.logits, self.config.alpha)
 
             # Collect the predictions
             predictions.extend(y_pred.tolist())
@@ -178,34 +182,101 @@ class TextClassifier(ABC):
 class NougatTextClassifier(TextClassifier):
     """Text classifier for the Nougat parser."""
 
-    def decision_function(self, logits: torch.Tensor) -> torch.Tensor:
-        """Return the decision function.
+    def decision_function(
+        self,
+        logits: torch.Tensor,
+        alpha: float,
+        disallow_secondary_parsers: bool = True,
+        high_quality_parser: str = 'nougat',
+        throughput_parser: str = 'pymupdf',
+    ) -> np.ndarray:
+        """
+        Turns the output of a regression model (uni-/multivariate) into that of a classification model.
 
         Parameters
         ----------
         logits : torch.Tensor
             The model logits.
+        alpha : float
+            Threshold for selecting the high-quality parser based on its proportion in predictions.
+        disallow_secondary_parsers : bool, optional
+            If True, restrict predictions to only the high-quality and throughput parsers. Defaults to True.
+        high_quality_parser : str, optional
+            Name of the high-quality parser. Defaults to 'nougat'.
+        throughput_parser : str, optional
+            Name of the throughput parser. Defaults to 'pymupdf'.
 
         Returns
         -------
-        torch.Tensor
-            The decision function result (tensor of ints).
-        """
-        # Get the predicted classes
-        y_pred = logits.argmax(dim=1)
+        np.ndarray
+            The predicted classes.
+        """  # noqa: D401
+        # Default parser
+        parser = 'pymupdf'
 
-        # We only care about the class 0 (high quality) and class 1
-        # (low quality). Assign 0 to class 0 and 1 to all other classes.
-        
-        # NEW (SIMPLE PERF TEST)
-        #probability = 0.05  # 5%
-        #mask = torch.rand(y_pred.shape, dtype=torch.float32) < probability
-        #mask = mask.to(y_pred.dtype)
-        #y_pred[mask.bool()] = 1  # Ensure the mask is boolean for indexing
-        # legacy: always 0
-        y_pred[y_pred != 0] = 0
+        # Parser ID map (same as model config)
+        parser_ids = {
+            'pymupdf': 0,
+            'nougat': 1,
+            'marker': 2,
+            'pypdf': 3,
+            'grobid': 4,
+            'tesseract': 5,
+        }
 
-        return y_pred
+        # Validate parser_ids
+        required_keys = {parser, high_quality_parser, throughput_parser}
+        missing_keys = required_keys - parser_ids.keys()
+        if missing_keys:
+            raise ValueError(
+                f'Missing required parsers in parser_ids: {missing_keys}'
+            )
+
+        # detach/convert convert logits to NumPy array
+        logits_np = logits.cpu().numpy()
+
+        # Multivariate case: Take the argmax along the last dimension
+        pred_classes = np.argmax(logits_np, axis=-1)
+
+        # Alpha-based adjustments
+        alpha_exceed_flag = False
+        if 0 < alpha < 1:
+            class_counts = Counter(pred_classes)
+            alpha_exceed_flag = (
+                1.0 * class_counts[parser_ids[high_quality_parser]]
+            ) / len(pred_classes) > alpha
+
+        if alpha_exceed_flag:
+            hq_scores = logits_np[:, parser_ids[high_quality_parser]]
+            top_alpha = int(len(hq_scores) * alpha)
+            hq_top_idx = np.argsort(-hq_scores)[:top_alpha]
+
+            logits_2nd_best = np.array(logits_np)
+            logits_2nd_best[:, parser_ids[high_quality_parser]] = -np.inf
+            censored_pred_classes = logits_2nd_best.argmax(axis=-1)
+
+            if disallow_secondary_parsers:
+                censored_pred_classes = np.full(
+                    len(censored_pred_classes), parser_ids[throughput_parser]
+                )
+
+            censored_pred_classes[hq_top_idx] = parser_ids[high_quality_parser]
+            pred_classes = censored_pred_classes
+
+        # Disallow secondary parsers
+        if disallow_secondary_parsers:
+            valid_ids = {
+                parser_ids[high_quality_parser],
+                parser_ids[throughput_parser],
+            }
+            pred_classes = [
+                int(pred_i)
+                if pred_i in valid_ids
+                else parser_ids[throughput_parser]
+                for pred_i in pred_classes
+            ]
+
+        return np.array(pred_classes)
 
 
 class AdaParseConfig(
@@ -215,6 +286,9 @@ class AdaParseConfig(
 
     # The name of the parser.
     name: Literal['adaparse'] = 'adaparse'  # type: ignore[assignment]
+
+    # Maximum proportion of Nougat parses for the job (performance parameter)
+    alpha: float = 0.05
 
     # DEV NOTE: The following are convenience properties to access the
     # individual parser configurations (we need a flat configuration for
@@ -244,6 +318,7 @@ class AdaParseConfig(
     def classifier_config(self) -> TextClassifierConfig:
         """Return the text classifier configuration."""
         return TextClassifierConfig(
+            alpha=self.alpha,
             weights_path=self.weights_path,
             batch_size=self.batch_size,
             max_character_length=self.max_character_length,
@@ -282,6 +357,7 @@ class AdaParse(BaseParser):
         with Timer('adaparse-quality-check', self.unique_id):
             document_text = [d['text'] for d in documents]
             qualities = self.classifier.predict(document_text)
+            # print('qualities.size() : ', qualities.size())
 
         # Log the percentage of low-quality documents
         low_quality_num = sum(q != 0 for q in qualities)

@@ -4,39 +4,51 @@ from __future__ import annotations
 
 from typing import Any
 
-from pdfwf.parsers.base import BaseParser
-from pdfwf.parsers.base import BaseParserConfig
-from pdfwf.parsers.marker import MarkerParser
-from pdfwf.parsers.marker import MarkerParserConfig
-from pdfwf.parsers.nougat_ import NougatParser
-from pdfwf.parsers.nougat_ import NougatParserConfig
-from pdfwf.parsers.oreo import OreoParser
-from pdfwf.parsers.oreo import OreoParserConfig
-from pdfwf.parsers.pymupdf import PyMuPDFParser
-from pdfwf.parsers.pymupdf import PyMuPDFParserConfig
-from pdfwf.parsers.pypdf import PyPDFParser
-from pdfwf.parsers.pypdf import PyPDFParserConfig
-from pdfwf.registry import registry
+from adaparse.parsers.adaparse import AdaParse
+from adaparse.parsers.adaparse import AdaParseConfig
+from adaparse.parsers.base import BaseParser
+from adaparse.parsers.base import BaseParserConfig
+from adaparse.parsers.marker import MarkerParser
+from adaparse.parsers.marker import MarkerParserConfig
+from adaparse.parsers.nougat_ import NougatParser
+from adaparse.parsers.nougat_ import NougatParserConfig
+from adaparse.parsers.pymupdf import PyMuPDFParser
+from adaparse.parsers.pymupdf import PyMuPDFParserConfig
+from adaparse.parsers.pypdf import PyPDFParser
+from adaparse.parsers.pypdf import PyPDFParserConfig
+from adaparse.parsers.tesseract import TesseractParser
+from adaparse.parsers.tesseract import TesseractParserConfig
+from adaparse.registry import registry
 
+# from adaparse.parsers.oreo import OreoParser
+# from adaparse.parsers.oreo import OreoParserConfig
 ParserConfigTypes = (
-    MarkerParserConfig
-    | OreoParserConfig
+    # | AdaFastConfig
+    AdaParseConfig
+    | MarkerParserConfig
     | NougatParserConfig
     | PyMuPDFParserConfig
     | PyPDFParserConfig
+    | TesseractParserConfig
 )
 ParserTypes = (
-    MarkerParser | NougatParser | OreoParser | PyMuPDFParser | PyPDFParser
+    # | AdaFast
+    AdaParse
+    | MarkerParser
+    | NougatParser
+    | PyMuPDFParser
+    | PyPDFParser
+    | TesseractParser
 )
-
 _ParserTypes = tuple[type[ParserConfigTypes], type[ParserTypes]]
 
 STRATEGIES: dict[str, _ParserTypes] = {
+    'adaparse': (AdaParseConfig, AdaParse),
     'marker': (MarkerParserConfig, MarkerParser),
-    'oreo': (OreoParserConfig, OreoParser),
     'nougat': (NougatParserConfig, NougatParser),
     'pymupdf': (PyMuPDFParserConfig, PyMuPDFParser),
     'pypdf': (PyPDFParserConfig, PyPDFParser),
+    'tesseract': (TesseractParserConfig, TesseractParser),
 }
 
 
@@ -65,11 +77,13 @@ def get_parser(
     """Get the instance based on the kwargs.
 
     Currently supports the following strategies:
+    - adaparse
     - marker
     - oreo
     - nougat
     - pymupdf
     - pypdf
+    - tesseract
 
     Parameters
     ----------

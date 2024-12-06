@@ -1,5 +1,5 @@
 # The directory containing the pdfs to convert
-pdf_dir: /lus/eagle/projects/argonne_tpc/siebenschuh/small-pdf-dataset/
+pdf_dir: /lus/eagle/projects/argonne_tpc/siebenschuh/aurora_gpt/small-pdf-dataset/
 
 # The directory to place the converted pdfs in
 out_dir: /eagle/projects/argonne_tpc/siebenschuh/aurora_gpt/output/tesseract/
@@ -9,7 +9,7 @@ parser_settings:
   # The name of the parser to use
   name: tesseract
   # Image resolution (DPI)
-  dpi: 100
+  dpi: 50
   # Language
   lang: eng
 
@@ -18,7 +18,7 @@ compute_settings:
   # The name of the compute platform to use
   name: polaris
   # The number of compute nodes to use
-  num_nodes: 1
+  num_nodes: 2
   # Make sure to update the path to your conda environment and HF cache
   worker_init: "module use /soft/modulefiles; module load conda/2024-04-29; conda activate adaparse"
   # The scheduler options to use when submitting jobs

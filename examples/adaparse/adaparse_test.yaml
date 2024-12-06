@@ -1,19 +1,21 @@
 # The directory containing the pdfs to convert
-pdf_dir: /eagle/projects/argonne_tpc/siebenschuh/aurora_gpt/tiny_test_pdf_set
+pdf_dir: /lus/eagle/projects/argonne_tpc/siebenschuh/aurora_gpt/small-pdf-dataset/
 
 # The directory to place the converted pdfs in
-out_dir: /lus/eagle/projects/argonne_tpc/siebenschuh/aurora_gpt/benchmark_data/output/test_pdf_set_to_adaparse
+out_dir: /eagle/projects/argonne_tpc/siebenschuh/aurora_gpt/output/adaparse/
 
 # The settings for the pdf parser
 parser_settings:
   # The name of the parser to use
   name: adaparse
+  # Max. proportion of high-quality parser (Nougat)
+  alpha: 0.5
 
   # The Nougat parser settings
   # Recommended batch size of pages (not pdfs) is 10, maximum that fits into A100 40GB.
   batchsize: 1
   # Path to download the checkpoint to. if already exists, will use existing.
-  checkpoint: /lus/eagle/projects/FoundEpidem/hippekp/aglimmer/nougat-checkpoint
+  checkpoint: /eagle/projects/argonne_tpc/siebenschuh/nougat-checkpoint
   # Set mmd_out to null if you don't want to write mmd files as a byproduct.
   mmd_out: null
   # If set to false, a will skip the pdfs that already have a parsed mmd file in mmd_out
@@ -25,13 +27,13 @@ parser_settings:
   # Preempt processing a paper if mode collapse causes repetitions (true is recommended)
   skipping: true
   # Path for the nougat-specific logs for the run.
-  nougat_logs_path: /eagle/projects/argonne_tpc/siebenschuh/aurora_gpt/tiny_test_pdf_set_to_adaparse/nougat_logs
+  nougat_logs_path: /eagle/projects/argonne_tpc/siebenschuh/aurora_gpt/output/adaparse/nougat_logs
 
   # The AdaParse classifier settings
-  # The path to the fine-tuned model weights.
-  weights_path: /home/siebenschuh/Projects/dataprep/code/DPO/aux/regr_mvp
+  # The HF identifier or path to the fine-tuned regression model
+  weights_path: 7shoe/adaparse-scibert-uncased
   # The batch size for the classifier.
-  batch_size: 256
+  batch_size: 32
   # The maximum length of the input text (in characters).
   max_character_length: 3200
   # The number of data workers for the classifier.
@@ -48,7 +50,7 @@ compute_settings:
   # No of cpus for each worker -> total # of workers (impacted by chunksize)
   cores_per_worker: 1
   # Make sure to update the path to your conda environment and HF cache
-  worker_init: "module use /soft/modulefiles; module load conda/2024-04-29; conda activate adaparse"
+  worker_init: "module use /soft/modulefiles; module load conda/2024-04-29; conda activate adaparse_111"
   # The scheduler options to use when submitting jobs
   scheduler_options: "#PBS -l filesystems=home:eagle"
   # Make sure to change the account to the account you want to charge

@@ -5,9 +5,9 @@ from __future__ import annotations
 from typing import Any
 from typing import Literal
 
-from pdfwf.parsers.base import BaseParser
-from pdfwf.parsers.base import BaseParserConfig
-from pdfwf.utils import exception_handler
+from adaparse.parsers.base import BaseParser
+from adaparse.parsers.base import BaseParserConfig
+from adaparse.utils import exception_handler
 
 __all__ = [
     'MarkerParser',

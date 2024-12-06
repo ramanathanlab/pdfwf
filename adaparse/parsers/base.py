@@ -8,7 +8,7 @@ from abc import abstractmethod
 from typing import Any
 from typing import Literal
 
-from pdfwf.utils import BaseModel
+from adaparse.utils import BaseModel
 
 # TODO: We should update the parser return type to be a dataclass
 

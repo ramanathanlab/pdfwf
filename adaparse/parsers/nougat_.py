@@ -11,10 +11,10 @@ from typing import Literal
 
 from pydantic import field_validator
 
-from pdfwf.parsers.base import BaseParser
-from pdfwf.parsers.base import BaseParserConfig
-from pdfwf.utils import exception_handler
-from pdfwf.utils import setup_logging
+from adaparse.parsers.base import BaseParser
+from adaparse.parsers.base import BaseParserConfig
+from adaparse.utils import exception_handler
+from adaparse.utils import setup_logging
 
 __all__ = [
     'NougatParser',
@@ -95,7 +95,7 @@ class NougatParser(BaseParser):
             bf16=not self.config.full_precision,
             cuda=self.config.batchsize > 0,
         )
-        self.logger = setup_logging('pdfwf_nougat', config.nougat_logs_path)
+        self.logger = setup_logging('adaparse_nougat', config.nougat_logs_path)
 
         # Log the output data information
         if self.config.mmd_out is not None:
@@ -248,15 +248,22 @@ class NougatParser(BaseParser):
                 if is_last_page[j]:
                     out = ''.join(predictions).strip()
                     out = re.sub(r'\n{3,}', '\n\n', out).strip()
-                     
+
                     # derive (approximate) page start character indices
-                    page_indices = [0] + [len(pred) for pred in predictions[:-1]]
+                    page_indices = [0] + [
+                        len(pred) for pred in predictions[:-1]
+                    ]
 
                     # metadata
-                    metadata = {'page_char_idx' : page_indices}
+                    metadata = {'page_char_idx': page_indices}
 
                     # write document
-                    document = {'path': str(is_last_page[j]), 'text': out, 'metadata' : metadata, 'parser' : 'nougat'}
+                    document = {
+                        'path': str(is_last_page[j]),
+                        'text': out,
+                        'metadata': metadata,
+                        'parser': 'nougat',
+                    }
                     documents.append(document)
 
                     if self.config.mmd_out is not None:

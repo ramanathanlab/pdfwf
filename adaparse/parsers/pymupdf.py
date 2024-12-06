@@ -6,11 +6,11 @@ import re
 from typing import Any
 from typing import Literal
 
-import fitz
+import pymupdf
 
-from pdfwf.parsers.base import BaseParser
-from pdfwf.parsers.base import BaseParserConfig
-from pdfwf.utils import exception_handler
+from adaparse.parsers.base import BaseParser
+from adaparse.parsers.base import BaseParserConfig
+from adaparse.utils import exception_handler
 
 __all__ = [
     'PyMuPDFParser',
@@ -53,8 +53,8 @@ class PyMuPDFParser(BaseParser):
             A tuple containing the full text of the PDF and the metadata
             extracted from the PDF. If parsing fails, return None.
         """
-        # Open pdf
-        doc = fitz.open(pdf_path)
+        # open pdf
+        doc = pymupdf.open(pdf_path)
 
         # Scrape text
         text_list = []
@@ -68,12 +68,12 @@ class PyMuPDFParser(BaseParser):
             page_txt = page.get_text()
             text_list.append(page_txt)
             # - char indices
-            cumm_idx+=(len(page_txt) + len('\n'))
+            cumm_idx += len(page_txt) + len('\n')
             page_indices.append(cumm_idx)
 
-        # remove trailing index 
+        # remove trailing index
         page_indices = page_indices[:-1]
-        
+
         full_text = '\n'.join(text_list)
 
         # Get first page (as a proxy for `abstract`)
@@ -104,9 +104,9 @@ class PyMuPDFParser(BaseParser):
             'format': form,
             'first_page': first_page_text,
             'abstract': abstract,
-            'page_char_idx' : page_indices
+            'page_char_idx': page_indices,
         }
-        
+
         # explicitely close doc
         doc.close()
 
