@@ -1,4 +1,4 @@
-"""Balance output jsonl files from a workflow run."""
+"""Balance output jsonl files from a workflow run (pdfwf)"""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from uuid import uuid4
 
 from tqdm import tqdm
 
-from pdfwf.utils import batch_data
+from adaparse.utils import batch_data
 
 
 def _write_jsonl(output_dir: Path, lines: str) -> None:

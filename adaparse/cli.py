@@ -68,7 +68,7 @@ def nougat(  # noqa: PLR0913
         help='Skip if the model falls in repetition.',
     ),
     nougat_logs_path: Path = typer.Option(  # noqa: B008
-        'pdfwf_nougat_logs',
+        'adaparse_nougat_logs',
         '--nougat_logs_path',
         '-n',
         help='The path to the Nougat-specific logs.',
@@ -82,7 +82,7 @@ def nougat(  # noqa: PLR0913
     ),
 ) -> None:
     """Parse PDFs using the nougat parser."""
-    from pdfwf.convert import parse_pdfs
+    from adaparse.convert import parse_pdfs
 
     # Make the output directory if it doesn't exist
     output_dir.mkdir(exist_ok=True)
@@ -150,7 +150,7 @@ def marker(
     ),
 ) -> None:
     """Parse PDFs using the marker parser."""
-    from pdfwf.convert import parse_pdfs
+    from adaparse.convert import parse_pdfs
 
     # Make the output directory if it doesn't exist
     output_dir.mkdir(exist_ok=True)
@@ -296,7 +296,7 @@ def oreo(  # noqa: PLR0913
     ),
 ) -> None:
     """Parse PDFs using the oreo parser."""
-    from pdfwf.convert import parse_pdfs
+    from adaparse.convert import parse_pdfs
 
     # Make the output directory if it doesn't exist
     output_dir.mkdir(exist_ok=True)
@@ -372,7 +372,7 @@ def balance_jsonl(
     ),
 ) -> None:
     """Rewrite JSONL files to balance the number of lines per file."""
-    from pdfwf.balance import balance_jsonl_files
+    from adaparse.balance import balance_jsonl_files
 
     # Collect JSONL files
     jsonl_files = list(input_dir.glob('*.jsonl'))
@@ -419,7 +419,7 @@ def parse_timers(
     """Parse timer logs from the PDF workflow."""
     import pandas as pd
 
-    from pdfwf.timer import TimeLogger
+    from adaparse.timer import TimeLogger
 
     # Path to the timer logs
     log_dir = run_path / 'parsl' / '000' / 'submit_scripts'
@@ -469,8 +469,8 @@ def zip_pdfs(
     import json
     from concurrent.futures import ProcessPoolExecutor
 
-    from pdfwf.utils import batch_data
-    from pdfwf.utils import zip_worker
+    from adaparse.utils import batch_data
+    from adaparse.utils import zip_worker
 
     # Make output directory if it does not already exist
     output_dir.mkdir(exist_ok=True, parents=True)

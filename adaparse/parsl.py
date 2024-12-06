@@ -24,8 +24,8 @@ from parsl.providers import PBSProProvider
 from parsl.providers import SlurmProvider
 from parsl.utils import get_all_checkpoints
 
-from pdfwf.utils import BaseModel
-from pdfwf.utils import PathLike
+from adaparse.utils import BaseModel
+from adaparse.utils import PathLike
 
 
 class BaseComputeSettings(BaseModel, ABC):

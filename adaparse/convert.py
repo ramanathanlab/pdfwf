@@ -10,11 +10,11 @@ from typing import Any
 
 from parsl.concurrent import ParslPoolExecutor
 
-from pdfwf.parsers import ParserConfigTypes
-from pdfwf.parsl import ComputeSettingsTypes
-from pdfwf.utils import BaseModel
-from pdfwf.utils import batch_data
-from pdfwf.utils import setup_logging
+from adaparse.parsers import ParserConfigTypes
+from adaparse.parsl import ComputeSettingsTypes
+from adaparse.utils import BaseModel
+from adaparse.utils import batch_data
+from adaparse.utils import setup_logging
 
 
 def parse_pdfs(
@@ -35,12 +35,12 @@ def parse_pdfs(
     import json
     import uuid
 
-    from pdfwf.parsers import get_parser
-    from pdfwf.timer import Timer
-    from pdfwf.utils import setup_logging
+    from adaparse.parsers import get_parser
+    from adaparse.timer import Timer
+    from adaparse.utils import setup_logging
 
     # Setup logging
-    logger = setup_logging('pdfwf')
+    logger = setup_logging('adaparse')
 
     # Unique ID for logging
     unique_id = str(uuid.uuid4())
@@ -100,8 +100,8 @@ def parse_zip(
     import uuid
     from pathlib import Path
 
-    from pdfwf.convert import parse_pdfs
-    from pdfwf.timer import Timer
+    from adaparse.convert import parse_pdfs
+    from adaparse.timer import Timer
 
     # Time the worker function
     timer = Timer('finished-parsing', zip_file).start()
@@ -142,7 +142,7 @@ def parse_zip(
 
 
 def parse_checkpoint(checkpoint_path: str) -> set[str]:
-    """Parse which input paths have been completed from a pdfwf output dir.
+    """Parse which input paths have been completed from a adaparse output dir.
 
     NOTE: This function currently only is possible if the input is parsed with
     zip files. The raw pdf parsing logging does not log each individual pdf
@@ -152,7 +152,7 @@ def parse_checkpoint(checkpoint_path: str) -> set[str]:
     Parameters
     ----------
     checkpoint_path : str
-        Path to root pdfwf directory. Should contain a `parsl` directory
+        Path to root adaparse directory. Should contain a `parsl` directory
 
     Returns
     -------
@@ -160,7 +160,7 @@ def parse_checkpoint(checkpoint_path: str) -> set[str]:
         A set of paths that have already been parsed in previous runs
     """
     # Grab time logger for parsing functionality
-    from pdfwf.timer import TimeLogger
+    from adaparse.timer import TimeLogger
 
     # get all *.stdout files
     stdout_files = Path(checkpoint_path).glob('**/*.stdout')
@@ -228,7 +228,7 @@ if __name__ == '__main__':
     config.out_dir.mkdir(exist_ok=True, parents=True)
 
     # Setup logging
-    logger = setup_logging('pdfwf', config.out_dir)
+    logger = setup_logging('adaparse', config.out_dir)
 
     logger.info(f'Loaded configuration: {config}')
 

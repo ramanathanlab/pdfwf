@@ -50,7 +50,7 @@ class RegistrySingleton:
     -------
     Register a class once and then get the singleton instance:
 
-    >>> from pdfwf.registry import registry
+    >>> from adaparse.registry import registry
 
     >>> registry.register(MyExpensiveTorchClass)
     >>> my_object = registry.get(MyExpensiveTorchClass, *args, **kwargs)

@@ -3,15 +3,15 @@ requires = ["setuptools>=64.0", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pdfwf"
-version = "0.1.7"
+name = "AdaParse"
+version = "0.1.2"
 authors = [
+    {name = "Carlo Siebenschuh", email = "siebenschuh@uchicago.edu"},
     {name = "Kyle Hippe", email = "khippe@anl.gov"},
     {name = "Alexander Brace", email = "abrace@anl.gov"},
     {name = "Ozan Gokdemir", email = "ogokdemir@anl.gov"},
-    {name = "Carlo Siebenschuh", email = "siebenschuh@anl.gov"}
 ]
-description = "Workflow for running pdf to text conversions at scale"
+description = "Workflow for AdaParse (Adaptive Parallel PDF Parsing and Resource Scaling Engine)"
 readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
@@ -25,16 +25,24 @@ dependencies = [
     "parsl>=2024.2.5",
     "pydantic>=2.6.1",
     "typer[all]>=0.7.0",
+    "transformers==4.38.2",
+    "albumentations==1.4.11",
+    "albucore==0.0.16",
+    "fasttext>=0.9.3",
+    "scikit-learn>=1.5.0",
+    "nougat-ocr==0.1.17",
+    "marker-pdf>=0.1.3,<=1.0.2",
     "PyMuPDF>=1.24.0",
-    "pypdf>=4.2.0"
+    "pypdf>=4.2.0",
+    "pytesseract>=0.3.13",
 ]
 
 [project.urls]
-homepage = "https://github.com/ramanathanlab/pdfwf"
-repository = "https://github.com/ramanathanlab/pdfwf"
+homepage = "https://github.com/7shoe/AdaParse"
+repository = "https://github.com/7shoe/AdaParse"
 
 [project.scripts]
-pdfwf = "pdfwf.cli:main"
+adaparse = "adaparse.cli:main"
 
 [project.optional-dependencies]
 dev = [
@@ -149,7 +157,7 @@ quote-style = "single"
 
 [tool.ruff.lint.isort]
 force-single-line = true
-known-first-party = ["pdfwf", "test", "testing"]
+known-first-party = ["AdaParse", "test", "testing"]
 order-by-type = false
 required-imports = ["from __future__ import annotations"]
 
