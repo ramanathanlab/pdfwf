@@ -1,0 +1,37 @@
+# The directory containing the pdfs to convert
+pdf_dir: /rbstor/ac.ogokdemir/tom_rag/parsed_papers/cancer/pdfs
+
+# The output directory of the workflow
+out_dir: /rbstor/ac.ogokdemir/tom_rag/parsed_papers/cancer/parsed
+
+# Only convert the first 100 pdfs for testing
+num_conversions: 1000
+
+# The number of PDFs to parse in each parsl task
+chunk_size: 5
+
+parser_settings:
+  name: "nougat"
+  # Recommended batch size of pages (not pdfs) is 10, maximum that fits into A100 40GB.
+  batchsize: 10
+  # Path to download the checkpoint to. if already exists, will use existing.
+  checkpoint: /home/ac.ogokdemir/.cache/torch/hub/nougat-0.1.0-base
+  # Set mmd_out to null if you don't want to write mmd files as a byproduct.
+  mmd_out: /rbstor/ac.ogokdemir/tom_rag/parsed_papers/cancer/parsed/
+  # If set to false, a will skip the pdfs that already have a parsed mmd file in mmd_out
+  recompute: false
+  # Set to true if you want to use fp32 instead of bfloat16 (false is recommended)
+  full_precision: false
+  # If set to true, output text will be formatted as a markdown file.
+  markdown: true
+  # Preempt processing a paper if mode collapse causes repetitions (true is recommended)
+  skipping: true
+  # Path for the nougat-specific logs for the run.
+  nougat_logs_path: /tmp/nougat-logs # put somewhere permament if you care.
+
+# The compute settings for the workflow
+compute_settings:
+  # The name of the compute platform to use
+  name: workstation
+  # The number of compute nodes to use
+  available_accelerators: ["0", "1", "2", "3", "4", "5", "6", "7"]
