@@ -1,14 +1,15 @@
 # The directory containing the pdfs to convert
-pdf_dir: /rbstor/ac.ogokdemir/ArgoniumRick/chunk1
+pdf_dir: /rbstor/ac.ogokdemir/ArgoniumRick/zipped_chunks/chunk1_zip
 
 # The output directory of the workflow
 out_dir: /rbstor/ac.ogokdemir/ArgoniumRick/parsed/chunk1_parsed
 
-# Only convert the first 100 pdfs for testing
-num_conversions: 20000
+#Search for zip files in the pdf_dir
+iszip: true
 
-# The number of PDFs to parse in each parsl task
-chunk_size: 5
+# Temporary storage for unzipping files.
+tmp_storage: /dev/shm
+
 
 parser_settings:
   name: "nougat"
