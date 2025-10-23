@@ -1,4 +1,4 @@
-# Tests for `pdfwf`
+# Tests for `adaparse`
 
 Test files should take the form `*_test.py` and tests inside files should be top-level functions named `test_*()`.
 
